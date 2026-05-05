@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
-set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/zh_CN.ts)
+set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
 
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
