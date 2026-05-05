@@ -7,8 +7,10 @@ Kray::Kray(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("KRAY-main");
-    setWindowIcon(QIcon(":/resources/images/pixel_pizza.png"));
+    setWindowIcon(QIcon("://resources/images/pixel_pizza.png"));
 
+    m_system_tray_icon = new MSystemTrayIcon(this);
+    m_system_tray_icon->showTrayIcon();
 
 
     QString str = QString::asprintf(""
@@ -36,6 +38,10 @@ Kray::~Kray()
     if (t1 != nullptr) {
         delete t1;
     }
+    if (m_system_tray_icon != nullptr) {
+        delete m_system_tray_icon;
+    }
+
     delete ui;
 }
 

@@ -29,7 +29,7 @@ set(PROJECT_SOURCES
     # ${RES_RCC}
 )
 
-add_subdirectory(src/core)
+add_subdirectory(src)
 
 # 根据Qt版本使用不同的构建方式
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

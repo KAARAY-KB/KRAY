@@ -4,6 +4,7 @@
 #include <QMainWindow>
 
 #include "t1.h"
+#include "MSystemTrayIcon.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,6 +20,10 @@ public:
     Kray(QWidget *parent = nullptr);
     ~Kray();
 
+private:
+    MSystemTrayIcon *m_system_tray_icon = nullptr;
+    T1 *t1 = nullptr;
+    
 private slots:
     void on_btn_usb_clicked();
 
@@ -26,8 +31,6 @@ private slots:
 
     void on_btn_test_clicked();
 
-private:
-    T1 *t1 = nullptr;
 private:
     Ui::Kray *ui;
 };
