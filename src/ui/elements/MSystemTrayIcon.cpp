@@ -1,7 +1,7 @@
 #include "MSystemTrayIcon.h"
 
 
-MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon) 
+MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon,  const QFont &font)
     : QObject(parent)
 {
     // 检查系统是否支持托盘功能
@@ -13,9 +13,10 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon)
     // 创建系统托盘图标
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(icon);
-    m_trayIcon->setToolTip("My Tray Application");
+    m_trayIcon->setToolTip("System Tray");
 
     m_trayMenu = new QMenu();
+    m_trayMenu->setFont(font);
     
     m_actionShow  = new QAction("显示", m_trayMenu);
     m_actionQuit  = new QAction("退出", m_trayMenu);
@@ -51,17 +52,31 @@ MSystemTrayIcon::~MSystemTrayIcon()
         delete m_trayMenu;
     }
 }
-
+// 显示系统托盘图标
 void MSystemTrayIcon::showTrayIcon()
 {
     if (m_trayIcon != nullptr) {
         m_trayIcon->show();
     }
 }
-
+// 设置系统托盘图标图标
 void MSystemTrayIcon::setIcon(const QIcon &icon)
 {
     if (m_trayIcon != nullptr) {
         m_trayIcon->setIcon(icon);
+    }
+}
+// 设置系统托盘图标提示信息
+void MSystemTrayIcon::setToolTip(const QString &tooltipTip)
+{
+    if (m_trayIcon != nullptr) {
+        m_trayIcon->setToolTip(tooltipTip);
+    }
+}
+// 设置系统托盘图标菜单字体
+void MSystemTrayIcon::setFont(const QFont &font)
+{
+    if (m_trayMenu != nullptr) {
+        m_trayMenu->setFont(font);
     }
 }

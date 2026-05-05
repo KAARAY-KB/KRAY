@@ -1,6 +1,7 @@
 #include "kray.h"
 #include "./ui_kray.h"
 
+#include <QApplication>
 Kray::Kray(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Kray)
@@ -9,7 +10,7 @@ Kray::Kray(QWidget *parent)
     setWindowTitle("KRAY-main");
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
-    m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"));
+    m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"), QApplication::font());
     m_system_tray_icon->showTrayIcon();
 
     // 连接系统托盘图标点击事件

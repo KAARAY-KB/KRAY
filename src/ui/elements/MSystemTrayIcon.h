@@ -11,9 +11,11 @@ class MSystemTrayIcon : public QObject
 {
     Q_OBJECT
 public:
-    explicit MSystemTrayIcon(QObject *parent = nullptr, const QIcon &icon = QIcon());
+    explicit MSystemTrayIcon(QObject *parent = nullptr, const QIcon &icon = QIcon(), const QFont &font = QFont());
     ~MSystemTrayIcon();
 
+    void setToolTip(const QString &tooltipTip);
+    void setFont(const QFont &font);
     void showTrayIcon();
     void setIcon(const QIcon &icon);
 
