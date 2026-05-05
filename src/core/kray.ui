@@ -78,6 +78,19 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
+         <widget class="QPushButton" name="btn_usb">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>USB</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="pushButton">
           <property name="minimumSize">
            <size>
@@ -104,7 +117,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_3">
+         <widget class="QPushButton" name="btn_test">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -112,12 +125,12 @@
            </size>
           </property>
           <property name="text">
-           <string>PushButton</string>
+           <string>TEST</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_4">
+         <widget class="QPushButton" name="btn_close">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -125,20 +138,7 @@
            </size>
           </property>
           <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_5">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>100</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>PushButton</string>
+           <string>CLOSE</string>
           </property>
          </widget>
         </item>

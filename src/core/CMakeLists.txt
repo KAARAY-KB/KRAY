@@ -17,9 +17,9 @@ set(SRC
     kray.cpp
     kray.h
     kray.ui
-    # test.h
-    # test.cpp
-    # test.ui
+    t1.h
+    t1.cpp
+    t1.ui
 )
 
 # 添加库

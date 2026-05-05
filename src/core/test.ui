@@ -30,7 +30,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -94,7 +94,7 @@
            <item row="4" column="0">
             <widget class="QPushButton" name="pushButton_42">
              <property name="text">
-              <string>PushButton</string>
+              <string>123123123</string>
              </property>
             </widget>
            </item>
@@ -132,6 +132,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
             <widget class="QTabWidget" name="tabWidget">
+             <property name="currentIndex">
+              <number>1</number>
+             </property>
              <widget class="QWidget" name="tab">
               <attribute name="title">
                <string>Tab 1</string>

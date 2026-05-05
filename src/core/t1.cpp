@@ -1,5 +1,5 @@
-#include "test.h"
-#include "./ui_test.h"
+#include "t1.h"
+#include "./ui_t1.h"
 
 #include <QDebug>
 #ifdef OS_WINDOWS
@@ -18,13 +18,13 @@
 #endif
 
 
-Test::Test(QWidget *parent) 
+T1::T1(QWidget *parent) 
     : QWidget(parent)
-    , ui(new Ui::Test)
+    , ui(new Ui::T1)
 {
     ui->setupUi(this);
     setAttribute(Qt::WA_QuitOnClose, false);
-    setWindowTitle("Test Widget");
+    setWindowTitle("T1 Widget");
 
 #if TEST_LIBUSB
     const struct libusb_version *libusb_ver = libusb_get_version();
@@ -56,12 +56,12 @@ Test::Test(QWidget *parent)
 #endif
 }
 
-Test::~Test()
+T1::~T1()
 {
     delete ui;
 }
 
-void Test::closeEvent(QCloseEvent *event)
+void T1::closeEvent(QCloseEvent *event)
 {
     qDebug("widget close event");
     event->accept();
@@ -69,7 +69,7 @@ void Test::closeEvent(QCloseEvent *event)
     QWidget::closeEvent(event);
 }
 
-void Test::show_top(void)
+void T1::show_top(void)
 {
     if (this->isMinimized())
     {

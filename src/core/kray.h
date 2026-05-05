@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include "t1.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class Kray;
@@ -17,6 +19,15 @@ public:
     Kray(QWidget *parent = nullptr);
     ~Kray();
 
+private slots:
+    void on_btn_usb_clicked();
+
+    void on_btn_close_clicked();
+
+    void on_btn_test_clicked();
+
+private:
+    T1 *t1 = nullptr;
 private:
     Ui::Kray *ui;
 };
