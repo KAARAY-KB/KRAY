@@ -1,0 +1,21 @@
+
+QGroupBox {
+    color: #353535;
+    font-family: Consolas;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 0px;
+    border-width:  2px;
+    border-radius: 8px;
+    border-style:  outset;
+    border-color:rgba(200, 200, 200, 0.5);
+    background-color:  #ebf3e7;
+}
+QGroupBox:title {
+    subcontrol-origin: content;  /* position the title relative to the content rect */
+    subcontrol-position: top left; /* align the title to the left of the content */
+    border-radius: 8px;
+    top:  2px;
+    left: 2px;
+
+}
