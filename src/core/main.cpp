@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    QFont f("Consolas", 10);
+    QFont f("Source Code Pro", 10);
     a.setFont(f);
 
     Kray w;

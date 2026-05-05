@@ -25,7 +25,7 @@ Kray::Kray(QWidget *parent)
     });
 
 
-    QString str = QString::asprintf(""
+    QString str = QString::asprintf("基本信息\n"
     "QT version: %d.%d.%d\n",QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);
 
     str.append(QString("SYSTEM name: "));

@@ -20,6 +20,8 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon,  const QFon
     
     m_actionShow  = new QAction("显示", m_trayMenu);
     m_actionQuit  = new QAction("退出", m_trayMenu);
+    m_actionShow->setFont(font);
+    m_actionQuit->setFont(font);
 
     m_trayMenu->addAction(m_actionShow);
     m_trayMenu->addSeparator();
@@ -33,13 +35,14 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon,  const QFon
     connect(m_actionQuit, &QAction::triggered, this, [this]() {
         emit actionTriggered("exit");
     });
-    // // 可选：托盘图标点击事件（左键单击）
-    // connect(m_trayIcon, &QSystemTrayIcon::activated, [&](QSystemTrayIcon::ActivationReason reason) {
-    //     if (reason == QSystemTrayIcon::Trigger) {
-    //         // 左键单击逻辑
-    //         QMessageBox::information(nullptr, "Click", "Tray icon clicked!");
-    //     }
-    // });
+
+    connect(m_trayIcon, &QSystemTrayIcon::activated, [&](QSystemTrayIcon::ActivationReason reason) {
+        if (reason == QSystemTrayIcon::Trigger) {
+            // 托盘图标点击事件（左键单击）
+            // QMessageBox::information(nullptr, "Click", "Tray icon clicked!");
+            emit actionTriggered("show");
+        }
+    });
 
 }
 
