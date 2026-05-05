@@ -16,8 +16,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找Qt库，优先找Qt6，反之则找Qt5
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools StateMachine)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools StateMachine)
 
 qt_add_resources(RES_RCC ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
@@ -71,6 +71,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::PrintSupport
+    Qt${QT_VERSION_MAJOR}::StateMachine
     core
 )
 

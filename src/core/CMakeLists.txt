@@ -32,6 +32,7 @@ target_link_libraries(${SUB_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     elements
     usb_controller
+    qt-material-widgets
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC
