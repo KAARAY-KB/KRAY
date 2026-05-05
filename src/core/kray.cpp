@@ -6,8 +6,8 @@ Kray::Kray(QWidget *parent)
     , ui(new Ui::Kray)
 {
     ui->setupUi(this);
-    setWindowTitle("KRAY");
-    // setWindowIcon(QIcon(":/resources/images/pixel_pizza.png"));
+    setWindowTitle("KRAY-main");
+    setWindowIcon(QIcon(":/resources/images/pixel_pizza.png"));
 
 
 
@@ -17,7 +17,6 @@ Kray::Kray(QWidget *parent)
     str.append(QString("SYSTEM name: "));
 #if defined(__linux__)
     str.append(QString("Linux"));
-
 #elif defined(Q_OS_WINDOWS)
     str.append(QString("Windows "));
     #if defined(Q_PROCESSOR_X86_64)

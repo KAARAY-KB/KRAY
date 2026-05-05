@@ -1,0 +1,18 @@
+
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>resources/images/pixel_bomb.png</file>
+        <file>resources/images/pixel_chomper.png</file>
+        <file>resources/images/pixel_mario.png</file>
+        <file>resources/images/pixel_mushrooms_g.png</file>
+        <file>resources/images/pixel_mushrooms_r.png</file>
+        <file>resources/images/pixel_parrot.png</file>
+        <file>resources/images/pixel_pizza.png</file>
+        <file>resources/images/pixel_treasure.png</file>
+        <file>resources/images/applet.png</file>
+        <file>resources/style/kb_key.qss</file>
+        <file>resources/style/group_box.qss</file>
+        <file>resources/style/kb_tab_widget.qss</file>
+    </qresource>
+</RCC>
