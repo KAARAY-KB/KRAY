@@ -11,7 +11,7 @@ class MSystemTrayIcon : public QObject
 {
     Q_OBJECT
 public:
-    explicit MSystemTrayIcon(QObject *parent = nullptr);
+    explicit MSystemTrayIcon(QObject *parent = nullptr, const QIcon &icon = QIcon());
     ~MSystemTrayIcon();
 
     void showTrayIcon();

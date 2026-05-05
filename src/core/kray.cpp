@@ -7,10 +7,21 @@ Kray::Kray(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("KRAY-main");
-    setWindowIcon(QIcon("://resources/images/pixel_pizza.png"));
+    setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
-    m_system_tray_icon = new MSystemTrayIcon(this);
+    m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"));
     m_system_tray_icon->showTrayIcon();
+
+    // 连接系统托盘图标点击事件
+    connect(m_system_tray_icon, &MSystemTrayIcon::actionTriggered, this, [this](const QString &actionName) {
+        if (actionName == "show") {
+            this->show();
+            this->raise();
+            this->activateWindow();
+        } else if (actionName == "exit") {
+            this->close();
+        }
+    });
 
 
     QString str = QString::asprintf(""

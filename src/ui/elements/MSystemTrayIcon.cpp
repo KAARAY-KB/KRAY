@@ -1,7 +1,7 @@
 #include "MSystemTrayIcon.h"
 
 
-MSystemTrayIcon::MSystemTrayIcon(QObject *parent) 
+MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon) 
     : QObject(parent)
 {
     // 检查系统是否支持托盘功能
@@ -12,7 +12,7 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent)
 
     // 创建系统托盘图标
     m_trayIcon = new QSystemTrayIcon(this);
-    m_trayIcon->setIcon(QIcon(":/resources/images/pixel_parrot.png"));
+    m_trayIcon->setIcon(icon);
     m_trayIcon->setToolTip("My Tray Application");
 
     m_trayMenu = new QMenu();

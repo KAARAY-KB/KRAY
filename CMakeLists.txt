@@ -16,8 +16,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找Qt库，优先找Qt6，反之则找Qt5
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
 
 qt_add_resources(RES_RCC ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
 set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
@@ -25,8 +25,7 @@ set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
     # src/core/main.cpp
-
-    # ${RES_RCC}
+    ${RES_RCC}
 )
 
 add_subdirectory(src)
@@ -69,6 +68,9 @@ endif()
 # 链接Qt Widgets库到项目
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::PrintSupport
     core
 )
 
@@ -87,6 +89,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE TRUE                                     # 启用macOS Bundle
     WIN32_EXECUTABLE TRUE                                  # Windows下使用GUI子系统（不显示控制台窗口）
 )
+
+# 设置应用图标（macOS/iOS）
+if(APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_ICON_FILE applet.png
+    )
+endif()
 
 # 包含GNU标准的安装目录变量
 include(GNUInstallDirs)
