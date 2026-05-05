@@ -8,12 +8,13 @@ file(GLOB_RECURSE LIB_SRC CONFIGURE_DEPENDS
     USB*.h
     devices/*.cpp
     devices/*.h
-    hotplug/USBHotplug.cpp
-    hotplug/USBHotplug.h
 )
 
-# 排除 .cpp
+# 排除所有平台特定文件
 list(FILTER LIB_SRC EXCLUDE REGEX "main\\.cpp$")
+list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugWindows")
+list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugLinux")
+list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugMac")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "${SUB_NAME} running on: windows")
@@ -47,8 +48,6 @@ add_library(${SUB_NAME}
 # 链接库
 target_link_libraries(${SUB_NAME} PUBLIC
     Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Gui
     libusb
 )
 # 添加目录

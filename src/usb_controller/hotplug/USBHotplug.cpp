@@ -3,11 +3,9 @@
 
 USBHotplug::USBHotplug() 
 {
-
-
 #if defined(__linux__)
     handle = new USBHotplugLinux();
-#elif defined(Q_OS_WINDOWS)
+#elif defined(__WIN32__)
     handle = new USBHotplugWindows();
 #elif defined(__APPLE__)
     handle = new USBHotplugMac();

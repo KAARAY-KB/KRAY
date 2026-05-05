@@ -7,12 +7,11 @@
 #include "libusb.h"
 #include "USBHelper.h"
 
-#include <QMainWindow>
 
 
 #if defined(__linux__)
     #include "USBHotplugLinux.h"
-#elif defined(Q_OS_WINDOWS)
+#elif defined(__WIN32__)
     #include "USBHotplugWindows.h"
 #elif defined(__APPLE__)
     #include "USBHotplugMac.h"
@@ -27,7 +26,7 @@ public:
 
 #if defined(__linux__)
     USBHotplugLinux *handle = nullptr;
-#elif defined(Q_OS_WINDOWS)
+#elif defined(__WIN32__)
     USBHotplugWindows *handle = nullptr;
 #elif defined(__APPLE__)
     USBHotplugMac *handle = nullptr;
