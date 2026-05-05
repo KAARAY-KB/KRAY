@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # 定义项目名称、版本和使用的编程语言
-project(pf VERSION 0.1 LANGUAGES CXX)
+project(KRAY VERSION 0.1 LANGUAGES CXX)
 
 # AUTOUIC: 自动生成UI代码（从.ui文件生成C++代码）
 set(CMAKE_AUTOUIC ON)
@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
-set(TS_FILES zh_CN.ts)
+set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/zh_CN.ts)
 
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
