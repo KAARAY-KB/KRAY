@@ -47,6 +47,8 @@ add_library(${SUB_NAME}
 # 链接库
 target_link_libraries(${SUB_NAME} PUBLIC
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     libusb
 )
 # 添加目录

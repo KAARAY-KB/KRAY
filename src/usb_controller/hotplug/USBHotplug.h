@@ -7,26 +7,32 @@
 #include "libusb.h"
 #include "USBHelper.h"
 
-#if OS_LINUX
-#include "USBHotplugLinux.h"
-#define USB_HOTPLUG_OS(x)     x##Linux
-#elif OS_WINDOWS
-//#include "USBHotplugWindows.h"
-#define USB_HOTPLUG_OS(x)     x##Windows
-#elif OS_MAC
-#include "USBHotplugMac.h"
-#define USB_HOTPLUG_OS(x)     x##Mac
+#include <QMainWindow>
+
+
+#if defined(__linux__)
+    #include "USBHotplugLinux.h"
+#elif defined(Q_OS_WINDOWS)
+    #include "USBHotplugWindows.h"
+#elif defined(__APPLE__)
+    #include "USBHotplugMac.h"
 #endif
 
-#include "USBHotplugLinux.h"
-#define USB_HOTPLUG_OS(x)     x##Linux
 
 
 class USBHotplug {
 public:
     USBHotplug();
     ~USBHotplug();
+
+#if defined(__linux__)
     USBHotplugLinux *handle = nullptr;
+#elif defined(Q_OS_WINDOWS)
+    USBHotplugWindows *handle = nullptr;
+#elif defined(__APPLE__)
+    USBHotplugMac *handle = nullptr;
+#endif
+
 };
 
 

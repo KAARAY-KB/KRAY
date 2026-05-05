@@ -63,7 +63,7 @@ T1::~T1()
 
 void T1::closeEvent(QCloseEvent *event)
 {
-    qDebug("widget close event");
+    qDebug("t1 widget close event");
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
