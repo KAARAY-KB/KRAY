@@ -3,7 +3,6 @@
 
 
 #include <map>
-#include "libusb.h"
 #include "USBHelper.h"
 #include "USBTransferCallback.h"
 

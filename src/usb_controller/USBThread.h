@@ -5,9 +5,7 @@
 #include <QThread>
 //#include <QEventLoop>
 //#include <QTimer>
-#include <QDebug>
 
-#include "libusb.h"
 
 class USBThread : public QThread
 {

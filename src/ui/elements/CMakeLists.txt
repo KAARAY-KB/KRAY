@@ -12,7 +12,7 @@ add_library(${SUB_NAME} STATIC
     ${SRC}
 )
 # 链接库
-target_link_libraries(${SUB_NAME} PRIVATE 
+target_link_libraries(${SUB_NAME} PUBLIC 
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui

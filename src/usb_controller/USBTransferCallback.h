@@ -2,7 +2,7 @@
 #define USBTRANSFERCALLBACK_H
 
 #include <functional>
-#include "libusb.h"
+#include "USBHelper.h"
 
 
 class USBInterface;

@@ -1,11 +1,14 @@
 #include "USBThread.h"
+#include "libusb.h"
+#include <iostream>
+
 
 USBThread::USBThread(QObject *parent)
     : QThread(parent)
 {
     connect(this, &USBThread::sg_quit, this, [this](){
         run_ty = RUN_TYPE_QUIT;
-        qDebug("on_quit");
+        std::cout << "on_quit" << std::endl;
         if (isRunning() == true) {
             requestInterruption();
             quit();
@@ -39,18 +42,18 @@ void USBThread::run()
                 // int r = libusb_handle_events(nullptr);
                 int r = libusb_handle_events_timeout(nullptr, &tv);
                 if (r != LIBUSB_SUCCESS) {
-                    qDebug("%s", libusb_error_name(r));
+                    std::cout << "libusb_handle_events_timeout error: " << libusb_error_name(r) << std::endl;
                 }
             break;
         }
     }
 QUIT:
-    qDebug("thread end");
+    std::cout << "thread end" << std::endl;
 }
 
 void USBThread::end(void)
 {
-    qDebug("end");
+    std::cout << "end" << std::endl;
     emit sg_quit();
 }
 void USBThread::begin(run_type type)

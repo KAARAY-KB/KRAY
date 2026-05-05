@@ -6,7 +6,7 @@
 #include <Windows.h>
 #endif
 
-#define TEST_LIBUSB 0
+#define TEST_LIBUSB 1
 #define TEST_QCUSTOMPLOT 0
 
 #if TEST_QCUSTOMPLOT

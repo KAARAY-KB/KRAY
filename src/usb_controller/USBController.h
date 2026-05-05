@@ -4,7 +4,6 @@
 
 #include <set>
 #include <map>
-#include "libusb.h"
 #include "USBHelper.h"
 #include "USBInterface.h"
 
