@@ -6,8 +6,17 @@
 #include <Windows.h>
 #endif
 
+#define TEST_LIBUSB 0
+#define TEST_QCUSTOMPLOT 0
+
+#if TEST_QCUSTOMPLOT
 #include "qcustomplot.h"
+#endif
+
+#if TEST_LIBUSB
 #include "libusb.h"
+#endif
+
 
 Test::Test(QWidget *parent) 
     : QWidget(parent)
@@ -17,11 +26,12 @@ Test::Test(QWidget *parent)
     setAttribute(Qt::WA_QuitOnClose, false);
     setWindowTitle("Test Widget");
 
+#if TEST_LIBUSB
     const struct libusb_version *libusb_ver = libusb_get_version();
-    
     qDebug("libusb: %d.%d.%d.%d.%s, %s", libusb_ver->major, libusb_ver->minor, libusb_ver->micro, libusb_ver->nano, libusb_ver->rc, libusb_ver->describe);
+#endif
 
-#if 1 // qcustomplot example
+#if TEST_QCUSTOMPLOT
     QCustomPlot* plot = new QCustomPlot(this);
     plot->setGeometry(10, 10, 780, 580); // 或使用布局
 

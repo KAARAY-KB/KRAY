@@ -61,6 +61,7 @@ CMakeLists.txt.user*
 # *.opensdf
 # *.vcxproj
 # *vcxproj.*
+.vscode/
 
 # # MinGW generated files
 # *.Debug
@@ -80,4 +81,4 @@ CMakeLists.txt.user*
 # .pch/
 # .rcc/
 # .uic/
-/build*/
+*build*/

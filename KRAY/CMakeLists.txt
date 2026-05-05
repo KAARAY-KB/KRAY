@@ -23,7 +23,7 @@ set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
 
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
-    ./src/core/main.cpp
+    # src/core/main.cpp
 )
 
 add_subdirectory(src/core)

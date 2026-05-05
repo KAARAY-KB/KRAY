@@ -5,18 +5,11 @@ set(SUB_NAME core)
 
 
 # target_sources(${PROJECT_NAME} PRIVATE
-#         ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.h
-#         ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.cpp
-#         ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
+#     main.cpp
+#     kray.cpp
+#     kray.h
+#     kray.ui
 # )
-
-# if(PF_BUILD_TEST_WIDGET)
-#     target_sources(${PROJECT_NAME} PRIVATE
-#             ${CMAKE_CURRENT_SOURCE_DIR}/test.h
-#             ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
-#             ${CMAKE_CURRENT_SOURCE_DIR}/test.ui
-#     )
-# endif()
 
 
 set(SRC
@@ -24,6 +17,9 @@ set(SRC
     kray.cpp
     kray.h
     kray.ui
+    # test.h
+    # test.cpp
+    # test.ui
 )
 
 # 添加库
