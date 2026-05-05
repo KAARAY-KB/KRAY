@@ -50,6 +50,9 @@ Kray::~Kray()
     if (t1 != nullptr) {
         delete t1;
     }
+    if (t2 != nullptr) {
+        delete t2;
+    }
     if (m_system_tray_icon != nullptr) {
         delete m_system_tray_icon;
     }
@@ -71,18 +74,8 @@ void Kray::on_btn_usb_clicked()
     // usbWidget->show_top();
 }
 
-void Kray::on_btn_test_clicked()
+void Kray::on_btn_t1_clicked()
 {
-    // QColor color = QColorDialog::getColor(Qt::white, this, "pick a color", QColorDialog::ShowAlphaChannel);
-    // if (color.isValid()) {
-    //     QString styleSheet = QString(
-    //         "QPushButton#btn_test{"
-    //             "background-color: rgba(%1, %2, %3, %4);"
-    //         "}"
-    //     ).arg(color.red()).arg(color.green()).arg(color.blue()).arg(color.alphaF());
-    //     setStyleSheet(styleSheet);
-    // }
-
     if (t1 == nullptr)
     {
         t1 = new T1();
@@ -93,6 +86,15 @@ void Kray::on_btn_test_clicked()
     }
     t1->show_top();
 
+    // QColor color = QColorDialog::getColor(Qt::white, this, "pick a color", QColorDialog::ShowAlphaChannel);
+    // if (color.isValid()) {
+    //     QString styleSheet = QString(
+    //         "QPushButton#btn_test{"
+    //             "background-color: rgba(%1, %2, %3, %4);"
+    //         "}"
+    //     ).arg(color.red()).arg(color.green()).arg(color.blue()).arg(color.alphaF());
+    //     setStyleSheet(styleSheet);
+    // }
 
     // if (USBDeviceManager == nullptr)
     // {
@@ -104,8 +106,6 @@ void Kray::on_btn_test_clicked()
     // }
     // USBDeviceManager->show_top();
 
-
-
     // if (usbDeviceWidget == nullptr)
     // {
     //     usbDeviceWidget = new USBDeviceWidget();
@@ -115,10 +115,15 @@ void Kray::on_btn_test_clicked()
     //     });
     // }
     // usbDeviceWidget->show_top();
+}
 
-
-
-
+void Kray::on_btn_t2_clicked()
+{
+    if (t2 == nullptr)
+    {
+        t2 = new T2();
+    }
+    t2->show();
 }
 
 void Kray::on_btn_close_clicked()

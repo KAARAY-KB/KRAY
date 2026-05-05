@@ -2,9 +2,10 @@
 #define KRAY_H
 
 #include <QMainWindow>
+#include "MSystemTrayIcon.h"
 
 #include "t1.h"
-#include "MSystemTrayIcon.h"
+#include "t2.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,13 +24,13 @@ public:
 private:
     MSystemTrayIcon *m_system_tray_icon = nullptr;
     T1 *t1 = nullptr;
+    T2 *t2 = nullptr;
     
 private slots:
     void on_btn_usb_clicked();
-
     void on_btn_close_clicked();
-
-    void on_btn_test_clicked();
+    void on_btn_t1_clicked();
+    void on_btn_t2_clicked();
 
 private:
     Ui::Kray *ui;

@@ -18,6 +18,9 @@ set(SRC
     t1.h
     t1.cpp
     t1.ui
+    t2.h
+    t2.cpp
+    t2.ui
 )
 
 # 添加库
