@@ -31,7 +31,7 @@ Kray::Kray(QWidget *parent)
     str.append(QString("SYSTEM name: "));
 #if defined(__linux__)
     str.append(QString("Linux"));
-#elif defined(Q_OS_WINDOWS)
+#elif defined(__WIN32__)
     str.append(QString("Windows "));
     #if defined(Q_PROCESSOR_X86_64)
         str.append(QString("64-bit build (x64)"));
