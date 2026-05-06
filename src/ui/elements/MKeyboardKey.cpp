@@ -20,7 +20,7 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     });
 
     QString style;
-    QString qss_path(":/resources/style/kb_key.qss");
+    QString qss_path(":/styles/kb_key.qss");
     QFile qss_file(qss_path);
     if (qss_file.open(QFile::ReadOnly)) {
         style = QLatin1String(qss_file.readAll());

@@ -6,6 +6,7 @@
 
 #include "t1.h"
 #include "t2.h"
+#include "USBWidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,6 +26,7 @@ private:
     MSystemTrayIcon *m_system_tray_icon = nullptr;
     T1 *t1 = nullptr;
     T2 *t2 = nullptr;
+    USBWidget *usb_widget = nullptr;
     
 private slots:
     void on_btn_usb_clicked();

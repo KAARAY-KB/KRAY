@@ -116,7 +116,7 @@ public:
         m_layout->setContentsMargins(20, 0, 0, 0);
 
         QString btn_qss;
-        QFile qss_file(":/resources/style/kb_key.qss");
+        QFile qss_file(":/styles/kb_key.qss");
         if (qss_file.open(QFile::ReadOnly)) {
             btn_qss = QLatin1String(qss_file.readAll());
             qss_file.close();
@@ -171,7 +171,7 @@ public:
         m_layout->setObjectName(QString::fromUtf8(objHead.toUtf8()+"m_layout"));
         
         QString qss_text;
-        QFile qss_file(":/resources/style/group_box.qss");
+        QFile qss_file(":/styles/group_box.qss");
         if (qss_file.open(QFile::ReadOnly)) {
             qss_text = QLatin1String(qss_file.readAll());
             qss_file.close();
@@ -678,7 +678,7 @@ private:
     QString objHead = nullptr;
     void updateTabWidgetStyle(QTabWidget *tabWidget) {
         QString qss_text;
-        QFile qss_file(":/resources/style/kb_tab_widget.qss");
+        QFile qss_file(":/styles/kb_tab_widget.qss");
         if (qss_file.open(QFile::ReadOnly)) {
             qss_text = QLatin1String(qss_file.readAll());
             qss_file.close();
@@ -718,7 +718,7 @@ public:
         }
         ui = form;
         ui->setWindowTitle("Keyboard GT64He");
-        ui->setWindowIcon(QIcon(":/resources/images/applet.png"));
+        ui->setWindowIcon(QIcon(":/images/applet.png"));
 
         gridLayout = new QGridLayout(ui);
         gridLayout->setObjectName(QString::fromUtf8("gridLayout"));

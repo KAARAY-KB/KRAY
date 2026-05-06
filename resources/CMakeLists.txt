@@ -30,21 +30,21 @@ set(LIB_NAME resources)
 #    *.qrc
 #)
 
-sy_add_library(${LIB_NAME}
+# 添加库
+add_library(${LIB_NAME}
     ${SRC}
 )
-sy_inc(${LIB_NAME}
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-
+# 链接库
 target_link_libraries(${LIB_NAME} PRIVATE 
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
 )
+# 添加目录
+target_include_directories(${LIB_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 
-# include(../cmake/add_library.cmake)
 
 # set(CMAKE_AUTORCC ON)
 

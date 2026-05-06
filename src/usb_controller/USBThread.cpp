@@ -1,5 +1,5 @@
 #include "USBThread.h"
-#include "libusb.h"
+#include "USBHelper.h"
 #include <iostream>
 
 

@@ -47,7 +47,7 @@ public:
         ui->resize(400, 200);
         ui->setAttribute(Qt::WA_QuitOnClose, false);
         ui->setWindowTitle("USB Keyboard");
-        ui->setWindowIcon(QIcon(":/resources/images/applet.png"));
+        ui->setWindowIcon(QIcon(":/images/applet.png"));
 
         gridLayout = new QGridLayout(ui);
         gridLayout->setObjectName(QString::fromUtf8("gridLayout"));

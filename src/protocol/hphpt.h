@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include "ec.h"
-#include <stdint.h>
 
 #define HPHPT_SIZE                    ( 64u )
 

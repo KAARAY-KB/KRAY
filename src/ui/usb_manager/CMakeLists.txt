@@ -8,15 +8,12 @@ file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
 )
 
 # 添加库
-add_library(${SUB_NAME} STATIC
+add_library(${SUB_NAME} 
     ${SRC}
 )
 # 链接库
 target_link_libraries(${SUB_NAME} PUBLIC 
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Gui
-    usb_controller
+    keyboards
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC

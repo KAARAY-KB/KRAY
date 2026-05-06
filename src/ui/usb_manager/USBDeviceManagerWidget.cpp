@@ -27,18 +27,8 @@ USBDeviceSubWidget::USBDeviceSubWidget(USBHelper::DevMsg_t &info, QWidget *paren
     QString str = QString("%1-%2").arg(mfr).arg(prod);
     label->setText(str); // 显示制造商和产品名称
 
-    QString tooltip = QString(
-        "|   vid    |   pid    |   bus    |   port   |   addr   |  mfr | prod | sn\n"
-        "-----------+----------+----------+----------+----------+--------------------------------------\n"
-        "|  0x%1  |  0x%2  |  0x%3  |  0x%4  |  0x%5  | %6 | %7 | %8")
-                    .arg(m_info.id.vid,  4, 16, QChar('0'))\
-                    .arg(m_info.id.pid,  4, 16, QChar('0'))\
-                    .arg(m_info.id.bus,  4, 16, QChar('0'))\
-                    .arg(m_info.id.port, 4, 16, QChar('0'))\
-                    .arg(m_info.id.addr, 4, 16, QChar('0'))\
-                    .arg(mfr)\
-                    .arg(prod)\
-                    .arg(sn);
+    QString tooltip = QString::fromStdString(USBHelper::printf_msg(&m_info, true));
+    std::cout << tooltip.toStdString();
     label->setToolTip(tooltip); // 鼠标悬停显示提示信息
     
     btn_enter = new QPushButton("Enter");

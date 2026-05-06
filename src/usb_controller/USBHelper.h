@@ -37,16 +37,21 @@ public:
         DEV_MAX = DEV_UNKNOWN,
     } DevType;
 
-    typedef enum {
+    typedef enum : uint16_t {
         FIND_DEV_TYPE_VID = 0x01 << 1,
         FIND_DEV_TYPE_PID = 0x01 << 2,
         FIND_DEV_TYPE_VID_PID = FIND_DEV_TYPE_PID | FIND_DEV_TYPE_VID,
 
-        FIND_DEV_TYPE_MFR = 0x01 << 3,
+        FIND_DEV_TYPE_MFR  = 0x01 << 3,
         FIND_DEV_TYPE_PROD = 0x01 << 4,
-        FIND_DEV_TYPE_SN = 0x01 << 5,
-        // FIND_DEV_TYPE_BUS = 0x01 << 6,
-        // FIND_DEV_TYPE_PORT = 0x01 << 7,
+        FIND_DEV_TYPE_SN   = 0x01 << 5,
+
+        FIND_DEV_TYPE_BUS  = 0x01 << 6,
+        FIND_DEV_TYPE_PORT = 0x01 << 7,
+        FIND_DEV_TYPE_ADDR = 0x01 << 8,
+
+        FIND_DEV_TYPE_NONE = 0x00,
+        FIND_DEV_TYPE_ALL  = 0xFFFF
     } DevFindType;
 
     typedef struct dev_msg_id{
@@ -66,9 +71,9 @@ public:
         }
     } DevMsgId_t;
     typedef struct {
-        std::string mfr;
-        std::string prod;
-        std::string sn;
+        std::string mfr;  // Manufacturer
+        std::string prod; // Product
+        std::string sn;   // Serial Number
         std::string path; // bus:port:addr
         std::string user;
     } DevMsgCh_t;
@@ -99,7 +104,7 @@ public:
 
     static uint32_t get_dev_num();
     static DevMsgId_t *get_dev_id(uint16_t idx);
-    static void printf_msg(DevMsg_t *const msg, bool show_title);
+    static std::string printf_msg(DevMsg_t *const msg, bool show_title);
     static void debug_msg(DevMsg_t &msg);
 
     // typedef std::function<void (const USBHelper::DevMsg_t)> dev_msg_cb_t;

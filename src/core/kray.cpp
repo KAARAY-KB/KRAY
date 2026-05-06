@@ -53,6 +53,9 @@ Kray::~Kray()
     if (t2 != nullptr) {
         delete t2;
     }
+    if (usb_widget != nullptr) {
+        delete usb_widget;
+    }
     if (m_system_tray_icon != nullptr) {
         delete m_system_tray_icon;
     }
@@ -63,15 +66,15 @@ Kray::~Kray()
 
 void Kray::on_btn_usb_clicked()
 {
-    // if (usbWidget == nullptr)
-    // {
-    //     usbWidget = new USBWidget();
-    //     connect(usbWidget, &USBWidget::exitWindow, this, [=]() {
-    //         delete usbWidget;
-    //         usbWidget = nullptr;
-    //     });
-    // }
-    // usbWidget->show_top();
+    if (usb_widget == nullptr)
+    {
+        usb_widget = new USBWidget();
+        connect(usb_widget, &USBWidget::exitWindow, this, [=]() {
+            delete usb_widget;
+            usb_widget = nullptr;
+        });
+    }
+    usb_widget->show_top();
 }
 
 void Kray::on_btn_t1_clicked()

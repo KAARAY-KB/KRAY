@@ -8,7 +8,6 @@
 #include <QPainter>
 
 
-#include "libusb.h"
 #include "USBHelper.h"
 #include "USBThread.h"
 #include "USBHotplug.h"

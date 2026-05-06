@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <functional>
-#include "libusb.h"
 #include "USBHelper.h"
 
 
