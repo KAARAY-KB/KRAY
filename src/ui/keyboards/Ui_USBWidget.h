@@ -66,7 +66,7 @@ public:
         if (ui->isMinimized()) {
             ui->showNormal();
         }
-    #ifdef OS_WINDOWS
+    #ifdef __WIN32__
         SetWindowPos(HWND(ui->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
         SetWindowPos(HWND(ui->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     #endif

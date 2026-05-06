@@ -2,13 +2,13 @@
 
 
 #include <iostream>
-#include <sstream>
+// #include <sstream>
 // #include <devguid.h>
 // #include <regstr.h>
+// #include <regex>
 #include <usbioctl.h>
 #include <usbscan.h>
 
-#include <regex>
 
 USBHotplugWindows::USBHotplugWindows() 
     : m_hWnd(nullptr)
@@ -161,7 +161,17 @@ std::vector<USBHelper::DevMsg_t> USBHotplugWindows::get_existing_decice_info(voi
         }
 
         USBHelper::DevMsg_t info = {0};
-        std::tie(info.id.vid, info.id.pid, info.ch.sn) = parse_dev_path(pDevInterfaceDetailData->DevicePath);
+        
+        // Qt6 默认定义了 UNICODE 宏，导致 Windows API 使用宽字符版本
+#ifdef UNICODE
+        int len = WideCharToMultiByte(CP_ACP, 0, pDevInterfaceDetailData->DevicePath, -1, nullptr, 0, nullptr, nullptr);
+        std::string devPathA(len, 0);
+        WideCharToMultiByte(CP_ACP, 0, pDevInterfaceDetailData->DevicePath, -1, &devPathA[0], len, nullptr, nullptr);
+        devPathA.pop_back();
+#else
+        std::string devPathA(pDevInterfaceDetailData->DevicePath);
+#endif
+        std::tie(info.id.vid, info.id.pid, info.ch.sn) = parse_dev_path(devPathA);
 
         // 获取设备信息
         SP_DEVINFO_DATA devInfoData;
@@ -178,7 +188,7 @@ std::vector<USBHelper::DevMsg_t> USBHotplugWindows::get_existing_decice_info(voi
                 
                 std::tie(info.id.bus, info.id.port) = parse_location_info(reinterpret_cast<const char*>(buffer));
                 // info.ch.user.append(std::to_string(idx)+": ");
-                info.ch.user.append(pDevInterfaceDetailData->DevicePath);
+                info.ch.user.append(devPathA);
                 info.ch.user.append("\n");
                 info.ch.user.append(reinterpret_cast<const char*>(buffer), size);
 

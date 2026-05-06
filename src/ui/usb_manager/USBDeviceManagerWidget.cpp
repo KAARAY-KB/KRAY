@@ -1,8 +1,9 @@
 #include "USBDeviceManagerWidget.h"
 
-#ifdef OS_WINDOWS
+#ifdef __WIN32__
 #include <Windows.h>
 #endif
+
 // USBDeviceWidget 类实现
 USBDeviceSubWidget::USBDeviceSubWidget(USBHelper::DevMsg_t &info, QWidget *parent) 
     : QFrame(parent)
@@ -167,7 +168,7 @@ void USBDeviceManagerWidget::show_top(void) {
     {
         this->showNormal();
     }
-#ifdef OS_WINDOWS
+#ifdef __WIN32__
     SetWindowPos(HWND(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif

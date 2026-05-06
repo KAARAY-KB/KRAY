@@ -1,7 +1,7 @@
 #include "t2.h"
 #include "./ui_t2.h"
 
-#ifdef OS_WINDOWS
+#ifdef __WIN32__
 #include <Windows.h>
 #endif
 
@@ -34,7 +34,7 @@ void T2::show_top(void)
     {
         this->showNormal();
     }
-#ifdef OS_WINDOWS
+#ifdef __WIN32__
     SetWindowPos(HWND(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif
