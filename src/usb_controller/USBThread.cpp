@@ -1,6 +1,6 @@
 #include "USBThread.h"
 #include "USBHelper.h"
-#include <iostream>
+#include "console.h"
 
 
 USBThread::USBThread(QObject *parent)
@@ -8,7 +8,7 @@ USBThread::USBThread(QObject *parent)
 {
     connect(this, &USBThread::sg_quit, this, [this](){
         run_ty = RUN_TYPE_QUIT;
-        std::cout << "on_quit" << std::endl;
+        Console::out() << "on_quit" << std::endl;
         if (isRunning() == true) {
             requestInterruption();
             quit();
@@ -42,18 +42,18 @@ void USBThread::run()
                 // int r = libusb_handle_events(nullptr);
                 int r = libusb_handle_events_timeout(nullptr, &tv);
                 if (r != LIBUSB_SUCCESS) {
-                    std::cout << "libusb_handle_events_timeout error: " << libusb_error_name(r) << std::endl;
+                    Console::out() << "libusb_handle_events_timeout error: " << libusb_error_name(r) << std::endl;
                 }
             break;
         }
     }
 QUIT:
-    std::cout << "thread end" << std::endl;
+    Console::out() << "thread end" << std::endl;
 }
 
 void USBThread::end(void)
 {
-    std::cout << "end" << std::endl;
+    Console::out() << "end" << std::endl;
     emit sg_quit();
 }
 void USBThread::begin(run_type type)
@@ -72,4 +72,3 @@ void USBThread::keep(void)
 {
     is_abort = false;
 }
-

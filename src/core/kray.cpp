@@ -1,14 +1,26 @@
 #include "kray.h"
 #include "./ui_kray.h"
-
+#include "console.h"
+#include "console_widget.h"
 #include <QApplication>
+
+// 控制台窗口实例（内部实现细节，不在头文件暴露）
+static ConsoleWidget *s_consoleWin = nullptr;
+
 Kray::Kray(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Kray)
 {
     ui->setupUi(this);
-    setWindowTitle("KRAY-main");
+    setWindowTitle("KRAY");
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
+
+    // 1创建控制台窗口并注册
+    s_consoleWin = new ConsoleWidget();
+    s_consoleWin->setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
+    s_consoleWin->setWindowIcon(QIcon(":/images/pixel_pizza.png"));
+    Console::registerSink(s_consoleWin->sink());
+    Console::out()  << "KRAY 控制台输出日志" << std::endl;
 
     m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"), QApplication::font());
     m_system_tray_icon->showTrayIcon();
@@ -59,10 +71,17 @@ Kray::~Kray()
     if (m_system_tray_icon != nullptr) {
         delete m_system_tray_icon;
     }
-
+    if (s_consoleWin != nullptr) {
+        delete s_consoleWin;
+        s_consoleWin = nullptr;
+    }
     delete ui;
 }
 
+void Kray::on_btn_console_clicked()
+{
+    s_consoleWin->show_top();
+}
 
 void Kray::on_btn_usb_clicked()
 {
@@ -125,8 +144,12 @@ void Kray::on_btn_t2_clicked()
     if (t2 == nullptr)
     {
         t2 = new T2();
+        connect(t2, &T2::exitWindow, this, [=]() {
+            delete t2;
+            t2 = nullptr;
+        });
     }
-    t2->show();
+    t2->show_top();
 }
 
 void Kray::on_btn_close_clicked()

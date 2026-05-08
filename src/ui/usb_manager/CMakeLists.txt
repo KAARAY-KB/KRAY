@@ -13,6 +13,7 @@ add_library(${SUB_NAME}
 )
 # 链接库
 target_link_libraries(${SUB_NAME} PUBLIC 
+    console
     keyboards
 )
 # 添加目录

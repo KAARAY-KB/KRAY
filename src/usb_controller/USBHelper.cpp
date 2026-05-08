@@ -1,4 +1,5 @@
 #include "USBHelper.h"
+#include "console.h"
 #include <iomanip>
 #include <sstream>
 #include <iostream>
@@ -49,7 +50,7 @@ std::vector<USBHelper::DevMsg_t> USBHelper::list_device() {
     USBHelper::DevMsg_t info = {0};
 
     int id = 0;
-    std::cout << USBHelper::msg(NULL, true);
+    Console::out() << USBHelper::msg(NULL, true);
 
     for(ssize_t dev_it = 0; dev_it < num_devices; ++dev_it) {
         uint32_t len = 0;
@@ -94,10 +95,10 @@ std::vector<USBHelper::DevMsg_t> USBHelper::list_device() {
                 libusb_close(handle);
             } 
             else {
-                std::cout << "vid:" << info.id.vid  << "pid:" << info.id.pid << " - [Permission denied or device busy]" << std::endl;
+                Console::out() << "vid:" << info.id.vid  << "pid:" << info.id.pid << " - [Permission denied or device busy]" << std::endl;
             }
 
-            std::cout << USBHelper::msg(&info, false);
+            Console::out() << USBHelper::msg(&info, false);
             devs_info.push_back(info);
         }
     }
@@ -123,9 +124,9 @@ std::string USBHelper::msg(DevMsg_t *const msg, bool show_title) {
     std::string end = "\r\n";
 
     if (show_title) {
-        str += "┌──────────┬──────────┬──────────┬──────────┬──────────┬────────────────────────────────────────────────" + end;
+        str += "|--------------------------------------------------------------------------------------------------" + end;
         str += "|   vid    |   pid    |   bus    |   port   |   addr   |  manufacturer, product name, serial number" + end;
-        str += "├──────────┼──────────┼──────────┼──────────┼──────────┼────────────────────────────────────────────────" + end;
+        str += "|----------|----------|----------|----------|----------|-------------------------------------------" + end;
     }
 
     if (msg != NULL) {
@@ -193,7 +194,7 @@ bool USBHelper::dev_id_compare(DevMsg_t dev1, DevMsg_t dev2) {
 int USBHelper::release_interface(libusb_device_handle* handle, int intf) {
     int ret = libusb_release_interface(handle, intf); //释放接口
     if (ret != LIBUSB_SUCCESS) {
-        std::cout << "error releasing interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
+        Console::out() << "error releasing interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
     }
     return ret;
 }
@@ -205,15 +206,15 @@ int USBHelper::claim_interface(libusb_device_handle* handle, int intf, bool try_
         if (ret == LIBUSB_SUCCESS) {
             ret = libusb_claim_interface(handle, intf);
             if (ret != LIBUSB_SUCCESS) {
-                std::cout << "error claiming interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
+                Console::out() << "error claiming interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
             }
         }
         else {
-            std::cout <<  "error detaching kernel driver: "<< intf << ": " << libusb_error_name(ret) << std::endl; 
+            Console::out() <<  "error detaching kernel driver: "<< intf << ": " << libusb_error_name(ret) << std::endl; 
         }
     }
     else if (ret != LIBUSB_SUCCESS) {
-        std::cout << "error claiming interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
+        Console::out() << "error claiming interface: " << intf << ": " << libusb_error_name(ret) << std::endl;
     }
     return ret;
 }

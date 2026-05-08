@@ -2,6 +2,7 @@
 #include "./ui_t1.h"
 
 #include <QDebug>
+#include "console.h"
 #ifdef __WIN32__
 #include <Windows.h>
 #endif
@@ -28,7 +29,9 @@ T1::T1(QWidget *parent)
 
 #if TEST_LIBUSB
     const struct libusb_version *libusb_ver = libusb_get_version();
-    qDebug("libusb: %d.%d.%d.%d.%s, %s", libusb_ver->major, libusb_ver->minor, libusb_ver->micro, libusb_ver->nano, libusb_ver->rc, libusb_ver->describe);
+    Console::out() << "libusb: " << libusb_ver->major << "." << libusb_ver->minor << "." 
+                   << libusb_ver->micro << "." << libusb_ver->nano << "." << libusb_ver->rc 
+                   << ", " << libusb_ver->describe << std::endl;
 #endif
 
 #if TEST_QCUSTOMPLOT
@@ -63,7 +66,7 @@ T1::~T1()
 
 void T1::closeEvent(QCloseEvent *event)
 {
-    qDebug("t1 widget close event");
+    Console::out() << "t1 widget close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

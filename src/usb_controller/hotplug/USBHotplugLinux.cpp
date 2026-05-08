@@ -1,4 +1,5 @@
 #include "USBHotplugLinux.h"
+#include "console.h"
 
 
 USBHotplugLinux::USBHotplugLinux() 
@@ -19,7 +20,7 @@ USBHotplugLinux::~USBHotplugLinux()
 bool USBHotplugLinux::start_detector()
 {
     if (!libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-        std::cout << "Hotplug capabilities are not supported on this platform." << std::endl;
+        Console::out() << "Hotplug capabilities are not supported on this platform." << std::endl;
         return false;
     }
 
@@ -27,7 +28,7 @@ bool USBHotplugLinux::start_detector()
                                                 LIBUSB_HOTPLUG_NO_FLAGS, LIBUSB_HOTPLUG_MATCH_ANY, LIBUSB_HOTPLUG_MATCH_ANY,
                                                 LIBUSB_HOTPLUG_MATCH_ANY, hotplug_cb, this, &m_hp_handle);
     if (LIBUSB_SUCCESS != ret) {
-        std::cout << "Failed to register hotplug callback." << libusb_strerror(ret) << std::endl;
+        Console::out() << "Failed to register hotplug callback." << libusb_strerror(ret) << std::endl;
         return false;
     }
     return true;
@@ -52,7 +53,7 @@ void USBHotplugLinux::get_existing_decice_info(libusb_device *dev, USBHelper::De
 
     ret  = libusb_get_device_descriptor(dev, &desc);
     if (ret != LIBUSB_SUCCESS) {
-        std::cout << "libusb_get_device_descriptor() failed: " << libusb_strerror(ret) << std::endl;
+        Console::out() << "libusb_get_device_descriptor() failed: " << libusb_strerror(ret) << std::endl;
         return;
     }
     // "%04x:%04x"
@@ -61,7 +62,7 @@ void USBHotplugLinux::get_existing_decice_info(libusb_device *dev, USBHelper::De
 
     ret = libusb_open(dev, &handle);
     if (ret != LIBUSB_SUCCESS) {
-        std::cout << "libusb_open() failed: " << libusb_strerror(ret) << std::endl;
+        Console::out() << "libusb_open() failed: " << libusb_strerror(ret) << std::endl;
         return;
     }
     len = libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, reinterpret_cast<unsigned char *>(ch), sizeof(ch));
@@ -88,7 +89,7 @@ int LIBUSB_CALL USBHotplugLinux::hotplug_cb(libusb_context *ctx, libusb_device *
     self->get_existing_decice_info(dev, dev_info);
     // 移除
     if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
-        std::cout << "device insert: " << std::hex 
+        Console::out() << "device remove: " << std::hex 
                     << "vid: "  << dev_info.id.vid 
                     << "pid: "  << dev_info.id.pid 
                     << "bus: "  << dev_info.id.bus
@@ -110,7 +111,7 @@ int LIBUSB_CALL USBHotplugLinux::hotplug_cb(libusb_context *ctx, libusb_device *
     }
     // 插入
     else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-        std::cout << "device insert: " << std::hex 
+        Console::out() << "device insert: " << std::hex 
                     << "vid: "  << dev_info.id.vid 
                     << "pid: "  << dev_info.id.pid 
                     << "bus: "  << dev_info.id.bus

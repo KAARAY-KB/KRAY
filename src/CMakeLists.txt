@@ -1,5 +1,6 @@
 add_subdirectory(core)
 add_subdirectory(utils)
+add_subdirectory(console)
 add_subdirectory(protocol)
 add_subdirectory(middlewares)
 # add_subdirectory(audio)

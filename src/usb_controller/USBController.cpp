@@ -1,6 +1,6 @@
 #include "USBController.h"
+#include "console.h"
 
-#include <iostream>
 #include <assert.h>
 #include <memory>
 #include <cstring>
@@ -19,7 +19,7 @@ USBController::USBController(libusb_device* dev, std::set<int> _interfaces)
     struct libusb_device_descriptor desc;
 
     ret = libusb_open(dev, &m_handle);
-    std::cout << "libusb_open() " << libusb_strerror(ret) << std::endl;
+    Console::out() << "libusb_open() " << libusb_strerror(ret) << std::endl;
     if (ret != LIBUSB_SUCCESS) {
         return;
     }
@@ -29,11 +29,11 @@ USBController::USBController(libusb_device* dev, std::set<int> _interfaces)
             USBInterface *intf = new USBInterface(m_handle, i);
             if (intf->isValid()) {
                 interfaces[i] = intf;
-                std::cout << "interface " << i << " is valid" << std::endl;
+                Console::out() << "interface " << i << " is valid" << std::endl;
             }
             else {
                 delete intf;
-                std::cout << "interface " << i << " is not valid" << std::endl;
+                Console::out() << "interface " << i << " is not valid" << std::endl;
             }
         }
     }
@@ -43,7 +43,7 @@ USBController::USBController(libusb_device* dev, std::set<int> _interfaces)
     addr = libusb_get_device_address(dev);
     ret  = libusb_get_device_descriptor(dev, &desc);
     if (ret != LIBUSB_SUCCESS) {
-        std::cout << "libusb_get_device_descriptor() failed: " << libusb_strerror(ret) << std::endl;
+        Console::out() << "libusb_get_device_descriptor() failed: " << libusb_strerror(ret) << std::endl;
         return;
     }
 
@@ -66,8 +66,8 @@ USBController::USBController(libusb_device* dev, std::set<int> _interfaces)
     m_dev_info.id.vid = desc.idVendor;
     m_dev_info.id.pid = desc.idProduct;
     
-    std::cout << "USBController: " << std::endl;
-    std::cout << USBHelper::msg(&m_dev_info, true);
+    Console::out() << "USBController: " << std::endl;
+    Console::out() << USBHelper::msg(&m_dev_info, true);
 }
 
 USBController::~USBController() {
@@ -80,7 +80,7 @@ USBController::~USBController() {
     if (interfaces.size()) {
         interfaces.clear();
     }
-    
+
     // // cancel all transfers
     // for (std::set<libusb_transfer *>::iterator it = m_transfers.begin(); it != m_transfers.end(); ++it) {
     //     libusb_cancel_transfer(*it);
@@ -114,7 +114,7 @@ void USBController::read_async(uint8_t endpoint, int len, uint32_t timeout) {
     int ret = libusb_submit_transfer(xfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(xfer);
-        std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_transfers.insert(xfer);
@@ -131,7 +131,7 @@ void USBController::write_async(uint8_t endpoint, uint8_t *buf, int len, uint32_
     int ret = libusb_submit_transfer(xfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(xfer);
-        std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_transfers.insert(xfer);
@@ -149,7 +149,7 @@ void USBController::control_async(uint8_t bmRequestType, uint8_t bRequest, uint1
     int ret = libusb_submit_transfer(xfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(xfer);
-        std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_transfers.insert(xfer);
@@ -159,7 +159,7 @@ void USBController::on_control_wrap(struct libusb_transfer* xfer) {
     static_cast<USBController*>(xfer->user_data)->on_control(xfer);
 }
 void USBController::on_control(libusb_transfer *xfer) {
-    std::cout << "control xfer" << std::endl;
+    Console::out() << "control xfer" << std::endl;
     m_transfers.erase(xfer);
     libusb_free_transfer(xfer);
 }
@@ -171,11 +171,11 @@ void USBController::on_write(libusb_transfer *xfer) {
     switch (xfer->status) {
         case LIBUSB_TRANSFER_COMPLETED:
             write_cb(xfer->buffer, xfer->actual_length, NULL);
-            std::cout << "write len:" << xfer->length << std::endl;
+            Console::out() << "write len:" << xfer->length << std::endl;
             break;
-        case LIBUSB_TRANSFER_CANCELLED: std::cout << "transfer was cancelled" << std::endl;     break;
-        case LIBUSB_TRANSFER_NO_DEVICE: std::cout << "device was disconnected" << std::endl;    break;
-        default: std::cout << "write failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl; break;
+        case LIBUSB_TRANSFER_CANCELLED: Console::out() << "transfer was cancelled" << std::endl;     break;
+        case LIBUSB_TRANSFER_NO_DEVICE: Console::out() << "device was disconnected" << std::endl;    break;
+        default: Console::out() << "write failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl; break;
     }
     m_transfers.erase(xfer);
     libusb_free_transfer(xfer);
@@ -191,20 +191,20 @@ void USBController::on_read(libusb_transfer *xfer) {
             read_cb(xfer->buffer, xfer->actual_length, NULL);
             ret = libusb_submit_transfer(xfer);
             if (ret != LIBUSB_SUCCESS) {
-                std::cout << "failed to resubmit USB xfer: " << libusb_error_name(ret) << std::endl;
+                Console::out() << "failed to resubmit USB xfer: " << libusb_error_name(ret) << std::endl;
                 m_transfers.erase(xfer);
                 libusb_free_transfer(xfer);
                 if (ret == LIBUSB_ERROR_NO_DEVICE) {
-                    std::cout << "device was disconnected" << std::endl;
+                    Console::out() << "device was disconnected" << std::endl;
                 }
             }
             break;
         default:
             m_transfers.erase(xfer);
             libusb_free_transfer(xfer);
-            if (xfer->status == LIBUSB_TRANSFER_CANCELLED) std::cout << "transfer was cancelled" << std::endl;
-            else if (xfer->status == LIBUSB_TRANSFER_NO_DEVICE) std::cout << "device was disconnected" << std::endl;
-            else std::cout << "read failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl;
+            if (xfer->status == LIBUSB_TRANSFER_CANCELLED) Console::out() << "transfer was cancelled" << std::endl;
+            else if (xfer->status == LIBUSB_TRANSFER_NO_DEVICE) Console::out() << "device was disconnected" << std::endl;
+            else Console::out() << "read failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl;
             break;
     }
 }
@@ -219,9 +219,9 @@ void USBController::view_all_endpoint() {
         const libusb_endpoint_descriptor *endpoint = nullptr;
         for (interface = config->interface; interface != (config->interface + config->bNumInterfaces); ++interface) {
             for (altsetting = interface->altsetting; altsetting != (interface->altsetting + interface->num_altsetting); ++altsetting) {
-                std::cout << "Interface: " << static_cast<int>(altsetting->bInterfaceNumber) << std::endl;
+                Console::out() << "Interface: " << static_cast<int>(altsetting->bInterfaceNumber) << std::endl;
                 for (endpoint = altsetting->endpoint; endpoint != (altsetting->endpoint + altsetting->bNumEndpoints); ++endpoint) {
-                    std::cout << "    Endpoint: " << int(endpoint->bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK) 
+                    Console::out() << "    Endpoint: " << int(endpoint->bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK) 
                                 << "(" << ((endpoint->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ? "IN" : "OUT") << ")" 
                                 << "if_class" << altsetting->bInterfaceClass
                                 << "if_subclass" << altsetting->bInterfaceSubClass
@@ -238,7 +238,7 @@ int USBController::find_endpoint(int direction, uint8_t if_class, uint8_t if_sub
     libusb_config_descriptor *config;
     int ret = libusb_get_config_descriptor(m_dev, 0, &config);
     if (ret != LIBUSB_SUCCESS) {
-        std::cout << "libusb_get_config_descriptor() failed: " << libusb_error_name(ret) << std::endl;
+        Console::out() << "libusb_get_config_descriptor() failed: " << libusb_error_name(ret) << std::endl;
         return ret;
     }
 
@@ -249,9 +249,9 @@ int USBController::find_endpoint(int direction, uint8_t if_class, uint8_t if_sub
     // FIXME: no need to search all interfaces, could just check the one we acutally use
     for (interface = config->interface; interface != (config->interface + config->bNumInterfaces); ++interface) {
         for (altsetting = interface->altsetting; altsetting != (interface->altsetting + interface->num_altsetting); ++altsetting) {
-            std::cout << "Interface: " << static_cast<int>(altsetting->bInterfaceNumber) << std::endl;
+            Console::out() << "Interface: " << static_cast<int>(altsetting->bInterfaceNumber) << std::endl;
             for (endpoint = altsetting->endpoint; endpoint != (altsetting->endpoint + altsetting->bNumEndpoints); ++endpoint) {
-                std::cout << "    Endpoint: " << int(endpoint->bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK) 
+                Console::out() << "    Endpoint: " << int(endpoint->bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK) 
                           << "(" << ((endpoint->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ? "IN" : "OUT") << ")" 
                           << "if_class" << altsetting->bInterfaceClass
                           << "if_subclass" << altsetting->bInterfaceSubClass
@@ -270,7 +270,7 @@ int USBController::find_endpoint(int direction, uint8_t if_class, uint8_t if_sub
 
     libusb_free_config_descriptor(config);
     if (ret < 0) {
-        std::cout << "Error couldn't find matching endpoint" << std::endl;
+        Console::out() << "Error couldn't find matching endpoint" << std::endl;
     }
     return ret;
 }

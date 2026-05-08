@@ -1,5 +1,6 @@
 #include "t2.h"
 #include "./ui_t2.h"
+#include "console.h"
 
 #ifdef __WIN32__
 #include <Windows.h>
@@ -21,7 +22,7 @@ T2::~T2()
 
 void T2::closeEvent(QCloseEvent *event)
 {
-    qDebug("t2 widget close event");
+    Console::out() << "t2 widget close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

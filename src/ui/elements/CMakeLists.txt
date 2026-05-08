@@ -16,6 +16,7 @@ target_link_libraries(${SUB_NAME} PUBLIC
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
+    console
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC

@@ -1,5 +1,6 @@
 #include "USBWidget.h"
 #include "Ui_USBWidget.h"
+#include "console.h"
 
 
 USBWidget::USBWidget(QWidget *parent) 
@@ -12,11 +13,11 @@ USBWidget::USBWidget(QWidget *parent)
     int ret = libusb_init(nullptr);
     // int ret = libusb_init_context(&ctx, nullptr, 0);
     if (ret != LIBUSB_SUCCESS) {
-        qDebug() << "libusb init failed" << libusb_error_name(ret);
+        Console::out() << "libusb init failed" << libusb_error_name(ret) << std::endl;
     }
 
     dev_hotplug_init();
-    qDebug() << "size " << m_usbHotplug->handle->get_decice_info().size();
+    Console::out() << "size " << m_usbHotplug->handle->get_decice_info().size() << std::endl;
     for (int i = 0; i < m_usbHotplug->handle->get_decice_info().size(); i++) {
         USBHelper::DevMsg_t info = USBHelper::find_device_support(m_usbHotplug->handle->get_decice_info()[i], USBHelper::DevFindType::FIND_DEV_TYPE_VID_PID);
         if (info.id.ty != USBHelper::DEV_UNKNOWN) {
@@ -35,7 +36,7 @@ USBWidget::USBWidget(QWidget *parent)
     }
 
     connect(this, &USBWidget::exitWindow, this, [=]() {
-        qDebug() << " gt exitWindow";
+        Console::out() << " gt exitWindow" << std::endl;
         if (m_gt64heWidget)
         {
             delete m_gt64heWidget;
@@ -48,7 +49,7 @@ USBWidget::USBWidget(QWidget *parent)
 
 USBWidget::~USBWidget()
 {
-    qDebug() << "USBWidget::~USBWidget()";
+    Console::out() << "USBWidget::~USBWidget()" << std::endl;
 
     if (m_usbHotplug) {
         delete m_usbHotplug;
@@ -62,7 +63,7 @@ USBWidget::~USBWidget()
 
 void USBWidget::closeEvent(QCloseEvent *event)
 {
-    qDebug() << "widget close event";
+    Console::out() << "widget close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
@@ -78,7 +79,7 @@ void USBWidget::dev_hotplug_init(void)
 {
     m_usbHotplug = new USBHotplug();
     if (!m_usbHotplug->handle->start_detector()) {
-        std::cerr << "Failed to start detector for USB hotplug events" << std::endl;
+        Console::out() << "Failed to start detector for USB hotplug events" << std::endl;
         delete m_usbHotplug;
         m_usbHotplug = nullptr;
     }
@@ -91,7 +92,7 @@ void USBWidget::dev_hotplug_init(void)
 
 void USBWidget::openUSBWidget(USBHelper::DevMsg_t &info) {
     // if (info.id.ty == USBHelper::DEV_KB_GT64HE) { 
-        gt64heWidget(info); 
+    gt64heWidget(info);
     // }
 }
 void USBWidget::closeUSBWidget(USBHelper::DevMsg_t &info) {
@@ -103,7 +104,7 @@ void USBWidget::gt64heWidget(USBHelper::DevMsg_t &info)
     if (m_gt64heWidget == nullptr)
     {
         m_usbThread->begin(USBThread::RUN_TYPE_EVT);
-        qDebug() << "open keyboard Widget"; 
+        Console::out() << "open keyboard Widget" << std::endl;
         m_gt64heWidget = new GT64HeWidget(info);
         Ui::USBWidget::page_t *pt = ui->addSubWidget(Ui::USBWidget::PAGE_TY_KB, m_gt64heWidget);
         connect(m_gt64heWidget, &GT64HeWidget::exitWidget, this, [=](){

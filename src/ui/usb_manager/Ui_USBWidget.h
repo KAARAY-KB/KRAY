@@ -8,6 +8,7 @@
 #include <QGridLayout>
 
 #include "USBDeviceManagerWidget.h"
+#include "console.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -146,12 +147,12 @@ public:
             case PAGE_TY_MAIN:
                 ui->resize(400, 200);
                 ui->setStyleSheet("QWidget#form {background-color: #f0f0f0;}");
-                qDebug() << "main";
+                Console::out() << "main" << std::endl;
                 break;
             case PAGE_TY_KB:
                 ui->resize(1000, 700);
                 ui->setStyleSheet("QWidget#form {background-color: #f0edea;}");
-                qDebug() << "kb";
+                Console::out() << "kb" << std::endl;
                 break;
         }
     }

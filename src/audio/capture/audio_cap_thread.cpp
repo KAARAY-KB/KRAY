@@ -1,4 +1,5 @@
 #include "audio_cap_thread.h"
+#include "console.h"
 
 #include <QDebug>
 
@@ -23,13 +24,13 @@ AudioCapThread::AudioCapThread(QObject *parent, const QString audio_name)
         dir[i] = 1;
     }
 
-    qDebug() << "Hello FFMPEG, av_version_info is" << av_version_info();
-    qDebug() << "avutil_configuration is" << avutil_configuration();
+    Console::out() << "Hello FFMPEG, av_version_info is " << av_version_info() << std::endl;
+    Console::out() << "avutil_configuration is " << avutil_configuration() << std::endl;
 
 
     foreach(const QAudioDeviceInfo &deviceInfo, QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
     {
-         qDebug() << "Device name: " << deviceInfo.deviceName();
+        Console::out() << "Device name: " << deviceInfo.deviceName().toStdString() << std::endl;
     }
 
 }
@@ -99,7 +100,7 @@ bool AudioCapThread::open_capture(const char* audio_name)
     ret = avformat_open_input(&m_pAudioFmtCtx, audio_name, m_pAudioInputFormat, &m_pAudioOption);
     if (ret != 0) {
         av_strerror(ret, errors, 1024);
-        qDebug() << "Couldn't open input stream. (打开音频流设备失败)" << ret << errors;
+        Console::out() << "Couldn't open input stream. (打开音频流设备失败) " << ret << " " << errors << std::endl;
         avformat_close_input(&m_pAudioFmtCtx);
         avformat_free_context(m_pAudioFmtCtx);
         m_pAudioFmtCtx = nullptr;
@@ -119,7 +120,7 @@ bool AudioCapThread::open_capture(const char* audio_name)
         }
     }
     if (m_audioIdx == -1) {
-        qDebug() << "Couldn't find video stream information. (无法获取音频流信息)";
+        Console::out() << "Couldn't find video stream information. (无法获取音频流信息)" << std::endl;
         return false;
     }
 
@@ -137,7 +138,7 @@ bool AudioCapThread::open_capture(const char* audio_name)
 
     ret = avcodec_open2(m_pCodecContext, m_pCodec, nullptr);
     if (ret != 0) {
-        qDebug() << "can not find or open audio decoder! (打开音频解码器失败)";
+        Console::out() << "can not find or open audio decoder! (打开音频解码器失败)" << std::endl;
         avcodec_free_context(&m_pCodecContext);
         m_pCodecContext = nullptr;
         return false;
@@ -148,11 +149,11 @@ bool AudioCapThread::open_capture(const char* audio_name)
 
     m_inputBuffer.open(QBuffer::ReadWrite);
 
-    qDebug()<<"audio info:"
+    Console::out() << "audio info:"
             << m_pCodecParamter->format
             << m_pCodecParamter->bit_rate
             << m_pCodecParamter->sample_rate
-            << m_pCodecParamter->ch_layout.nb_channels;
+            << m_pCodecParamter->ch_layout.nb_channels << std::endl;
 
 
     // m_plot 向量，预分配6个向量用于存储不同的数据
@@ -228,7 +229,7 @@ bool AudioCapThread::decode_frame(QVector<double> &out)
     if (cnt == 1)
     {
         cnt = 6;
-        qDebug()<< "current volume:" << m_currentVolume
+        Console::out() << "current volume:" << m_currentVolume
                 << "sample_rate:" << m_pFrame->sample_rate
                 << "samples number:" << m_pFrame->nb_samples
                 << "channels:" << m_pFrame->ch_layout.nb_channels
@@ -239,7 +240,7 @@ bool AudioCapThread::decode_frame(QVector<double> &out)
                 << "samples:" << m_plot[PLOT_SAMPLES].length()
                 << "fftIndices:" << m_plot[PLOT_FFT_INDICES].length()
                 << "fftSamples:" << m_plot[PLOT_FFT_SAMPLES].length()
-                << "fftSamplesAvg:" << m_plot[PLOT_FFT_SAMPLES_AVG].length();
+                << "fftSamplesAvg:" << m_plot[PLOT_FFT_SAMPLES_AVG].length() << std::endl;
     }
     else if (cnt == 0)
     {
@@ -378,7 +379,7 @@ void AudioCapThread::run()
     if (open_capture(name) == false) {
         return;
     }
-    qDebug()<<"open_capture ok";
+    Console::out() << "open_capture ok" << std::endl;
 
     fft_init();
     
@@ -427,7 +428,7 @@ QUIT:
     av_packet_free(&m_pPacket);
     close_capture();
 //    file.close();
-    qDebug("thread end");
+    Console::out() << "thread end" << std::endl;
 }
 
 void AudioCapThread::add_bar(QCPBars *bar)
@@ -531,7 +532,7 @@ bool AudioCapThread::setVolume(float volume) {
     if (ret < 0) {
         char errors[1024] = { 0x00 };
         av_strerror(ret, errors, 1024);
-        qDebug() << "Failed to set volume:" << errors;
+        Console::out() << "Failed to set volume: " << errors << std::endl;
         return false;
     }
     

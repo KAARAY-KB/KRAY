@@ -1,5 +1,5 @@
 #include "MKeyboardKey.h"
-#include <QDebug>
+#include "console.h"
 
 MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     : QPushButton(parent)
@@ -27,7 +27,7 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
         qss_file.close();
     }
     else {
-        qDebug() << "error opening the file: " << qss_path << qss_file.errorString();
+        Console::out() << "error opening the file: " << qss_path.toStdString() << std::endl;
     }
     setStyleSheet(style);
     // updateStyle();

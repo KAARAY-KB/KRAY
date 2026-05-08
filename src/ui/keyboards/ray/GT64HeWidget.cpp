@@ -1,6 +1,7 @@
 #include "GT64HeWidget.h"
 #include "Ui_GT64HeWidget.h"
 #include "hphpt.h"
+#include "console.h"
 
 
 GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent) 
@@ -12,7 +13,7 @@ GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent)
 
     libusb_device *dev = USBHelper::find_device(info);
     if ( dev != nullptr ) {
-        qDebug() << "Found device";
+        Console::out() << "Found device" << std::endl;
         controller = new GT64HeController(dev);
     }
     connect(this, &GT64HeWidget::activeWindowChanged, this, &GT64HeWidget::slot_activeWindowChanged);
@@ -43,25 +44,25 @@ GT64HeWidget::~GT64HeWidget() {
         emit activeWindowChanged(false);
     }
     if (m_activeWindowTimer) {
-        qDebug() << "GT64HeWidget::~m_activeWindowTimer";
+        Console::out() << "GT64HeWidget::~m_activeWindowTimer" << std::endl;
         m_activeWindowTimer->stop();
         delete m_activeWindowTimer;
     }
     if (controller) {
-        qDebug() << "GT64HeWidget::~controller";
+        Console::out() << "GT64HeWidget::~controller" << std::endl;
         delete controller;
     }
     delete ui;
 }
 
 void GT64HeWidget::closeEvent(QCloseEvent *event) {
-    qDebug() << "GT64HeWidget::closeEvent()";
+    Console::out() << "GT64HeWidget::closeEvent()" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
 }
 void GT64HeWidget::closeWidget(void) {
-    qDebug() << "GT64HeWidget::closeWidget()";
+    Console::out() << "GT64HeWidget::closeWidget()" << std::endl;
     emit exitWidget();
 }
 
@@ -72,7 +73,8 @@ void GT64HeWidget::updateParamValue() {
 
 
 USBTransferCallback::TransferAction GT64HeWidget::read_done(libusb_transfer *transfer) {
-    qDebug("usb rx[%d][%d]%d,%d,%d\n", transfer->length, transfer->actual_length, transfer->buffer[0], transfer->buffer[1], transfer->buffer[transfer->actual_length-1]);
+    Console::out() << "usb rx[" << transfer->length << "][" << transfer->actual_length << "]"
+                   << transfer->buffer[0] << "," << transfer->buffer[1] << "," << transfer->buffer[transfer->actual_length-1] << std::endl;
     
     hpt_decode(NULL, 0);
     

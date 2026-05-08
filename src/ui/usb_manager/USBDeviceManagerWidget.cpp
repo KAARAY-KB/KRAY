@@ -1,4 +1,5 @@
 #include "USBDeviceManagerWidget.h"
+#include "console.h"
 
 #ifdef __WIN32__
 #include <Windows.h>
@@ -28,7 +29,7 @@ USBDeviceSubWidget::USBDeviceSubWidget(USBHelper::DevMsg_t &info, QWidget *paren
     label->setText(str); // 显示制造商和产品名称
 
     QString tooltip = QString::fromStdString(USBHelper::msg(&m_info, true));
-    std::cout << tooltip.toStdString();
+    Console::out() << tooltip.toStdString() << std::endl;
     label->setToolTip(tooltip); // 鼠标悬停显示提示信息
     
     btn_enter = new QPushButton("Enter");
@@ -171,7 +172,7 @@ void USBDeviceManagerWidget::resizeEvent(QResizeEvent *event) {
     reorganizeLayout();
 }
 void USBDeviceManagerWidget::closeEvent(QCloseEvent *event) {
-    qDebug("widget close event");
+    Console::out() << "widget close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

@@ -29,6 +29,7 @@ private:
     USBWidget *usb_widget = nullptr;
     
 private slots:
+    void on_btn_console_clicked();
     void on_btn_usb_clicked();
     void on_btn_close_clicked();
     void on_btn_t1_clicked();

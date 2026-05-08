@@ -1,13 +1,14 @@
 #include "GT64HeWidget.h"
 #include "Ui_GT64HeWidget.h"
+#include "console.h"
 
 
 void GT64HeWidget::slot_activeWindowChanged(bool active) {
-    qDebug() << "activeWindowChanged:" << active;
+    Console::out() << "activeWindowChanged:" << active << std::endl;
 }
 
 void GT64HeWidget::slot_keyboard_key_clicked(int idx, bool checked) {
-    qDebug() << "key id" << idx << "checked:" << checked; 
+    Console::out() << "key id" << idx << "checked:" << checked << std::endl;
 }
 /*********** slots ***********/
 
@@ -46,7 +47,7 @@ void GT64HeWidget::on_param_dbg_btn_setColor_clicked() {
     QColor color = QColorDialog::getColor(Qt::white, nullptr, "pick a color", QColorDialog::ShowAlphaChannel | QColorDialog::DontUseNativeDialog);
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
-        qDebug() << colorStr;
+        Console::out() << colorStr.toStdString() << std::endl;
         if (ui->param->dbg->panel->isChecked()) {
             ui->keyboard->layout->m_panel->setStyleSheet("background-color: " + colorStr + ";");
         }
@@ -227,7 +228,7 @@ void GT64HeWidget::on_fastLocation_btn_cancel_clicked() {
     ui->keyboard->layout->m_panel->setCheckedType(MKeyboardPanel::CHECKED_TYPE_CANCEL);
 }
 void GT64HeWidget::on_param_property_radioButtonGroup_buttonToggled(int id, bool checked) {
-    qDebug() << "编号为 " << id << "选择状态变更为 " << checked;
+    Console::out() << "编号为 " << id << "选择状态变更为 " << checked << std::endl;
     if (id < ui->param->property->stackedWidget->count()) {
         ui->param->property->stackedWidget->setCurrentIndex(id);
     }
@@ -263,25 +264,25 @@ void GT64HeWidget::on_param_property_slider_param5_userReleased(int value) {
 void GT64HeWidget::on_param_property_spinBox_param0_valueChanged(double value) {
     // qDebug() << "0 微调 " << value << value * 1000.0;
     ui->param->property->slider_param[0]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 0 send usb message" << value;
+    Console::out() << "TODO: 0 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param1_valueChanged(double value) {
     ui->param->property->slider_param[1]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 1 send usb message" << value;
+    Console::out() << "TODO: 1 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param2_valueChanged(double value) {
     ui->param->property->slider_param[2]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 2 send usb message" << value;
+    Console::out() << "TODO: 2 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param3_valueChanged(double value) {
     ui->param->property->slider_param[3]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 3 send usb message" << value;
+    Console::out() << "TODO: 3 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param4_valueChanged(double value) {
     ui->param->property->slider_param[4]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 4 send usb message" << value;
+    Console::out() << "TODO: 4 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param5_valueChanged(double value) {
     ui->param->property->slider_param[5]->setSliderPosition(value * 1000.0);
-    qDebug() << "TODO: 5 send usb message" << value;
+    Console::out() << "TODO: 5 send usb message" << value << std::endl;
 }

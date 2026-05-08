@@ -1,6 +1,6 @@
 #include "USBInterface.h"
+#include "console.h"
 
-#include <iostream>
 #include <assert.h>
 #include <memory>
 #include <cstring>
@@ -21,12 +21,12 @@ USBInterface::~USBInterface() {
     for (std::map<int, libusb_transfer*>::iterator it = m_endpoint.begin(); it != m_endpoint.end(); ++it) {
         if (it->second) {
             if (libusb_cancel_transfer(it->second) != LIBUSB_SUCCESS) {
-                std::cout << "error canceling transfer: " << it->first << std::endl;
+                Console::out() << "error canceling transfer: " << it->first << std::endl;
             }
             // wait for cancel to succeed
             int ret = libusb_handle_events(NULL);
             if (ret != LIBUSB_SUCCESS) {
-                std::cout << "libusb_handle_events() failure: " << ret << std::endl;
+                Console::out() << "libusb_handle_events() failure: " << ret << std::endl;
             }
             // libusb_free_transfer(it->second);
         }
@@ -44,18 +44,18 @@ void USBInterface::cancel_transfer(int endpoint) {
         m_endpoint.erase(it);
         if (it->second) {
             if (libusb_cancel_transfer(it->second) != LIBUSB_SUCCESS) {
-                std::cout << "error canceling transfer: " << it->first << std::endl;
+                Console::out() << "error canceling transfer: " << it->first << std::endl;
             }
             // wait for cancel to succeed
             int ret = libusb_handle_events(NULL);
             if (ret != LIBUSB_SUCCESS) {
-                std::cout << "libusb_handle_events() failure: " << ret << std::endl;
+                Console::out() << "libusb_handle_events() failure: " << ret << std::endl;
             }
             // libusb_free_transfer(it->second);
         }
     }
     else {
-        std::cout << "endpoint not found: " << endpoint << std::endl;
+        Console::out() << "endpoint not found: " << endpoint << std::endl;
     }
 }
 void USBInterface::cancel_read(int endpoint) {
@@ -70,7 +70,7 @@ void USBInterface::cancel_control(int endpoint) {
 
 void USBInterface::submit_read(int endpoint, int len, USBTransferCallback::callback_t cb, uint32_t timout) {
     if (m_endpoint.find(endpoint) != m_endpoint.end()) {
-        std::cout << "endpoint already in use: " << endpoint << std::endl;
+        Console::out() << "endpoint already in use: " << endpoint << std::endl;
         return;
     }
     libusb_transfer* transfer = libusb_alloc_transfer(0);
@@ -83,14 +83,14 @@ void USBInterface::submit_read(int endpoint, int len, USBTransferCallback::callb
     int ret = libusb_submit_transfer(transfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(transfer);
-        std::cout << "submit_read() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "submit_read() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_endpoint[endpoint] = transfer;
 }
 void USBInterface::submit_write(int endpoint, int len, uint8_t *buf, USBTransferCallback::callback_t cb, uint32_t timout) {
     if (m_endpoint.find(endpoint) != m_endpoint.end()) {
-        std::cout << "endpoint already in use: " << endpoint << std::endl;
+        Console::out() << "endpoint already in use: " << endpoint << std::endl;
         return;
     }
     libusb_transfer* transfer = libusb_alloc_transfer(0);
@@ -104,7 +104,7 @@ void USBInterface::submit_write(int endpoint, int len, uint8_t *buf, USBTransfer
     int ret = libusb_submit_transfer(transfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(transfer);
-        std::cout << "submit_write() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "submit_write() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_endpoint[endpoint] = transfer;
@@ -112,7 +112,7 @@ void USBInterface::submit_write(int endpoint, int len, uint8_t *buf, USBTransfer
 void USBInterface::submit_control(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t *wBuf, uint16_t wLength, USBTransferCallback::callback_t cb, uint32_t timout) {
     int endpoint = LIBUSB_ENDPOINT_OUT | 0;
     if (m_endpoint.find(endpoint) != m_endpoint.end()) {
-        std::cout << "endpoint already in use: " << endpoint << std::endl;
+        Console::out() << "endpoint already in use: " << endpoint << std::endl;
         return;
     }
     const uint8_t wSetupLen = 8;
@@ -128,7 +128,7 @@ void USBInterface::submit_control(uint8_t bmRequestType, uint8_t bRequest, uint1
     int ret = libusb_submit_transfer(transfer);
     if (ret != LIBUSB_SUCCESS) {
         libusb_free_transfer(transfer);
-        std::cout << "submit_control() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+        Console::out() << "submit_control() libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         return;
     }
     m_endpoint[endpoint] = transfer;
@@ -145,7 +145,7 @@ void USBInterface::on_read(libusb_transfer *transfer, USBTransferCallback *trans
         int ret = libusb_submit_transfer(transfer);
         if (ret != LIBUSB_SUCCESS) {
             libusb_free_transfer(transfer);
-            std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+            Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         }
     }
 }
@@ -160,7 +160,7 @@ void USBInterface::on_write(libusb_transfer *transfer, USBTransferCallback *tran
         int ret = libusb_submit_transfer(transfer);
         if (ret != LIBUSB_SUCCESS) {
             libusb_free_transfer(transfer);
-            std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+            Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         }
     }
 }
@@ -175,7 +175,7 @@ void USBInterface::on_control(libusb_transfer *transfer, USBTransferCallback *tr
         int ret = libusb_submit_transfer(transfer);
         if (ret != LIBUSB_SUCCESS) {
             libusb_free_transfer(transfer);
-            std::cout << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
+            Console::out() << "libusb_submit_transfer(): " << libusb_error_name(ret) << std::endl;
         }
     }
 }
