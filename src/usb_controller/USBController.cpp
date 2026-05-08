@@ -67,7 +67,7 @@ USBController::USBController(libusb_device* dev, std::set<int> _interfaces)
     m_dev_info.id.pid = desc.idProduct;
     
     std::cout << "USBController: " << std::endl;
-    std::cout << USBHelper::printf_msg(&m_dev_info, true);
+    std::cout << USBHelper::msg(&m_dev_info, true);
 }
 
 USBController::~USBController() {

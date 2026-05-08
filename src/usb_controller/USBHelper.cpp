@@ -49,7 +49,7 @@ std::vector<USBHelper::DevMsg_t> USBHelper::list_device() {
     USBHelper::DevMsg_t info = {0};
 
     int id = 0;
-    std::cout << USBHelper::printf_msg(NULL, true);
+    std::cout << USBHelper::msg(NULL, true);
 
     for(ssize_t dev_it = 0; dev_it < num_devices; ++dev_it) {
         uint32_t len = 0;
@@ -97,7 +97,7 @@ std::vector<USBHelper::DevMsg_t> USBHelper::list_device() {
                 std::cout << "vid:" << info.id.vid  << "pid:" << info.id.pid << " - [Permission denied or device busy]" << std::endl;
             }
 
-            std::cout << USBHelper::printf_msg(&info, false);
+            std::cout << USBHelper::msg(&info, false);
             devs_info.push_back(info);
         }
     }
@@ -118,13 +118,14 @@ void USBHelper::debug_msg(DevMsg_t &msg) {
     msg.ch.prod = "debug";
     msg.ch.sn = "debug";
 }
-std::string USBHelper::printf_msg(DevMsg_t *const msg, bool show_title) {
-    std::ostringstream oss;
-    
+std::string USBHelper::msg(DevMsg_t *const msg, bool show_title) {
+    std::string str = "";
+    std::string end = "\r\n";
+
     if (show_title) {
-        oss << "|----------|----------|----------|----------|----------|---------------------------------------------------" << std::endl;
-        oss << "|   vid    |   pid    |   bus    |   port   |   addr   |  manufacturer, product name, serial number" << std::endl;
-        oss << "|----------|----------|----------|----------|----------|---------------------------------------------------" << std::endl;
+        str += "┌──────────┬──────────┬──────────┬──────────┬──────────┬────────────────────────────────────────────────" + end;
+        str += "|   vid    |   pid    |   bus    |   port   |   addr   |  manufacturer, product name, serial number" + end;
+        str += "├──────────┼──────────┼──────────┼──────────┼──────────┼────────────────────────────────────────────────" + end;
     }
 
     if (msg != NULL) {
@@ -132,20 +133,29 @@ std::string USBHelper::printf_msg(DevMsg_t *const msg, bool show_title) {
         std::string prod = msg->ch.prod.empty() ? "NULL" : msg->ch.prod;
         std::string sn   = msg->ch.sn.empty()   ? "NULL" : msg->ch.sn;
         
-        oss << std::hex << std::setfill('0')
-            << "|  0x"   << std::setw(4) << msg->id.vid
-            << "  |  0x" << std::setw(4) << msg->id.pid
-            << "  |  0x" << std::setw(4) << msg->id.bus
-            << "  |  0x" << std::setw(4) << msg->id.port
-            << "  |  0x" << std::setw(4) << msg->id.addr
-            << "  |  " 
-            << std::dec << std::setfill(' ') << std::left
-            << std::setw(12) << mfr  << ", " 
-            << std::setw(12) << prod << ", " 
-            << std::setw(13) << sn
-            << std::endl;
+        auto hex4 = [](uint16_t val) -> std::string {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "0x%04x", val);
+            return std::string(buf);
+        };
+        
+        auto pad_right = [](const std::string& s, size_t width) -> std::string {
+            return s.length() >= width ? s : s + std::string(width - s.length(), ' ');
+        };
+        
+        str += ("|  " + hex4(msg->id.vid) 
+            + "  |  " + hex4(msg->id.pid) 
+            + "  |  " + hex4(msg->id.bus) 
+            + "  |  " + hex4(msg->id.port) 
+            + "  |  " + hex4(msg->id.addr) 
+            + "  |  " 
+            + pad_right(mfr, 12)  + ", " 
+            + pad_right(prod, 12) + ", " 
+            + pad_right(sn, 13) 
+            + end);
     }
-    return oss.str();
+
+    return str;
 }
 
 libusb_device * USBHelper::find_device(DevMsg_t dev_info) {

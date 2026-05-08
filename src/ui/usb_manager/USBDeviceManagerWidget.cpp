@@ -27,7 +27,7 @@ USBDeviceSubWidget::USBDeviceSubWidget(USBHelper::DevMsg_t &info, QWidget *paren
     QString str = QString("%1-%2").arg(mfr).arg(prod);
     label->setText(str); // 显示制造商和产品名称
 
-    QString tooltip = QString::fromStdString(USBHelper::printf_msg(&m_info, true));
+    QString tooltip = QString::fromStdString(USBHelper::msg(&m_info, true));
     std::cout << tooltip.toStdString();
     label->setToolTip(tooltip); // 鼠标悬停显示提示信息
     

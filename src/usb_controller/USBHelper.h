@@ -104,7 +104,7 @@ public:
 
     static uint32_t get_dev_num();
     static DevMsgId_t *get_dev_id(uint16_t idx);
-    static std::string printf_msg(DevMsg_t *const msg, bool show_title);
+    static std::string msg(DevMsg_t *const msg, bool show_title);
     static void debug_msg(DevMsg_t &msg);
 
     // typedef std::function<void (const USBHelper::DevMsg_t)> dev_msg_cb_t;
