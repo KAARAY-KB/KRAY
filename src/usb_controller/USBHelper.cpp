@@ -122,9 +122,9 @@ std::string USBHelper::printf_msg(DevMsg_t *const msg, bool show_title) {
     std::ostringstream oss;
     
     if (show_title) {
-        oss << "┌──────────┬──────────┬──────────┬──────────┬──────────┬────────────────────────────────────────────────" << std::endl;
+        oss << "|----------|----------|----------|----------|----------|---------------------------------------------------" << std::endl;
         oss << "|   vid    |   pid    |   bus    |   port   |   addr   |  manufacturer, product name, serial number" << std::endl;
-        oss << "├──────────┼──────────┼──────────┼──────────┼──────────┼────────────────────────────────────────────────" << std::endl;
+        oss << "|----------|----------|----------|----------|----------|---------------------------------------------------" << std::endl;
     }
 
     if (msg != NULL) {
@@ -140,11 +140,10 @@ std::string USBHelper::printf_msg(DevMsg_t *const msg, bool show_title) {
             << "  |  0x" << std::setw(4) << msg->id.addr
             << "  |  " 
             << std::dec << std::setfill(' ') << std::left
-            << std::setw(12) << mfr << ", " 
-            << std::setw(12)  << prod << ", " 
+            << std::setw(12) << mfr  << ", " 
+            << std::setw(12) << prod << ", " 
             << std::setw(13) << sn
             << std::endl;
-        oss << "└──────────┴──────────┴──────────┴──────────┴──────────┴────────────────────────────────────────────────" << std::endl;
     }
     return oss.str();
 }
