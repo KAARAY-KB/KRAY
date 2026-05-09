@@ -12,8 +12,9 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
 {
     // 设置为只读模式，防止用户编辑控制台输出
     setReadOnly(true);
+    resize(600, 460);
     // 设置等宽字体，便于查看日志和对齐
-    setFont(QFont("Maple Mono NF CN", 10));
+    setFont(QFont("Maple Mono NF CN", 12));
     setWindowTitle("Console");
 
     // 设置控制台外观

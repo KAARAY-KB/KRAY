@@ -7,6 +7,15 @@ std::ostream Console::s_ostream(&s_streamBuf);
 std::vector<ConsoleSink*> Console::s_sinks;
 std::mutex Console::s_mutex;
 
+static const char * _console_logo = R"(
+                                               
+    _____ _____ _____ _____ _____ __    _____ 
+    |     |     |   | |   __|     |  |  |   __|
+    |   --|  |  | | | |__   |  |  |  |__|   __|
+    |_____|_____|_|___|_____|_____|_____|_____|
+                                               
+)";
+
 // 获取控制台输出流
 std::ostream& Console::out() {
     return s_ostream;
@@ -36,17 +45,9 @@ void Console::clearSinks() {
 void Console::abort_msg() {
     std::lock_guard<std::mutex> lock(s_mutex);
     for (const auto& sink : s_sinks) {
-        sink->write("控制台日志输出\r\n");
-        sink->write("KRAY Console log output\r\n");
-
-        auto pad_left = [](const std::string& s, size_t width, const char fill_char = ' ') -> std::string {
-            return s.length() >= width ? s : std::string(width - s.length(), fill_char) + s;
-        };
-        
-        for (uint8_t i = 0; i < 20; i++)
-        {
-            sink->write(pad_left(std::to_string(i), i, '0') + "\r\n"); 
-        }
+        sink->write(_console_logo);
+        sink->write("控制台日志输出\n");
+        sink->write("KRAY Console log output\n");
     }
 }
 

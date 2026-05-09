@@ -124,7 +124,7 @@ std::string USBHelper::msg(DevMsg_t *const msg, bool show_title) {
     std::string end = "\r\n";
 
     if (show_title) {
-        str += "|--------------------------------------------------------------------------------------------------" + end;
+        str += "---------------------------------------------------------------------------------------------------" + end;
         str += "|   vid    |   pid    |   bus    |   port   |   addr   |  manufacturer, product name, serial number" + end;
         str += "|----------|----------|----------|----------|----------|-------------------------------------------" + end;
     }
@@ -140,8 +140,8 @@ std::string USBHelper::msg(DevMsg_t *const msg, bool show_title) {
             return std::string(buf);
         };
         
-        auto pad_right = [](const std::string& s, size_t width) -> std::string {
-            return s.length() >= width ? s : s + std::string(width - s.length(), ' ');
+        auto pad_right = [](const std::string& s, size_t width, const char fill_char = ' ') -> std::string {
+            return s.length() >= width ? s : s + std::string(width - s.length(), fill_char);
         };
         
         str += ("|  " + hex4(msg->id.vid) 
@@ -150,9 +150,9 @@ std::string USBHelper::msg(DevMsg_t *const msg, bool show_title) {
             + "  |  " + hex4(msg->id.port) 
             + "  |  " + hex4(msg->id.addr) 
             + "  |  " 
-            + pad_right(mfr, 12)  + ", " 
-            + pad_right(prod, 12) + ", " 
-            + pad_right(sn, 13) 
+            + pad_right(mfr,  12, ' ') + ", " 
+            + pad_right(prod, 12, ' ') + ", " 
+            + pad_right(sn,   13, ' ') 
             + end);
     }
 

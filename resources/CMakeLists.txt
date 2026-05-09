@@ -9,7 +9,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS LinguistTools)
 
 set(SUB_NAME resources)
 
-set(RES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
+set(RCC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
 file(GLOB TS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/translations/*.ts)
 set(SRC )
 
@@ -18,7 +18,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
     # Qt6: AUTORCC 已自动处理 .qrc，无需显式调用
     # 确保 resources.qrc 在 SRC 或同目录下被 CMake 发现
     # 如果没被自动包含，可以手动加：
-    # qt_add_resources(RES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
+    # qt_add_resources(RES_RCC ${RCC_FILES})
     qt_create_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR}/translations ${TS_FILES})
     list(APPEND SRC 
         ${RES_RCC}
@@ -26,7 +26,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
 
 else()
     # Qt5: 需要显式调用 qt5_add_resources 来处理 .qrc 文件
-    qt5_add_resources(RES_RCC ${RES_RCC})
+    qt5_add_resources(RES_RCC ${RCC_FILES})
     qt5_create_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR}/translations ${TS_FILES})
     list(APPEND SRC 
         ${RES_RCC}
