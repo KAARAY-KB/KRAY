@@ -52,6 +52,8 @@ public:
      */
     static void clearSinks();
 
+    static void abort_msg();
+
 private:
     // 自定义流缓冲区，将输出转发到所有注册的 Sink
     class ConsoleStreamBuf : public std::streambuf {

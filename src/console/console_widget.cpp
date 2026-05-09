@@ -12,10 +12,46 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
 {
     // 设置为只读模式，防止用户编辑控制台输出
     setReadOnly(true);
-    setWindowTitle("console");
-
     // 设置等宽字体，便于查看日志和对齐
-    setFont(QFont("Monospace", 10));
+    setFont(QFont("Maple Mono NF CN", 10));
+    setWindowTitle("Console");
+
+    // 设置控制台外观
+    setStyleSheet(
+        // 设置文本编辑器的外观
+        "QTextEdit { "
+            "color:rgb(230, 230, 230); "
+            "background-color:rgb(50, 50, 50); "
+            "selection-color:rgb(50, 50, 50); "
+            "selection-background-color:rgb(230, 230, 230); "
+        "}"
+        //设置垂直滑块整体-背景颜色为透明、距离上边距57
+        "QScrollBar:vertical { "
+            "background: transparent; "
+            "background-color:rgb(50, 50, 50);"
+            "width:6px;"
+        "}"
+        //设置垂直滑块内部滚动条的样式-颜色为白色、圆角、宽度
+        "QScrollBar::handle:vertical { "
+            "background-color:rgb(100, 100, 100);"
+            "border-radius:3px;"
+            "width:6px;"
+            "min-height:2px; "
+        "}"
+        //隐藏上下的箭头按钮
+        "QScrollBar::add-line:vertical, "
+        "QScrollBar::sub-line:vertical { "
+            "height:0px; "
+            "border: none;"
+            "background: none;"
+        "}"
+    );
+    
+#ifdef __WIN32__
+    // 设置窗口背景色为暗黑色，避免边框显示白色
+    HWND hwnd = HWND(this->winId());
+    SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(RGB(50, 50, 50)));
+#endif
 
     // 连接信号槽：确保跨线程安全更新 UI
     // Qt::QueuedConnection 保证槽函数在接收者所在线程执行

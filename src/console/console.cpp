@@ -33,6 +33,23 @@ void Console::clearSinks() {
     s_sinks.clear();
 }
 
+void Console::abort_msg() {
+    std::lock_guard<std::mutex> lock(s_mutex);
+    for (const auto& sink : s_sinks) {
+        sink->write("控制台日志输出\r\n");
+        sink->write("KRAY Console log output\r\n");
+
+        auto pad_left = [](const std::string& s, size_t width, const char fill_char = ' ') -> std::string {
+            return s.length() >= width ? s : std::string(width - s.length(), fill_char) + s;
+        };
+        
+        for (uint8_t i = 0; i < 20; i++)
+        {
+            sink->write(pad_left(std::to_string(i), i, '0') + "\r\n"); 
+        }
+    }
+}
+
 // 处理单个字符输出
 std::streambuf::int_type Console::ConsoleStreamBuf::overflow(int_type ch) {
     // EOF 直接返回

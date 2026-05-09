@@ -15,12 +15,13 @@ Kray::Kray(QWidget *parent)
     setWindowTitle("KRAY");
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
-    // 1创建控制台窗口并注册
+    // 创建控制台窗口并注册
     s_consoleWin = new ConsoleWidget();
     s_consoleWin->setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
     s_consoleWin->setWindowIcon(QIcon(":/images/pixel_pizza.png"));
     Console::registerSink(s_consoleWin->sink());
-    Console::out()  << "KRAY 控制台输出日志" << std::endl;
+    Console::abort_msg();
+    s_consoleWin->show_top();
 
     m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"), QApplication::font());
     m_system_tray_icon->showTrayIcon();
@@ -36,7 +37,7 @@ Kray::Kray(QWidget *parent)
         }
     });
 
-
+#if 0
     QString str = QString::asprintf("基本信息\n"
     "QT version: %d.%d.%d\n",QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);
 
@@ -55,6 +56,7 @@ Kray::Kray(QWidget *parent)
 #endif
     str.append(QString("\n"));
     ui->textBrowser->setText(str);
+#endif
 }
 
 Kray::~Kray()

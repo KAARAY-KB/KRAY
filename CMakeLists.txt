@@ -19,16 +19,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
 
-qt_add_resources(RES_RCC ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
-set(TS_FILES ${CMAKE_SOURCE_DIR}/resources/translations/KRAY_zh_CN.ts)
+add_subdirectory(resources)
+add_subdirectory(src)
 
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
     # src/core/main.cpp
-    ${RES_RCC}
+    # ${RES_RCC}
 )
 
-add_subdirectory(src)
 
 # 根据Qt版本使用不同的构建方式
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -44,7 +43,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
     # 创建翻译文件（Qt6方式）
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    # qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
     # Qt5 的构建方式
     if(ANDROID)
@@ -62,7 +61,7 @@ else()
     endif()
 
     # 创建翻译文件（Qt5方式）
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    # qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
 # 链接Qt Widgets库到项目
