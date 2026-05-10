@@ -13,6 +13,7 @@ set(SUB_NAME core)
 set(SRC
     main.cpp
     kray.cpp
+    kray_msg.cpp
     kray.h
     kray.ui
     t1.h
@@ -34,6 +35,7 @@ target_link_libraries(${SUB_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui
     usb_manager
     console
+    qcustomplot
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC

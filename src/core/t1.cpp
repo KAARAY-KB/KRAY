@@ -8,7 +8,7 @@
 #endif
 
 #define TEST_LIBUSB 1
-#define TEST_QCUSTOMPLOT 0
+#define TEST_QCUSTOMPLOT 1
 
 #if TEST_QCUSTOMPLOT
 #include "qcustomplot.h"

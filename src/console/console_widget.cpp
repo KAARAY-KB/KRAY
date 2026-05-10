@@ -1,8 +1,30 @@
 #include "console_widget.h"
 #include <QScrollBar>
+#include <QIcon>
+#include <QPixmap>
+#include <QPainter>
 #ifdef __WIN32__
 #include <windows.h>
 #endif
+
+// 创建控制台图标
+static QIcon createConsoleIcon()
+{
+    QPixmap pixmap(32, 32);
+    pixmap.fill(Qt::transparent); // 填充为透明
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing); // 开启抗锯齿
+    // 背景矩形
+    painter.setBrush(QColor(50, 50, 50));
+    painter.setPen(QPen(QColor(200, 200, 200), 2));
+    painter.drawRoundedRect(2, 4, 28, 24, 4, 4);
+    // 终端提示符 >_
+    painter.setPen(QColor(230, 230, 230));
+    painter.setFont(QFont("Maple Mono NF CN", 12, QFont::Bold));
+    painter.drawText(6, 20, ">_");
+
+    return QIcon(pixmap);
+}
 
 // 构造函数：初始化控件属性和信号槽连接
 ConsoleWidget::ConsoleWidget(QWidget* parent)
@@ -12,10 +34,12 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
 {
     // 设置为只读模式，防止用户编辑控制台输出
     setReadOnly(true);
-    resize(600, 460);
-    // 设置等宽字体，便于查看日志和对齐
-    setFont(QFont("Maple Mono NF CN", 12));
+//    setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
     setWindowTitle("Console");
+    setWindowIcon(createConsoleIcon());
+    setFont(QFont("Maple Mono NF CN", 12));
+    resize(600, 460);
+    move(0, 0);
 
     // 设置控制台外观
     setStyleSheet(
@@ -60,6 +84,10 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
             this, &ConsoleWidget::appendText,
             Qt::QueuedConnection);
 }
+// ConsoleWidget::~ConsoleWidget()
+// {
+// }
+
 void ConsoleWidget::show_top(void)
 {
     if (this->isMinimized())

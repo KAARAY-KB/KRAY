@@ -162,9 +162,51 @@
      <string>KRAY</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Abort</string>
+    </property>
+    <widget class="QMenu" name="menu_2">
+     <property name="title">
+      <string>font</string>
+     </property>
+     <addaction name="font_default"/>
+     <addaction name="font_available"/>
+    </widget>
+    <addaction name="menu_2"/>
+    <addaction name="system_info"/>
+    <addaction name="all_widget_info"/>
+   </widget>
    <addaction name="menuKRAY"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="font_default">
+   <property name="text">
+    <string>default font</string>
+   </property>
+   <property name="toolTip">
+    <string>default font</string>
+   </property>
+  </action>
+  <action name="font_available">
+   <property name="text">
+    <string>available font</string>
+   </property>
+   <property name="toolTip">
+    <string>available font</string>
+   </property>
+  </action>
+  <action name="system_info">
+   <property name="text">
+    <string>system_Info</string>
+   </property>
+  </action>
+  <action name="all_widget_info">
+   <property name="text">
+    <string>all_widget_info</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

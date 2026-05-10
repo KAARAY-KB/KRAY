@@ -5,7 +5,7 @@
 #include <QApplication>
 
 // 控制台窗口实例（内部实现细节，不在头文件暴露）
-static ConsoleWidget *s_consoleWin = nullptr;
+static ConsoleWidget *_consoleWin = nullptr;
 
 Kray::Kray(QWidget *parent)
     : QMainWindow(parent)
@@ -16,12 +16,9 @@ Kray::Kray(QWidget *parent)
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
     // 创建控制台窗口并注册
-    s_consoleWin = new ConsoleWidget();
-    s_consoleWin->setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
-    s_consoleWin->setWindowIcon(QIcon(":/images/pixel_pizza.png"));
-    Console::registerSink(s_consoleWin->sink());
+    _consoleWin = new ConsoleWidget();
+    Console::registerSink(_consoleWin->sink());
     Console::abort_msg();
-    s_consoleWin->show_top();
 
     m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"), QApplication::font());
     m_system_tray_icon->showTrayIcon();
@@ -37,30 +34,54 @@ Kray::Kray(QWidget *parent)
         }
     });
 
-#if 0
-    QString str = QString::asprintf("基本信息\n"
-    "QT version: %d.%d.%d\n",QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);
+}
 
-    str.append(QString("SYSTEM name: "));
-#if defined(__linux__)
-    str.append(QString("Linux"));
-#elif defined(__WIN32__)
-    str.append(QString("Windows "));
-    #if defined(Q_PROCESSOR_X86_64)
-        str.append(QString("64-bit build (x64)"));
-    #elif defined(Q_PROCESSOR_X86)
-        str.append(QString("32-bit build (x86)"));
-    #endif
-#elif defined(__APPLE__)
-    str.append(QString("MacOS"));
-#endif
-    str.append(QString("\n"));
-    ui->textBrowser->setText(str);
-#endif
+void Kray::closeEvent(QCloseEvent *event)
+{
+    qDebug() << "Kray::closeEvent()";
+    Console::out() << "Kray::closeEvent()" << std::endl;
+    // 关闭所有子窗口（除了 console 窗口）
+    if (t1 != nullptr) {
+        qDebug() << "Kray::closeEvent() t1";
+        Console::out() << "Kray::closeEvent() t1" << std::endl;
+        t1->close();
+        delete t1;
+        t1 = nullptr;
+    }
+    if (t2 != nullptr) {
+        qDebug() << "Kray::closeEvent() t2";
+        Console::out() << "Kray::closeEvent() t2" << std::endl;
+        t2->close();
+        delete t2;
+        t2 = nullptr;
+    }
+    if (m_system_tray_icon != nullptr) {
+        qDebug() << "Kray::closeEvent() m_system_tray_icon";
+        Console::out() << "Kray::closeEvent() m_system_tray_icon" << std::endl;
+        delete m_system_tray_icon;
+        m_system_tray_icon = nullptr;
+    }
+    if (usb_widget != nullptr) {
+        qDebug() << "Kray::closeEvent() usb_widget";
+        Console::out() << "Kray::closeEvent() usb_widget" << std::endl;
+        usb_widget->close();
+        delete usb_widget;
+        usb_widget = nullptr;
+    }
+    // 不关闭 console 窗口
+    if (_consoleWin != nullptr)
+    {
+        qDebug() << "Kray::closeEvent() _consoleWin not close";
+        Console::out() << "Kray::closeEvent() _consoleWin not close" << std::endl;
+    }
+
+    QMainWindow::closeEvent(event);
 }
 
 Kray::~Kray()
 {
+    qDebug() << "Kray::~Kray()";
+    Console::out() << "Kray::~Kray()" << std::endl;
     if (t1 != nullptr) {
         delete t1;
     }
@@ -73,16 +94,21 @@ Kray::~Kray()
     if (m_system_tray_icon != nullptr) {
         delete m_system_tray_icon;
     }
-    if (s_consoleWin != nullptr) {
-        delete s_consoleWin;
-        s_consoleWin = nullptr;
+    if (_consoleWin != nullptr) {
+        Console::out() << "console delete" << std::endl;
+        // 延迟10秒
+       // QThread::msleep(10000);
+        _consoleWin->close();
+        Console::unregisterSink(_consoleWin->sink());
+        delete _consoleWin;
+        _consoleWin = nullptr;
     }
     delete ui;
 }
 
 void Kray::on_btn_console_clicked()
 {
-    s_consoleWin->show_top();
+    _consoleWin->show_top();
 }
 
 void Kray::on_btn_usb_clicked()
@@ -91,11 +117,15 @@ void Kray::on_btn_usb_clicked()
     {
         usb_widget = new USBWidget();
         connect(usb_widget, &USBWidget::exitWindow, this, [=]() {
+            usb_widget->close();
             delete usb_widget;
             usb_widget = nullptr;
         });
     }
-    usb_widget->show_top();
+    if (usb_widget != nullptr)
+    {
+        usb_widget->show_top();
+    }
 }
 
 void Kray::on_btn_t1_clicked()
@@ -104,11 +134,15 @@ void Kray::on_btn_t1_clicked()
     {
         t1 = new T1();
         connect(t1, &T1::exitWindow, this, [=]() {
+            t1->close();
             delete t1;
             t1 = nullptr;
         });
     }
-    t1->show_top();
+    if (t1 != nullptr)
+    {
+        t1->show_top();
+    }
 
     // QColor color = QColorDialog::getColor(Qt::white, this, "pick a color", QColorDialog::ShowAlphaChannel);
     // if (color.isValid()) {
@@ -147,11 +181,15 @@ void Kray::on_btn_t2_clicked()
     {
         t2 = new T2();
         connect(t2, &T2::exitWindow, this, [=]() {
+            t2->close();
             delete t2;
             t2 = nullptr;
         });
     }
-    t2->show_top();
+    if (t2 != nullptr)
+    {
+        t2->show_top();
+    }   
 }
 
 void Kray::on_btn_close_clicked()
@@ -159,5 +197,21 @@ void Kray::on_btn_close_clicked()
     this->close();
 }
 
-
+void Kray::on_font_default_triggered()
+{
+    // 获取并输出应用默认字体信息
+    get_font(QApplication::font(), nullptr);
+}
+void Kray::on_font_available_triggered()
+{
+    get_available_fonts(nullptr);
+}
+void Kray::on_system_info_triggered()
+{
+    get_system_info(nullptr);
+}
+void Kray::on_all_widget_info_triggered()
+{
+    get_all_widgets_info(nullptr);
+}
 
