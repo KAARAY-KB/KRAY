@@ -14,7 +14,7 @@ void Kray::get_system_info(void *p_context)
         t = _t;
     }
     QString str = "";
-    str.append(t + "系统信息:\n");
+    str.append(QString(t.c_str()) + "系统信息:\n");
 
     //QSysInfo::productVersion();
     QString qt_version = QString::asprintf("    QT version: %d.%d.%d\n",QT_VERSION_MAJOR, QT_VERSION_MINOR, QT_VERSION_PATCH);

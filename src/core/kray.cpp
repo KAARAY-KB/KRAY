@@ -83,23 +83,32 @@ Kray::~Kray()
     qDebug() << "Kray::~Kray()";
     Console::out() << "Kray::~Kray()" << std::endl;
     if (t1 != nullptr) {
+        qDebug() << "Kray::~Kray() t1";
+        Console::out() << "Kray::~Kray() t1";
         delete t1;
     }
     if (t2 != nullptr) {
+        qDebug() << "Kray::~Kray() t2";
+        Console::out() << "Kray::~Kray() t2";
         delete t2;
     }
     if (usb_widget != nullptr) {
+        qDebug() << "Kray::~Kray() usb_widget";
+        Console::out() << "Kray::~Kray() usb_widget";
         delete usb_widget;
     }
     if (m_system_tray_icon != nullptr) {
+        qDebug() << "Kray::~Kray() m_system_tray_icon";
+        Console::out() << "Kray::~Kray() m_system_tray_icon";
         delete m_system_tray_icon;
     }
     if (_consoleWin != nullptr) {
-        Console::out() << "console delete" << std::endl;
+        qDebug() << "Kray::~Kray() _consoleWin";
+        Console::out() << "Kray::~Kray() _consoleWin";
         // 延迟10秒
        // QThread::msleep(10000);
-        _consoleWin->close();
         Console::unregisterSink(_consoleWin->sink());
+        qDebug() << "Kray::~Kray() _consoleWin unregister sink";
         delete _consoleWin;
         _consoleWin = nullptr;
     }
