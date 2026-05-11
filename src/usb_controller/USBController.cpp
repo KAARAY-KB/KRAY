@@ -119,6 +119,7 @@ void USBController::read_async(uint8_t endpoint, int len, uint32_t timeout) {
     }
     m_transfers.insert(xfer);
 }
+
 void USBController::write_async(uint8_t endpoint, uint8_t *buf, int len, uint32_t timeout) {
     libusb_transfer *xfer = libusb_alloc_transfer(0);
     uint8_t *data = static_cast<uint8_t *>(malloc(sizeof(uint8_t) * len));
@@ -136,6 +137,7 @@ void USBController::write_async(uint8_t endpoint, uint8_t *buf, int len, uint32_
     }
     m_transfers.insert(xfer);
 }
+
 void USBController::control_async(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t *wBuf, uint16_t wLength, uint32_t timeout) {
     const uint8_t wSetupLen = 8;
     libusb_transfer *xfer = libusb_alloc_transfer(0);
@@ -158,6 +160,7 @@ void USBController::control_async(uint8_t bmRequestType, uint8_t bRequest, uint1
 void USBController::on_control_wrap(struct libusb_transfer* xfer) {
     static_cast<USBController*>(xfer->user_data)->on_control(xfer);
 }
+
 void USBController::on_control(libusb_transfer *xfer) {
     Console::out() << "control xfer" << std::endl;
     m_transfers.erase(xfer);
@@ -167,15 +170,22 @@ void USBController::on_control(libusb_transfer *xfer) {
 void USBController::on_write_wrap(struct libusb_transfer *xfer) {
     static_cast<USBController*>(xfer->user_data)->on_write(xfer);
 }
+
 void USBController::on_write(libusb_transfer *xfer) {
     switch (xfer->status) {
         case LIBUSB_TRANSFER_COMPLETED:
             write_cb(xfer->buffer, xfer->actual_length, NULL);
             Console::out() << "write len:" << xfer->length << std::endl;
             break;
-        case LIBUSB_TRANSFER_CANCELLED: Console::out() << "transfer was cancelled" << std::endl;     break;
-        case LIBUSB_TRANSFER_NO_DEVICE: Console::out() << "device was disconnected" << std::endl;    break;
-        default: Console::out() << "write failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl; break;
+        case LIBUSB_TRANSFER_CANCELLED:
+            Console::out() << "transfer was cancelled" << std::endl;
+            break;
+        case LIBUSB_TRANSFER_NO_DEVICE:
+            Console::out() << "device was disconnected" << std::endl;
+            break;
+        default:
+            Console::out() << "write failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl;
+            break;
     }
     m_transfers.erase(xfer);
     libusb_free_transfer(xfer);
@@ -184,6 +194,7 @@ void USBController::on_write(libusb_transfer *xfer) {
 void USBController::on_read_wrap(struct libusb_transfer *xfer) {
     static_cast<USBController*>(xfer->user_data)->on_read(xfer);
 }
+
 void USBController::on_read(libusb_transfer *xfer) {
     int ret;
     switch(xfer->status) {
@@ -202,14 +213,15 @@ void USBController::on_read(libusb_transfer *xfer) {
         default:
             m_transfers.erase(xfer);
             libusb_free_transfer(xfer);
-            if (xfer->status == LIBUSB_TRANSFER_CANCELLED) Console::out() << "transfer was cancelled" << std::endl;
-            else if (xfer->status == LIBUSB_TRANSFER_NO_DEVICE) Console::out() << "device was disconnected" << std::endl;
-            else Console::out() << "read failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl;
+            if (xfer->status == LIBUSB_TRANSFER_CANCELLED)
+                Console::out() << "transfer was cancelled" << std::endl;
+            else if (xfer->status == LIBUSB_TRANSFER_NO_DEVICE)
+                Console::out() << "device was disconnected" << std::endl;
+            else
+                Console::out() << "read failure: " << libusb_error_name(xfer->status) << "len: " << xfer->length << std::endl;
             break;
     }
 }
-
-
 
 void USBController::view_all_endpoint() {
     libusb_config_descriptor *config = nullptr;

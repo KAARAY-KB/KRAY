@@ -79,18 +79,24 @@ std::vector<USBHelper::DevMsg_t> USBHelper::list_device() {
             if ((rc == 0) && handle) {
                 if (desc.iManufacturer) {
                     size = sizeof(mfr);
-                    libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, mfr, size);
-                    info.ch.mfr.append((char *)mfr, size);
+                    int len = libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, mfr, size);
+                    if (len > 0) {
+                        info.ch.mfr.append((char *)mfr, len);
+                    }
                 }
                 if (desc.iProduct) {
                     size = sizeof(prod);
-                    libusb_get_string_descriptor_ascii(handle, desc.iProduct, prod, size);
-                    info.ch.prod.append((char *)prod, size);
+                    int len = libusb_get_string_descriptor_ascii(handle, desc.iProduct, prod, size);
+                    if (len > 0) {
+                        info.ch.prod.append((char *)prod, len);
+                    }
                 }
                 if (desc.iSerialNumber) {
                     size = sizeof(sn);
-                    libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, sn, size);
-                    info.ch.sn.append((char *)sn, size);
+                    int len = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, sn, size);
+                    if (len > 0) {
+                        info.ch.sn.append((char *)sn, len);
+                    }
                 }
                 libusb_close(handle);
             } 
