@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    QFont f("Maple Mono NF CN", 12);
+    QFont f("Maple Mono NF CN", 10);
     a.setFont(f);
 
     Kray w;

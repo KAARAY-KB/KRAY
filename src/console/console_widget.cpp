@@ -37,7 +37,7 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
 //    setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
     setWindowTitle("Console");
     setWindowIcon(createConsoleIcon());
-    setFont(QFont("Maple Mono NF CN", 12));
+    setFont(QFont("Maple Mono NF CN", 10));
     resize(600, 460);
     move(0, 0);
 
