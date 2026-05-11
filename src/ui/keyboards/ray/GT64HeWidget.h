@@ -1,7 +1,6 @@
 #ifndef GT64HEWIDGET_H
 #define GT64HEWIDGET_H
 
-#include <QDebug>
 #include <QTimer>
 #include <QWidget>
 #include <QCloseEvent>

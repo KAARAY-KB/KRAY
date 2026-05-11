@@ -1,8 +1,8 @@
 #include "GT64HeController.h"
 #include "console.h"
 
-GT64HeController::GT64HeController(libusb_device* dev, bool try_detach)
-    : USBController(dev, std::set<int>{INTERFACE_CUSTOM})
+GT64HeController::GT64HeController(libusb_device* dev, std::set<int> _interfaces, bool try_detach)
+    : USBController(dev, _interfaces)
 {
 }
 

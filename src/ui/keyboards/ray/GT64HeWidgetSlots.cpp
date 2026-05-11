@@ -24,19 +24,21 @@ void GT64HeWidget::on_param_dbg_btn_usbTx_clicked() {
         buf[GT64HeController::EP_CUSTOM_SIZE-1-i] = 9;
     }
 
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_CUSTOM);
+    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
     if (intf != controller->interfaces.end()) {
         intf->second->submit_write(GT64HeController::EP_CUSTOM_OUT, GT64HeController::EP_CUSTOM_SIZE, buf, std::bind(&GT64HeWidget::write_done, this, std::placeholders::_1), 0);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_usbRx_clicked() {
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_CUSTOM);
+    Console::out() << "usb rx start" << std::endl;
+    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
     if (intf != controller->interfaces.end()) {
         intf->second->submit_read(GT64HeController::EP_CUSTOM_IN, GT64HeController::EP_CUSTOM_SIZE, std::bind(&GT64HeWidget::read_done, this, std::placeholders::_1), 0);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_usbRxStop_clicked() {
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_CUSTOM);
+    Console::out() << "usb rx stop" << std::endl;
+    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
     if (intf != controller->interfaces.end()) {
         intf->second->cancel_read(GT64HeController::EP_CUSTOM_IN);
     }

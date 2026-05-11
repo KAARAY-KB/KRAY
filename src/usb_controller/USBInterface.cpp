@@ -136,6 +136,7 @@ void USBInterface::submit_control(uint8_t bmRequestType, uint8_t bRequest, uint1
 
 void USBInterface::on_read(libusb_transfer *transfer, USBTransferCallback *transferCallback) {
     USBTransferCallback::TransferAction action = transferCallback->m_callback(transfer);
+   // Console::out() << "on_read() action: " << action;
     if (action == USBTransferCallback::TRANSFER_ONCE) {
         libusb_free_transfer(transfer);
         m_endpoint.erase(transfer->endpoint);

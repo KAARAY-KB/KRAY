@@ -2,6 +2,7 @@
 #include "Ui_GT64HeWidget.h"
 #include "hphpt.h"
 #include "console.h"
+#include <QDebug>
 
 
 GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent) 
@@ -14,7 +15,8 @@ GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent)
     libusb_device *dev = USBHelper::find_device(info);
     if ( dev != nullptr ) {
         Console::out() << "Found device" << std::endl;
-        controller = new GT64HeController(dev);
+        controller = new GT64HeController(dev, 
+            std::set<int>{0});
     }
     connect(this, &GT64HeWidget::activeWindowChanged, this, &GT64HeWidget::slot_activeWindowChanged);
     m_activeWindowTimer = new QTimer(this);
@@ -73,10 +75,14 @@ void GT64HeWidget::updateParamValue() {
 
 
 USBTransferCallback::TransferAction GT64HeWidget::read_done(libusb_transfer *transfer) {
-    Console::out() << "usb rx[" << transfer->length << "][" << transfer->actual_length << "]"
-                   << transfer->buffer[0] << "," << transfer->buffer[1] << "," << transfer->buffer[transfer->actual_length-1] << std::endl;
-    
-    hpt_decode(NULL, 0);
+    std::string str = "";
+    str = "usb rx[" + std::to_string(transfer->length) + "]: ";
+    for (int i = 0; i < 10; ++i) {
+        str += std::to_string(transfer->buffer[i]) + ",";
+    }
+    str.pop_back();
+    // qDebug() << QString(str.c_str());
+    Console::out() << str << std::endl;
     
     return USBTransferCallback::TransferAction::TRANSFER_CONTINUE;
 }

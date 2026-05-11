@@ -8,7 +8,7 @@
 
 class GT64HeController : public USBController {
 public:
-    GT64HeController(libusb_device* dev, bool try_detach = true);
+    GT64HeController(libusb_device* dev, std::set<int> _interfaces, bool try_detach = true);
     virtual ~GT64HeController();
 
     enum interface {
@@ -22,9 +22,9 @@ public:
     };
 
     enum enpoint {
-        EP_CUSTOM_IN   = 0x03 | USBHelper::ENDPOINT_IN,
-        EP_CUSTOM_OUT  = 0x03 | USBHelper::ENDPOINT_OUT,
-        EP_CUSTOM_SIZE = 0x0100,
+        EP_CUSTOM_IN   = 0x01 | USBHelper::ENDPOINT_IN,
+        EP_CUSTOM_OUT  = 0x01 | USBHelper::ENDPOINT_OUT,
+        EP_CUSTOM_SIZE = 64,
         // EP_CUSTOM_RPT_ID = 0x00,
     };
 private:
