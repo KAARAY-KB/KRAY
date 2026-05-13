@@ -173,6 +173,18 @@ public:
     // @return TransferResult 包含读取结果和数据
     TransferResult hid_read(int length, unsigned int timeout_ms = 1000);
 
+    // 读取最新的 HID 输入报告（先排空缓冲区再读取）
+    //
+    // 由于 libusb 会缓冲中断端点的数据包，直接调用 hid_read()
+    // 只能拿到队列中最旧的数据。本方法先排空缓冲区，返回最新数据。
+    //
+    // 适用场景：设备持续发送数据，但你只关心当前最新值。
+    //
+    // @param length     要读取的字节数
+    // @param timeout_ms 每次排空读取的超时时间（毫秒），默认 10ms
+    // @return TransferResult 包含最新读取结果和数据
+    TransferResult hid_read_latest(int length, unsigned int timeout_ms = 10);
+
     // 写入 HID 输出报告（通过中断 OUT 端点）
     // @param data       要写入的数据
     // @param timeout_ms 超时时间（毫秒）

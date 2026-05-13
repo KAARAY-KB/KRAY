@@ -141,6 +141,12 @@ TransferResult UsbController::hid_read(int length, unsigned int timeout_ms) {
     return _hid_device->read_report(length, timeout_ms); // 委托给 HidDevice
 }
 
+// 读取最新的 HID 输入报告（先排空缓冲区再读取）
+TransferResult UsbController::hid_read_latest(int length, unsigned int timeout_ms) {
+    if (!_hid_device) return {false, 0, 0, "No HID device opened", {}}; // 设备未打开
+    return _hid_device->read_latest(length, timeout_ms); // 委托给 HidDevice::read_latest()
+}
+
 TransferResult UsbController::hid_write(const std::vector<uint8_t>& data, unsigned int timeout_ms) {
     if (!_hid_device) return {false, 0, 0, "No HID device opened", {}};
     return _hid_device->write_report(data, timeout_ms);

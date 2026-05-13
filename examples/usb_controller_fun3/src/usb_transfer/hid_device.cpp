@@ -138,6 +138,50 @@ TransferResult HidDevice::read_report(int length, unsigned int timeout_ms) {
 }
 
 // ============================================================================
+// read_latest - 读取最新的输入报告（先排空缓冲区再读取）
+//
+// 问题背景：
+//   当内核驱动被分离后，libusb 直接接管中断端点，会把设备发送的
+//   所有数据包缓冲到 FIFO 队列中。直接调用 read_report() 只能拿到
+//   队列中最旧的数据包，而不是最新的。
+//
+// 解决方法：
+//   以短超时（默认 10ms）循环读取，直到超时（队列为空），
+//   返回最后一次成功读取的数据（即最新的数据包）。
+//
+// 示例：
+//   设备每 1 秒发送数据 [1,2,3,4,5]，等待 5 秒后：
+//     read_report()  → 返回 [1]（最旧）
+//     read_latest()  → 返回 [5]（最新）
+//
+// @param length     要读取的最大字节数
+// @param timeout_ms 每次排空读取的超时时间（毫秒），默认 10ms
+// @return TransferResult 包含最新读取结果和数据
+// ============================================================================
+TransferResult HidDevice::read_latest(int length, unsigned int timeout_ms) {
+    // 检查设备是否已打开
+    if (!_transfer) return {false, 0, 0, "Device not opened", {}};
+
+    TransferResult last_result; // 保存最后一次成功读取的结果
+    last_result.success = false; // 初始化为失败状态
+
+    // 循环读取直到队列为空（超时表示没有更多数据）
+    while (true) {
+        // 以短超时读取一个数据包
+        auto result = _transfer->interrupt_read(_in_ep.address, length, timeout_ms);
+        // 如果读取成功且有数据，保存为最新结果
+        if (result.success && result.bytes_transferred > 0) {
+            last_result = std::move(result);
+        } else {
+            // 超时或无数据：队列已空，退出循环
+            break;
+        }
+    }
+    // 返回最后一次成功读取的结果（即最新数据）
+    return last_result;
+}
+
+// ============================================================================
 // write_report - 写入 HID 输出报告（通过中断 OUT 端点）
 //
 // 向 HID 设备的中断 OUT 端点写入数据。
