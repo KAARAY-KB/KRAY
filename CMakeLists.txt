@@ -22,6 +22,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSup
 add_subdirectory(resources)
 add_subdirectory(src)
 
+
 # 定义项目的所有源文件
 set(PROJECT_SOURCES
     # src/core/main.cpp
@@ -111,3 +112,21 @@ install(TARGETS ${PROJECT_NAME}
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(${PROJECT_NAME})
 endif()
+
+
+
+
+# Examples
+option(KRY_BUILD_EXAMPLE "Build example" ON)
+
+if(KRY_BUILD_EXAMPLE)
+    add_subdirectory(examples/usb_controller_fun1)
+    add_subdirectory(examples/usb_controller_fun2)
+
+# CTest
+    enable_testing()
+    add_test(ex_usb_controller_fun1 examples/usb_controller_fun1/ex_usb_controller_fun1)
+    add_test(ex_usb_controller_fun2 examples/usb_controller_fun2/ex_usb_controller_fun2)
+
+endif()
+
