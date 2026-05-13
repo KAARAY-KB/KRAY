@@ -29,6 +29,7 @@
 //   15. 原始端点批量写入
 //   16. 按 VID:PID 查找设备
 //   17. 自动运行所有演示
+//   18. 读取最新 HID 报告（先排空缓冲区）
 //
 // 依赖关系：
 //   - usb_controller.hpp：UsbController 统一接口
@@ -129,6 +130,7 @@ void print_menu() {
     std::cout << "| 15. Raw endpoint bulk write          |\n"; // 原始批量写入
     std::cout << "| 16. Find device by VID:PID           |\n"; // 按 VID:PID 查找
     std::cout << "| 17. Run all demos (auto)             |\n"; // 自动运行所有演示
+    std::cout << "| 18. HID read latest (drain buffer)   |\n"; // 读取最新 HID 报告（排空缓冲区）
     std::cout << "|  0. Exit                             |\n"; // 退出
     std::cout << "+--------------------------------------+\n";
     std::cout << "Choice: "; // 提示用户输入
@@ -272,6 +274,46 @@ void demo_hid_read(UsbController& ctrl) {
     // 执行同步 HID 读取
     auto result = ctrl.hid_read(len, 1000);
     print_transfer_result("Read", result); // 输出结果
+}
+
+// ============================================================================
+// demo_hid_read_latest - 演示：读取最新的 HID 输入报告（先排空缓冲区）
+//
+// 与 demo_hid_read 的区别：
+//   demo_hid_read 调用 hid_read()，只能拿到 libusb 缓冲区中最旧的数据包。
+//   本函数调用 hid_read_latest()，先以短超时循环排空缓冲区，
+//   返回最后一次成功读取的数据（即设备最新发送的数据）。
+//
+// 适用场景：设备持续发送数据（如每 1 秒发一次），但你只关心当前最新值。
+// ============================================================================
+void demo_hid_read_latest(UsbController& ctrl) {
+    print_separator("18. HID Read Latest Report (drain buffer first)");
+    // 如果未打开 HID 设备，自动尝试打开
+    if (!ctrl.is_hid_open()) {
+        auto& devs = ctrl.devices();
+        bool opened = false;
+        // 遍历设备，打开第一个有 HID 接口的设备
+        for (size_t i = 0; i < devs.size(); ++i) {
+            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
+                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
+                opened = true;
+                break;
+            }
+        }
+        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
+    }
+    // 获取读取长度（默认 64 字节）
+    int len = 64;
+    std::cout << "Read length (" << len << "): ";
+    std::string input;
+    std::cin.ignore(); // 忽略之前输入留下的换行符
+    std::getline(std::cin, input);
+    if (!input.empty()) len = std::stoi(input); // 用户自定义长度
+
+    // 执行排空缓冲区后的最新数据读取
+    // 默认每次排空读取超时 10ms，循环直到队列为空
+    auto result = ctrl.hid_read_latest(len, 10);
+    print_transfer_result("ReadLatest", result); // 输出结果
 }
 
 // ============================================================================
@@ -499,6 +541,10 @@ void demo_run_all(UsbController& ctrl) {
         auto result = ctrl.hid_read(64, 1000);
         print_transfer_result("Read", result);
 
+        // 读取最新 HID 报告（排空缓冲区）
+        result = ctrl.hid_read_latest(64, 10);
+        print_transfer_result("ReadLatest", result);
+
         // 同步 HID 写入（测试数据）
         std::vector<uint8_t> test = {0x00, 0x01, 0x02, 0x03};
         result = ctrl.hid_write(test, 1000);
@@ -601,6 +647,7 @@ int main() {
                 case 15: demo_bulk_write(ctrl); break;         // 原始批量写入
                 case 16: demo_find_device(ctrl); break;        // 按 VID:PID 查找
                 case 17: demo_run_all(ctrl); break;            // 自动运行所有演示
+                case 18: demo_hid_read_latest(ctrl); break; // 读取最新 HID 报告（排空缓冲区）
                 case 0:  g_running = false; break;             // 退出程序
                 default: std::cout << "Invalid choice\n"; break; // 无效选择
             }

@@ -138,46 +138,66 @@ TransferResult HidDevice::read_report(int length, unsigned int timeout_ms) {
 }
 
 // ============================================================================
-// read_latest - 读取最新的输入报告（先排空缓冲区再读取）
+// read_latest - 读取最新的输入报告（先排空缓冲区，再等待新数据）
 //
 // 问题背景：
-//   当内核驱动被分离后，libusb 直接接管中断端点，会把设备发送的
-//   所有数据包缓冲到 FIFO 队列中。直接调用 read_report() 只能拿到
-//   队列中最旧的数据包，而不是最新的。
+//   当内核驱动被分离后，libusb 直接接管中断端点。但 USB 主机控制器
+//   只在有传输被提交时才轮询端点。两次 read 调用之间如果没有传输在跑，
+//   主机控制器不会主动收数据，设备发送的数据包会全部丢失。
 //
-// 解决方法：
-//   以短超时（默认 10ms）循环读取，直到超时（队列为空），
-//   返回最后一次成功读取的数据（即最新的数据包）。
+// 解决方法（两步）：
+//   第一步：以短超时循环读取，排空 libusb 内部已有的缓冲数据。
+//   第二步：提交一次长超时读取，等待设备的下一个数据包，
+//           确保拿到的是设备当前最新发送的数据。
 //
 // 示例：
 //   设备每 1 秒发送数据 [1,2,3,4,5]，等待 5 秒后：
 //     read_report()  → 返回 [1]（最旧）
-//     read_latest()  → 返回 [5]（最新）
+//     read_latest()  → 排空 [1,2,3,4] → 等待新数据 → 返回 [5]（最新）
 //
-// @param length     要读取的最大字节数
-// @param timeout_ms 每次排空读取的超时时间（毫秒），默认 10ms
+// @param length        要读取的最大字节数
+// @param drain_timeout_ms 排空缓冲区时每次读取的超时（毫秒），默认 10ms
 // @return TransferResult 包含最新读取结果和数据
 // ============================================================================
-TransferResult HidDevice::read_latest(int length, unsigned int timeout_ms) {
+TransferResult HidDevice::read_latest(int length, unsigned int drain_timeout_ms) {
     // 检查设备是否已打开
     if (!_transfer) return {false, 0, 0, "Device not opened", {}};
 
     TransferResult last_result; // 保存最后一次成功读取的结果
     last_result.success = false; // 初始化为失败状态
 
-    // 循环读取直到队列为空（超时表示没有更多数据）
+    // ========================================================================
+    // 第一步：排空 libusb 内部已有的缓冲数据（短超时循环读取）
+    // 这些是设备之前发送、堆积在缓冲区中的旧数据包
+    // ========================================================================
     while (true) {
         // 以短超时读取一个数据包
-        auto result = _transfer->interrupt_read(_in_ep.address, length, timeout_ms);
+        auto result = _transfer->interrupt_read(_in_ep.address, length, drain_timeout_ms);
         // 如果读取成功且有数据，保存为最新结果
         if (result.success && result.bytes_transferred > 0) {
             last_result = std::move(result);
         } else {
-            // 超时或无数据：队列已空，退出循环
+            // 超时或无数据：缓冲区已空，退出循环
             break;
         }
     }
-    // 返回最后一次成功读取的结果（即最新数据）
+
+    // ========================================================================
+    // 第二步：等待设备的下一个数据包（长超时）
+    //
+    // 关键：两次 read 调用之间，USB 主机控制器没有在轮询端点，
+    // 设备发送的数据包全部丢失了。这里用 1100ms 超时等待设备的下一个
+    // 数据包，确保拿到的是设备当前最新发送的数据。
+    //
+    // 1100ms 略大于常见 HID 设备的最大报告间隔（1000ms），
+    // 确保能覆盖设备的一个完整发送周期。
+    // ========================================================================
+    auto result = _transfer->interrupt_read(_in_ep.address, length, 1100);
+    // 如果收到新数据，替换为最新结果
+    if (result.success && result.bytes_transferred > 0) {
+        last_result = std::move(result);
+    }
+    // 返回最新数据（如果两步都没收到数据，success 为 false）
     return last_result;
 }
 

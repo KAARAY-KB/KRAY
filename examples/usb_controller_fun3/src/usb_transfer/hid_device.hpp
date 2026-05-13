@@ -91,18 +91,18 @@ public:
     // @return TransferResult 包含读取结果和数据
     TransferResult read_report(int length, unsigned int timeout_ms = 1000);
 
-    // 读取最新的输入报告（先排空缓冲区再读取）
-    //
-    // 由于 libusb 会缓冲中断端点的所有数据包，直接调用 read_report()
-    // 只能拿到队列中最旧的数据。本方法先以短超时循环读取排空缓冲区，
-    // 再返回最后一次成功读取的数据（即最新的数据）。
-    //
-    // 使用场景：设备持续发送数据（如每 1 秒发一次），但你只想获取当前最新值。
-    //
-    // @param length     要读取的最大字节数
-    // @param timeout_ms 每次排空读取的超时时间（毫秒），默认 10ms
-    // @return TransferResult 包含最新读取结果和数据
-    TransferResult read_latest(int length, unsigned int timeout_ms = 10);
+    // 读取最新的输入报告（先排空缓冲区，再等待设备新数据）
+//
+// 两步策略：
+//   1. 以短超时循环读取，排空 libusb 内部已有的缓冲数据
+//   2. 以 1100ms 长超时等待设备的下一个数据包，确保拿到最新数据
+//
+// 适用场景：设备持续发送数据（如每 1 秒发一次），但你只想获取当前最新值。
+//
+// @param length            要读取的最大字节数
+// @param drain_timeout_ms  排空缓冲区时每次读取的超时（毫秒），默认 10ms
+// @return TransferResult 包含最新读取结果和数据
+TransferResult read_latest(int length, unsigned int drain_timeout_ms = 10);
 
     // 写入输出报告（通过中断 OUT 端点）
     // 用于向 HID 设备发送数据，如设置键盘 LED 状态。
