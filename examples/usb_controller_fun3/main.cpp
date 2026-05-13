@@ -30,6 +30,7 @@
 //   16. 按 VID:PID 查找设备
 //   17. 自动运行所有演示
 //   18. 读取最新 HID 报告（先排空缓冲区）
+//   19. 连续异步读取（手动启停）
 //
 // 依赖关系：
 //   - usb_controller.hpp：UsbController 统一接口
@@ -47,6 +48,7 @@
 #include <chrono>     // std::chrono::seconds, milliseconds
 #include <atomic>
 #include <sstream>
+#include <limits>     // std::numeric_limits
 
 using namespace usb_ctrl; // 使用 usb_ctrl 命名空间
 
@@ -131,6 +133,7 @@ void print_menu() {
     std::cout << "| 16. Find device by VID:PID           |\n"; // 按 VID:PID 查找
     std::cout << "| 17. Run all demos (auto)             |\n"; // 自动运行所有演示
     std::cout << "| 18. HID read latest (drain buffer)   |\n"; // 读取最新 HID 报告（排空缓冲区）
+    std::cout << "| 19. Async read (manual start/stop)   |\n"; // 连续异步读取（手动启停）
     std::cout << "|  0. Exit                             |\n"; // 退出
     std::cout << "+--------------------------------------+\n";
     std::cout << "Choice: "; // 提示用户输入
@@ -314,6 +317,60 @@ void demo_hid_read_latest(UsbController& ctrl) {
     // 默认每次排空读取超时 10ms，循环直到队列为空
     auto result = ctrl.hid_read_latest(len, 10);
     print_transfer_result("ReadLatest", result); // 输出结果
+}
+
+// ============================================================================
+// demo_async_start_stop - 演示：手动控制连续异步读取的启停
+//
+// 与 demo_continuous_read（固定 5 秒）不同，本函数让用户手动控制：
+//   1. 启动连续异步读取
+//   2. 数据持续打印到终端
+//   3. 用户按 Enter 键停止
+//
+// 适用场景：需要灵活控制异步读取的启停时机。
+// ============================================================================
+void demo_async_start_stop(UsbController& ctrl) {
+    print_separator("19. Async Continuous Read (manual start/stop)");
+    // 如果未打开 HID 设备，自动尝试打开
+    if (!ctrl.is_hid_open()) {
+        auto& devs = ctrl.devices();
+        bool opened = false;
+        // 遍历设备，打开第一个有 HID 接口的设备
+        for (size_t i = 0; i < devs.size(); ++i) {
+            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
+                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
+                opened = true;
+                break;
+            }
+        }
+        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
+    }
+
+    // 确保异步引擎已启动
+    ctrl.async_start();
+
+    // 读取计数器（原子变量，线程安全）
+    std::atomic<int> count{0};
+    // 启动连续异步读取
+    ctrl.hid_read_continuous(64, [&count](const TransferResult& r) {
+        // 回调函数：每次读取完成时调用（在异步引擎线程中执行）
+        if (r.success && r.bytes_transferred > 0) {
+            ++count;
+            std::cout << "  [#" << count << "] " << r.bytes_transferred
+                      << " bytes: " << transfer::bytes_to_hex(r.data, 32) << "\n";
+        }
+    }, 500);
+
+    std::cout << "  Continuous async read started. Press Enter to stop...\n";
+    // 先清除菜单选择时残留的换行符
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // 等待用户真正按 Enter 键
+    std::cin.get();
+    // 停止连续读取
+    ctrl.hid_stop_continuous();
+    // 等待最后的回调完成
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::cout << "  Stopped. Total reads: " << count << "\n"; // 显示总读取次数
 }
 
 // ============================================================================
@@ -648,6 +705,7 @@ int main() {
                 case 16: demo_find_device(ctrl); break;        // 按 VID:PID 查找
                 case 17: demo_run_all(ctrl); break;            // 自动运行所有演示
                 case 18: demo_hid_read_latest(ctrl); break; // 读取最新 HID 报告（排空缓冲区）
+                case 19: demo_async_start_stop(ctrl); break; // 连续异步读取（手动启停）
                 case 0:  g_running = false; break;             // 退出程序
                 default: std::cout << "Invalid choice\n"; break; // 无效选择
             }
