@@ -122,11 +122,13 @@ option(KRY_BUILD_EXAMPLE "Build example" ON)
 if(KRY_BUILD_EXAMPLE)
     add_subdirectory(examples/usb_controller_fun1)
     add_subdirectory(examples/usb_controller_fun2)
+    add_subdirectory(examples/usb_controller_fun3)
 
 # CTest
     enable_testing()
     add_test(ex_usb_controller_fun1 examples/usb_controller_fun1/ex_usb_controller_fun1)
     add_test(ex_usb_controller_fun2 examples/usb_controller_fun2/ex_usb_controller_fun2)
-
+    add_test(ex_usb_controller_fun3 examples/usb_controller_fun3/ex_usb_controller_fun3)
+    
 endif()
 
