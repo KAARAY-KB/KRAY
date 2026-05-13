@@ -34,6 +34,7 @@
 #include "usb_transfer/async_transfer.hpp"
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <functional>
@@ -173,16 +174,17 @@ public:
     // @return TransferResult 包含读取结果和数据
     TransferResult hid_read(int length, unsigned int timeout_ms = 1000);
 
-    // 读取最新的 HID 输入报告（先排空缓冲区，再等待设备新数据）
+    // 读取最新的 HID 输入报告（零阻塞，从后台轮询缓存中获取）
 //
-// 两步策略：
-//   1. 以短超时循环读取，排空 libusb 内部已有的缓冲数据
-//   2. 以 1100ms 长超时等待设备的下一个数据包，确保拿到最新数据
+// 打开 HID 设备后自动启动后台连续轮询（通过 AsyncTransferEngine），
+// 最新数据实时缓存到内存中。调用本方法直接返回缓存数据，无需等待。
 //
-// 适用场景：设备持续发送数据，但你只关心当前最新值。
+// 与 hid_read() 的区别：
+//   hid_read()       → 同步阻塞读取，拿到的是缓冲区中最旧的数据
+//   hid_read_latest() → 零阻塞，拿到的是设备最新发送的数据
 //
-// @param length            要读取的字节数
-// @param drain_timeout_ms  排空缓冲区时每次读取的超时（毫秒），默认 10ms
+// @param length            要读取的字节数（仅用于 fallback，后台轮询使用端点最大包大小）
+// @param drain_timeout_ms  排空超时（毫秒），仅 fallback 时使用，默认 10ms
 // @return TransferResult 包含最新读取结果和数据
 TransferResult hid_read_latest(int length, unsigned int drain_timeout_ms = 10);
 
@@ -289,12 +291,24 @@ TransferResult hid_read_latest(int length, unsigned int drain_timeout_ms = 10);
     AsyncTransferEngine* async_engine() { return _async_engine.get(); }
 
 private:
+    // 启动后台 HID 轮询（打开设备后自动调用）
+    void _start_background_polling();
+
+    // 停止后台 HID 轮询
+    void _stop_background_polling();
+
     std::unique_ptr<UsbContext> _ctx;                   // USB 上下文（libusb 初始化）
     std::unique_ptr<UsbDeviceManager> _manager;         // 设备管理器（设备枚举和查询）
     std::unique_ptr<HidDevice> _hid_device;             // HID 设备（当前打开的设备）
     std::unique_ptr<SyncTransfer> _sync_transfer;       // 同步传输对象
     std::unique_ptr<AsyncTransferEngine> _async_engine; // 异步传输引擎
     std::unique_ptr<AsyncHidTransfer> _async_hid;       // HID 异步传输对象
+
+    // 后台轮询相关（用于 hid_read_latest 零阻塞读取）
+    std::mutex _latest_data_mutex;              // 保护 _latest_hid_data 的互斥锁
+    std::vector<uint8_t> _latest_hid_data;      // 缓存的最新 HID 数据（后台轮询写入）
+    bool _latest_data_valid = false;            // 缓存数据是否有效
+    bool _background_polling_active = false;    // 后台轮询是否已启动
 };
 
 } // namespace usb_ctrl

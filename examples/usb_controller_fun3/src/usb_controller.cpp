@@ -92,6 +92,8 @@ bool UsbController::open_hid_device(size_t index) {
     _hid_device = std::move(hid); // 保存 HID 设备对象
     // 创建同步传输对象（复用 HID 设备的句柄）
     _sync_transfer = std::make_unique<SyncTransfer>(_hid_device->transfer().handle());
+    // 启动后台轮询（用于 hid_read_latest 零阻塞读取）
+    _start_background_polling();
     return true;
 }
 
@@ -107,6 +109,8 @@ bool UsbController::open_hid_device_by_vid_pid(uint16_t vid, uint16_t pid) {
                 close_hid_device(); // 关闭之前打开的设备
                 _hid_device = std::move(hid);
                 _sync_transfer = std::make_unique<SyncTransfer>(_hid_device->transfer().handle());
+                // 启动后台轮询（用于 hid_read_latest 零阻塞读取）
+                _start_background_polling();
                 return true;
             }
         }
@@ -116,6 +120,7 @@ bool UsbController::open_hid_device_by_vid_pid(uint16_t vid, uint16_t pid) {
 
 // 关闭 HID 设备
 void UsbController::close_hid_device() {
+    _stop_background_polling(); // 停止后台轮询
     _async_hid.reset();     // 释放异步 HID 传输对象
     _sync_transfer.reset(); // 释放同步传输对象
     _hid_device.reset();    // 释放 HID 设备对象（自动调用 close()）
@@ -141,10 +146,25 @@ TransferResult UsbController::hid_read(int length, unsigned int timeout_ms) {
     return _hid_device->read_report(length, timeout_ms); // 委托给 HidDevice
 }
 
-// 读取最新的 HID 输入报告（先排空缓冲区，再等待设备新数据）
+// 读取最新的 HID 输入报告（零阻塞，从后台轮询缓存中获取）
 TransferResult UsbController::hid_read_latest(int length, unsigned int drain_timeout_ms) {
     if (!_hid_device) return {false, 0, 0, "No HID device opened", {}}; // 设备未打开
-    return _hid_device->read_latest(length, drain_timeout_ms); // 委托给 HidDevice::read_latest()
+
+    // 确保后台轮询已启动
+    _start_background_polling();
+
+    // 从缓存中获取最新数据（零阻塞）
+    {
+        std::lock_guard<std::mutex> lock(_latest_data_mutex); // 加锁读取缓存
+        if (_latest_data_valid) {
+            // 有缓存数据，直接返回
+            return {true, 0, (int)_latest_hid_data.size(), "", _latest_hid_data};
+        }
+    }
+
+    // 缓存尚无数据（后台轮询刚启动，还没收到第一个包）
+    // fallback 到 HidDevice::read_latest() 的排空+等待方案
+    return _hid_device->read_latest(length, drain_timeout_ms);
 }
 
 TransferResult UsbController::hid_write(const std::vector<uint8_t>& data, unsigned int timeout_ms) {
@@ -250,6 +270,79 @@ void UsbController::hid_stop_continuous() {
 // 获取异步传输待处理数量
 size_t UsbController::async_pending_count() const {
     return _async_engine ? _async_engine->pending_count() : 0; // 引擎未启动时返回 0
+}
+
+// ============================================================================
+// 后台轮询（用于 hid_read_latest 零阻塞读取）
+//
+// 原理：
+//   打开 HID 设备后自动启动后台连续轮询，通过 AsyncTransferEngine
+//   持续提交中断 IN 传输。每次收到数据后更新 _latest_hid_data 缓存，
+//   并自动提交下一次传输。这样 USB 主机控制器始终在轮询端点，
+//   数据不会丢失。
+//
+//   hid_read_latest() 调用时直接从缓存读取，零阻塞。
+//
+// 与同步排空方案的区别：
+//   同步方案：调用时才排空+等待 → 阻塞 1+ 秒，且两次调用之间数据丢失
+//   后台方案：持续轮询 → 零阻塞，数据不丢失
+// ============================================================================
+
+// 启动后台 HID 轮询
+void UsbController::_start_background_polling() {
+    // 已启动则跳过（幂等操作）
+    if (_background_polling_active) return;
+    // 设备未打开则跳过
+    if (!_hid_device || !_hid_device->is_open()) return;
+
+    // 启动异步引擎
+    async_start();
+
+    // 创建 HID 异步传输对象
+    if (!_async_hid) {
+        _async_hid = std::make_unique<AsyncHidTransfer>(
+            *_async_engine,
+            _hid_device->handle(),
+            _hid_device->in_endpoint().address,
+            _hid_device->out_endpoint().address);
+    }
+
+    // 使用 IN 端点的最大包大小作为读取长度
+    int pkt_size = _hid_device->in_endpoint().max_packet_size;
+    if (pkt_size <= 0) pkt_size = 64; // 兜底默认 64 字节
+
+    // 启动连续异步读取，回调中更新缓存
+    _async_hid->read_continuous(pkt_size,
+        [this](const TransferResult& result) {
+            // 回调在异步引擎的事件线程中执行，需要加锁
+            if (result.success && result.bytes_transferred > 0) {
+                std::lock_guard<std::mutex> lock(_latest_data_mutex);
+                _latest_hid_data = result.data; // 更新缓存
+                _latest_data_valid = true;       // 标记数据有效
+            }
+        },
+        1100); // 超时 1100ms，略大于常见 HID 设备的 1 秒报告间隔
+
+    _background_polling_active = true; // 标记已启动
+}
+
+// 停止后台 HID 轮询
+void UsbController::_stop_background_polling() {
+    if (!_background_polling_active) return; // 未启动则跳过
+
+    // 停止连续读取
+    if (_async_hid) {
+        _async_hid->stop_continuous();
+    }
+
+    // 重置缓存状态
+    {
+        std::lock_guard<std::mutex> lock(_latest_data_mutex);
+        _latest_hid_data.clear();
+        _latest_data_valid = false;
+    }
+
+    _background_polling_active = false; // 标记已停止
 }
 
 } // namespace usb_ctrl
