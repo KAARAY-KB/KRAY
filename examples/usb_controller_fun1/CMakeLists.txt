@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-set (LIB_NAME ex_usb_controller)
+set(LIB_NAME ex_usb_controller_fun1)
 
 project(${LIB_NAME} VERSION 1.0.0 LANGUAGES CXX)
 
