@@ -212,7 +212,7 @@ void demo_continuous_read(UsbController& ctrl) {
         if (r.success && r.bytes_transferred > 0) {
             ++count;
             std::cout << "  [#" << count << "] " << r.bytes_transferred
-                      << " bytes: " << bytes_to_hex(r.data, 32) << "\n";
+                      << " bytes: " << transfer::bytes_to_hex(r.data, 32) << "\n";
         }
     }, 500);
 
@@ -328,17 +328,19 @@ void demo_run_all(UsbController& ctrl) {
     ctrl.async_stop();
     print_separator("Auto Demo Complete");
 }
+static const char * _usb_controller_log = R"(
+                                                                                      
+     _____ _____ _____    _____ _____ _____ _____ _____ _____ __    __    _____ _____ 
+    |  |  |   __| __  |  |     |     |   | |_   _| __  |     |  |  |  |  |   __| __  |
+    |  |  |__   | __ -|  |   --|  |  | | | | | | |    -|  |  |  |__|  |__|   __|    -|
+    |_____|_____|_____|  |_____|_____|_|___| |_| |__|__|_____|_____|_____|_____|__|__|
+                                                                                      
+)";
+
 
 int main() {
     try {
-        std::cout << R"(
-   _    _  ____  ____    ____            _             _           _
-  | |  | |/ ___|| __ )  / ___|___  _ __ | |_ _ __ ___ | | ___ _ __| |_ ___  _ __
-  | |  | |\___ \|  _ \ | |   / _ \| '_ \| __| '__/ _ \| |/ _ \ '__| __/ _ \| '__|
-  | |__| | ___) | |_) || |__| (_) | | | | |_| | | (_) | |  __/ |  | || (_) | |
-  |_____/ |____/|____/  \____\___/|_| |_|\__|_|  \___/|_|\___|_|   \__\___/|_|
-                                                                      
-        )" << "\n";
+        std::cout << _usb_controller_log << "\n";
         std::cout << "       USB Controller Demo v3.0 - Unified API Edition\n\n";
 
         UsbController ctrl;
