@@ -1,5 +1,5 @@
 // ============================================================================
-// usb_transfer.cpp - USB 同步数据传输模块（实现文件）
+// sync_transfer.cpp - USB 同步数据传输模块（实现文件）
 //
 // 功能说明：
 //   实现 SyncTransfer 类的所有同步传输方法，以及数据传输相关的工具函数。
@@ -7,14 +7,14 @@
 //   转换为类型安全的 C++ 接口，统一返回 TransferResult 结构体。
 // ============================================================================
 
-#include "usb_transfer.hpp"
+#include "sync_transfer.hpp"
 #include "libusb.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // SyncTransfer 构造函数
@@ -300,5 +300,5 @@ std::string format_transfer_result(const TransferResult& r, size_t max_hex) {
     return oss.str();
 }
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl

@@ -15,7 +15,7 @@
 //   3. 回调函数在事件处理线程中执行，用户需要考虑线程安全
 //
 // 依赖关系：
-//   - usb_transfer.hpp：TransferResult 结构体
+//   - sync_transfer.hpp：TransferResult 结构体
 //   - libusb.h：底层 libusb API
 //   - C++11/17 标准库：<atomic>, <condition_variable>, <functional>, <mutex>,
 //                         <thread>, <vector>, <memory>
@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "usb_transfer.hpp"
+#include "sync_transfer.hpp"
 #include <atomic>           // 原子操作（线程安全标志）
 #include <chrono>           // 时间相关（未直接使用，但保留）
 #include <condition_variable>
@@ -35,7 +35,7 @@
 #include "libusb.h"
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // AsyncCallback - 异步传输完成回调类型
@@ -220,5 +220,5 @@ private:
     std::atomic<bool> _continuous{false}; // 连续读取标志（线程安全）
 };
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl

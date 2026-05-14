@@ -26,7 +26,7 @@
 #include <cstring>
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // AsyncTransferEngine 构造函数
@@ -330,5 +330,5 @@ void AsyncHidTransfer::stop_continuous() {
     _continuous.store(false, std::memory_order_release);
 }
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl

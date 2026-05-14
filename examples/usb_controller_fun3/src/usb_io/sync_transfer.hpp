@@ -1,5 +1,5 @@
 // ============================================================================
-// usb_transfer.hpp - USB 同步数据传输模块（头文件）
+// sync_transfer.hpp - USB 同步数据传输模块（头文件）
 //
 // 功能说明：
 //   本文件定义了同步 USB 数据传输相关的数据结构和类：
@@ -27,7 +27,7 @@
 struct libusb_device_handle;
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // TransferResult - USB 传输结果结构体
@@ -168,5 +168,5 @@ std::string bytes_to_ascii(const std::vector<uint8_t>& data, size_t max_bytes = 
 // ============================================================================
 std::string format_transfer_result(const TransferResult& r, size_t max_hex = 64);
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl

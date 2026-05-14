@@ -14,7 +14,7 @@
 3. [架构设计](#3-架构设计)
 4. [模块详解](#4-模块详解)
    - [4.1 usb_core — USB 核心模块](#41-usb_core--usb-核心模块)
-   - [4.2 usb_transfer — USB 传输模块](#42-usb_transfer--usb-传输模块)
+   - [4.2 usb_io — USB 数据传输模块](#42-usb_io--usb-数据传输模块)
    - [4.3 usb_controller — 统一接口模块](#43-usb_controller--统一接口模块)
    - [4.4 main.cpp — 演示程序](#44-maincpp--演示程序)
 5. [数据流与调用链](#5-数据流与调用链)
@@ -65,9 +65,9 @@ examples/usb_controller_fun3/
     │   ├── usb_device.cpp            # USB 设备信息封装（实现文件）
     │   ├── usb_device_manager.hpp    # USB 设备管理器（头文件）
     │   └── usb_device_manager.cpp    # USB 设备管理器（实现文件）
-    └── usb_transfer/                 # USB 传输模块
-        ├── usb_transfer.hpp          # 同步传输（头文件）
-        ├── usb_transfer.cpp          # 同步传输（实现文件）
+    └── usb_io/                       # USB 数据传输模块
+        ├── sync_transfer.hpp        # 同步传输（头文件）
+        ├── sync_transfer.cpp        # 同步传输（实现文件）
         ├── hid_device.hpp            # HID 设备操作（头文件）
         ├── hid_device.cpp            # HID 设备操作（实现文件）
         ├── async_transfer.hpp        # 异步传输（头文件）
@@ -88,7 +88,7 @@ examples/usb_controller_fun3/
 │              UsbController                       │  ← 外观层
 │           (统一对外接口)                          │
 ├─────────────────────┬───────────────────────────┤
-│     usb_core/       │     usb_transfer/          │  ← 业务层
+│     usb_core/       │     usb_io/                │  ← 业务层
 │  ┌───────────────┐  │  ┌──────────────────────┐ │
 │  │ UsbContext    │  │  │ SyncTransfer         │ │
 │  │ UsbDevice     │  │  │ HidDevice            │ │
@@ -123,7 +123,7 @@ usb_ctrl                          # 顶层命名空间
 │   ├── ConfigInfo                # 配置信息结构体
 │   ├── InterfaceInfo             # 接口信息结构体
 │   └── EndpointInfo              # 端点信息结构体
-└── usb_ctrl::transfer            # USB 传输模块
+└── usb_ctrl::io                  # USB 数据传输模块
     ├── TransferResult            # 传输结果结构体
     ├── SyncTransfer              # 同步传输类
     ├── HidDevice                 # HID 设备类
@@ -239,7 +239,7 @@ DeviceInfo                          # 设备完整信息
 
 ---
 
-### 4.2 usb_transfer — USB 传输模块
+### 4.2 usb_io — USB 数据传输模块
 
 #### 4.2.1 TransferResult — 传输结果结构体
 
@@ -255,7 +255,7 @@ struct TransferResult {
 
 #### 4.2.2 SyncTransfer — 同步传输类
 
-**文件**: `usb_transfer.hpp` / `usb_transfer.cpp`
+**文件**: `sync_transfer.hpp` / `sync_transfer.cpp`
 
 封装 libusb 的同步传输 API，所有方法阻塞调用线程直到完成。
 
@@ -620,7 +620,7 @@ while (true) {
     if (result.success && result.bytes_transferred > 0) {
         // 解析 HID 键盘报告
         // data[0] = 修饰键, data[2] = 按键码
-        std::cout << transfer::bytes_to_hex(result.data, 8) << "\n";
+        std::cout << io::bytes_to_hex(result.data, 8) << "\n";
     }
 }
 ```

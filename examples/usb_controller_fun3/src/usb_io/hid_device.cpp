@@ -25,7 +25,7 @@
 #include <iomanip>
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // HidDevice 构造函数
@@ -303,5 +303,5 @@ std::string HidDevice::device_summary() const {
     return oss.str();
 }
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl

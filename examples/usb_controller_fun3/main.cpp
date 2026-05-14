@@ -357,7 +357,7 @@ void demo_async_start_stop(UsbController& ctrl) {
         if (r.success && r.bytes_transferred > 0) {
             ++count;
             std::cout << "  [#" << count << "] " << r.bytes_transferred
-                      << " bytes: " << transfer::bytes_to_hex(r.data, 32) << "\n";
+                      << " bytes: " << io::bytes_to_hex(r.data, 32) << "\n";
         }
     }, 500);
 
@@ -479,7 +479,7 @@ void demo_continuous_read(UsbController& ctrl) {
         if (r.success && r.bytes_transferred > 0) {
             ++count;
             std::cout << "  [#" << count << "] " << r.bytes_transferred
-                      << " bytes: " << transfer::bytes_to_hex(r.data, 32) << "\n";
+                      << " bytes: " << io::bytes_to_hex(r.data, 32) << "\n";
         }
     }, 500);
 

@@ -3,7 +3,7 @@
 //
 // 功能说明：
 //   本文件定义了 UsbController 类，作为整个 USB 控制库的统一对外接口。
-//   它将 usb_core（设备管理）和 usb_transfer（数据传输）两个子模块
+//   它将 usb_core（设备管理）和 usb_io（数据传输）两个子模块
 //   整合为一个易用的高层 API。
 //
 // 设计模式：外观模式（Facade Pattern）
@@ -21,7 +21,7 @@
 //
 // 依赖关系：
 //   - usb_core/*    ：USB 核心模块（上下文、设备、设备管理器）
-//   - usb_transfer/*：USB 传输模块（同步传输、HID 设备、异步传输）
+//   - usb_io/*    ：USB 数据传输模块（同步传输、HID 设备、异步传输）
 // ============================================================================
 
 #pragma once
@@ -29,9 +29,9 @@
 #include "usb_core/usb_context.hpp"
 #include "usb_core/usb_device.hpp"
 #include "usb_core/usb_device_manager.hpp"
-#include "usb_transfer/usb_transfer.hpp"
-#include "usb_transfer/hid_device.hpp"
-#include "usb_transfer/async_transfer.hpp"
+#include "usb_io/sync_transfer.hpp"
+#include "usb_io/hid_device.hpp"
+#include "usb_io/async_transfer.hpp"
 
 #include <memory>
 #include <string>
@@ -46,12 +46,12 @@ using core::UsbDevice;           // USB 设备
 using core::UsbDeviceManager;    // USB 设备管理器
 using core::DeviceInfo;          // 设备信息结构体
 using core::EndpointInfo;        // 端点信息结构体
-using transfer::TransferResult;  // 传输结果结构体
-using transfer::SyncTransfer;    // 同步传输类
-using transfer::HidDevice;       // HID 设备类
-using transfer::AsyncTransferEngine; // 异步传输引擎
-using transfer::AsyncHidTransfer;    // HID 异步传输
-using transfer::AsyncCallback;       // 异步回调类型
+using io::TransferResult;  // 传输结果结构体
+using io::SyncTransfer;    // 同步传输类
+using io::HidDevice;       // HID 设备类
+using io::AsyncTransferEngine; // 异步传输引擎
+using io::AsyncHidTransfer;    // HID 异步传输
+using io::AsyncCallback;       // 异步回调类型
 
 // ============================================================================
 // UsbController - USB 控制器统一接口类

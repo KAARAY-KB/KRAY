@@ -16,13 +16,13 @@
 // 关闭时按相反顺序释放资源，并重新附加内核驱动。
 //
 // 依赖关系：
-//   - usb_transfer.hpp：SyncTransfer 类和 TransferResult 结构体
+//   - sync_transfer.hpp：SyncTransfer 类和 TransferResult 结构体
 //   - usb_device.hpp：UsbDevice 类和 EndpointInfo 结构体
 // ============================================================================
 
 #pragma once
 
-#include "usb_transfer.hpp"
+#include "sync_transfer.hpp"
 #include "usb_core/usb_device.hpp"
 #include <memory>
 #include <string>
@@ -31,7 +31,7 @@
 struct libusb_device_handle;
 
 namespace usb_ctrl {
-namespace transfer {
+namespace io {
 
 // ============================================================================
 // HidDevice - HID 设备操作类
@@ -92,17 +92,17 @@ public:
     TransferResult read_report(int length, unsigned int timeout_ms = 1000);
 
     // 读取最新的输入报告（先排空缓冲区，再等待设备新数据）
-//
-// 两步策略：
-//   1. 以短超时循环读取，排空 libusb 内部已有的缓冲数据
-//   2. 以 1100ms 长超时等待设备的下一个数据包，确保拿到最新数据
-//
-// 适用场景：设备持续发送数据（如每 1 秒发一次），但你只想获取当前最新值。
-//
-// @param length            要读取的最大字节数
-// @param drain_timeout_ms  排空缓冲区时每次读取的超时（毫秒），默认 10ms
-// @return TransferResult 包含最新读取结果和数据
-TransferResult read_latest(int length, unsigned int drain_timeout_ms = 10);
+    //
+    // 两步策略：
+    //   1. 以短超时循环读取，排空 libusb 内部已有的缓冲数据
+    //   2. 以 1100ms 长超时等待设备的下一个数据包，确保拿到最新数据
+    //
+    // 适用场景：设备持续发送数据（如每 1 秒发一次），但你只想获取当前最新值。
+    //
+    // @param length            要读取的最大字节数
+    // @param drain_timeout_ms  排空缓冲区时每次读取的超时（毫秒），默认 10ms
+    // @return TransferResult 包含最新读取结果和数据
+    TransferResult read_latest(int length, unsigned int drain_timeout_ms = 10);
 
     // 写入输出报告（通过中断 OUT 端点）
     // 用于向 HID 设备发送数据，如设置键盘 LED 状态。
@@ -148,5 +148,5 @@ private:
     bool _kernel_detached = false;             // 是否已分离内核驱动
 };
 
-} // namespace transfer
+} // namespace io
 } // namespace usb_ctrl
