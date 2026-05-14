@@ -2,48 +2,49 @@
 // async_transfer.cpp - USB 异步数据传输模块（实现文件）
 //
 // 功能说明：
-//   实现异步传输引擎和 HID 异步传输类的所有方法：
-//   - AsyncTransferEngine：事件处理线程管理、传输提交、回调处理
-//   - AsyncHidTransfer：单次/连续异步读写
+//   实现 AsyncTransfer 类的所有方法：
+//   - 事件处理线程管理（start/stop）
+//   - 通用异步提交（submit，支持 Bulk/Interrupt 读写）
+//   - 设备绑定（bind_device）
+//   - HID 便捷方法（read_async/write_async/read_continuous/stop_continuous）
+//   - 内部回调处理
 //
 // 异步传输工作流程：
-//   1. 用户调用 AsyncHidTransfer::read_async() 提交读取请求
-//   2. AsyncHidTransfer 构造 AsyncTransferRequest 并提交给引擎
-//   3. AsyncTransferEngine::submit() 分配 libusb_transfer 并提交
-//   4. 引擎的事件线程调用 libusb_handle_events_timeout 驱动传输
-//   5. 传输完成后 libusb 调用 _transfer_cb 静态回调
-//   6. _transfer_cb 解析结果并调用用户回调函数
-//   7. 清理 libusb_transfer 和 TransferContext 资源
+//   1. 用户调用 submit() 或便捷方法提交传输请求
+//   2. submit() 根据请求类型分配 libusb_transfer 并提交
+//   3. 事件线程调用 libusb_handle_events_timeout 驱动传输
+//   4. 传输完成后 libusb 调用 _transfer_cb 静态回调
+//   5. _transfer_cb 解析结果并调用用户回调函数
+//   6. 清理 libusb_transfer 和 TransferContext 资源
 //
 // 线程模型：
-//   - 主线程：用户代码，调用 read_async/write_async 提交请求
-//   - 事件线程：AsyncTransferEngine 内部线程，处理 libusb 事件
+//   - 主线程：用户代码，调用 submit/read_async/write_async 提交请求
+//   - 事件线程：AsyncTransfer 内部线程，处理 libusb 事件
 //   - 回调在事件线程中执行，用户需自行处理线程安全
 // ============================================================================
 
 #include "async_transfer.hpp"
-#include <iostream>
 #include <cstring>
 
 namespace usb_ctrl {
 namespace io {
 
 // ============================================================================
-// AsyncTransferEngine 构造函数
+// AsyncTransfer 构造函数
 //
 // 保存 libusb 上下文指针。注意：引擎不拥有上下文的所有权，
 // 调用者需确保上下文在引擎使用期间保持有效。
 //
 // @param ctx 已初始化的 libusb_context 指针
 // ============================================================================
-AsyncTransferEngine::AsyncTransferEngine(libusb_context* ctx) : _ctx(ctx) {}
+AsyncTransfer::AsyncTransfer(libusb_context* ctx) : _ctx(ctx) {}
 
 // ============================================================================
-// AsyncTransferEngine 析构函数
+// AsyncTransfer 析构函数
 //
 // 自动调用 stop() 停止事件处理线程，确保线程安全退出。
 // ============================================================================
-AsyncTransferEngine::~AsyncTransferEngine() { stop(); }
+AsyncTransfer::~AsyncTransfer() { stop(); }
 
 // ============================================================================
 // start - 启动事件处理线程
@@ -53,13 +54,13 @@ AsyncTransferEngine::~AsyncTransferEngine() { stop(); }
 //
 // 线程安全：使用 atomic 变量 _running 控制线程生命周期。
 // ============================================================================
-void AsyncTransferEngine::start() {
+void AsyncTransfer::start() {
     // 如果已经在运行，直接返回（幂等操作）
     if (_running.load(std::memory_order_acquire)) return;
     // 设置运行标志为 true（release 语义确保后续操作可见）
     _running.store(true, std::memory_order_release);
     // 创建事件处理线程，执行 _event_loop 成员函数
-    _event_thread = std::thread(&AsyncTransferEngine::_event_loop, this);
+    _event_thread = std::thread(&AsyncTransfer::_event_loop, this);
 }
 
 // ============================================================================
@@ -70,7 +71,7 @@ void AsyncTransferEngine::start() {
 //
 // 线程安全：使用 atomic 变量通知线程退出，join() 等待线程结束。
 // ============================================================================
-void AsyncTransferEngine::stop() {
+void AsyncTransfer::stop() {
     // 如果未运行，直接返回（幂等操作）
     if (!_running.load(std::memory_order_acquire)) return;
     // 设置运行标志为 false（release 语义确保线程可见）
@@ -80,25 +81,38 @@ void AsyncTransferEngine::stop() {
 }
 
 // ============================================================================
-// submit - 提交异步传输请求
+// bind_device - 绑定要操作的 HID 设备
 //
+// 设置设备句柄和端点地址。后续的 read_async/write_async 将操作此设备。
+// 可以多次调用以切换设备。
+//
+// @param handle 已打开的 libusb 设备句柄
+// @param in_ep  IN 端点地址
+// @param out_ep OUT 端点地址
+// ============================================================================
+void AsyncTransfer::bind_device(libusb_device_handle* handle, unsigned char in_ep, unsigned char out_ep) {
+    _handle = handle; // 保存设备句柄
+    _in_ep = in_ep;   // 保存 IN 端点地址
+    _out_ep = out_ep; // 保存 OUT 端点地址
+}
+
+// ============================================================================
+// submit - 提交异步传输请求（通用接口）
+//
+// 根据请求类型（BulkRead/BulkWrite/InterruptRead/InterruptWrite）
 // 分配并配置 libusb_transfer 结构体，提交给 libusb 异步处理。
-// 传输完成后，libusb 会调用 _transfer_cb 静态回调函数。
 //
 // 内存管理：
 //   - TransferContext 通过 new 分配，在回调中 delete 释放
 //   - 数据缓冲区通过 new[] 分配，设置 LIBUSB_TRANSFER_FREE_BUFFER 标志
-//     让 libusb 在释放 transfer 时自动释放缓冲区
 //
 // @param handle  已打开的 libusb 设备句柄
-// @param request 传输请求（移动语义）
+// @param request 传输请求（包含类型、端点、数据、回调等）
 // @return true 表示提交成功，false 表示提交失败
 // ============================================================================
-bool AsyncTransferEngine::submit(libusb_device_handle* handle, AsyncTransferRequest&& request) {
+bool AsyncTransfer::submit(libusb_device_handle* handle, AsyncTransferRequest&& request) {
     // 检查引擎是否在运行
     if (!_running.load(std::memory_order_acquire)) return false;
-    // 保存设备句柄
-    _handle = handle;
 
     // 分配 libusb_transfer 结构体（参数 0 表示同步数据包数为 0）
     auto* transfer = libusb_alloc_transfer(0);
@@ -112,10 +126,10 @@ bool AsyncTransferEngine::submit(libusb_device_handle* handle, AsyncTransferRequ
 
     // 分配数据缓冲区
     unsigned char* buf = nullptr;
-    // 写操作：分配缓冲区并拷贝用户数据
     if (request.type == AsyncTransferType::BulkWrite || request.type == AsyncTransferType::InterruptWrite) {
+        // 写操作：分配缓冲区并拷贝用户数据
         buf = new unsigned char[request.data.size()];
-        std::memcpy(buf, request.data.data(), request.data.size()); // 拷贝数据
+        std::memcpy(buf, request.data.data(), request.data.size());
     } else {
         // 读操作：分配指定长度的空缓冲区
         buf = new unsigned char[request.length];
@@ -139,6 +153,7 @@ bool AsyncTransferEngine::submit(libusb_device_handle* handle, AsyncTransferRequ
             // 中断写入：填充中断传输参数
             libusb_fill_interrupt_transfer(transfer, handle, request.endpoint, buf, static_cast<int>(request.data.size()), _transfer_cb, ctx, request.timeout_ms);
             break;
+        default: break;
     }
 
     // 设置标志：libusb 在释放 transfer 时自动释放缓冲区
@@ -151,6 +166,8 @@ bool AsyncTransferEngine::submit(libusb_device_handle* handle, AsyncTransferRequ
     // 提交失败：清理已分配的资源
     if (rc < 0) {
         delete[] buf;           // 释放数据缓冲区
+        // 释放数据缓冲区（因为设置了 FREE_BUFFER 标志，需先置空防止重复释放）
+        delete[] static_cast<unsigned char*>(transfer->buffer);
         transfer->buffer = nullptr; // 防止 libusb_free_transfer 重复释放
         delete ctx;             // 释放传输上下文
         libusb_free_transfer(transfer); // 释放 transfer 结构体
@@ -167,7 +184,7 @@ bool AsyncTransferEngine::submit(libusb_device_handle* handle, AsyncTransferRequ
 // 每次循环等待最多 100ms（0.1 秒），以便及时响应 _running 标志变化。
 // 当 _running 变为 false 时退出循环。
 // ============================================================================
-void AsyncTransferEngine::_event_loop() {
+void AsyncTransfer::_event_loop() {
     // 循环直到 _running 变为 false
     while (_running.load(std::memory_order_acquire)) {
         // 设置超时时间为 100ms（0.1 秒）
@@ -188,7 +205,7 @@ void AsyncTransferEngine::_event_loop() {
 //
 // @param transfer 已完成的 libusb_transfer 结构体
 // ============================================================================
-void LIBUSB_CALL AsyncTransferEngine::_transfer_cb(libusb_transfer* transfer) {
+void LIBUSB_CALL AsyncTransfer::_transfer_cb(libusb_transfer* transfer) {
     // 从 user_data 中取出传输上下文
     auto* ctx = static_cast<TransferContext*>(transfer->user_data);
     // 安全检查：上下文或引擎指针为空则直接返回
@@ -232,62 +249,47 @@ void LIBUSB_CALL AsyncTransferEngine::_transfer_cb(libusb_transfer* transfer) {
 }
 
 // ============================================================================
-// AsyncHidTransfer 构造函数
+// read_async - 单次异步读取（HID 便捷方法，中断 IN 端点）
 //
-// 保存异步引擎引用、设备句柄和端点地址。
-// 注意：AsyncHidTransfer 不拥有引擎和句柄的所有权。
-//
-// @param engine  异步传输引擎引用
-// @param handle  已打开的 libusb 设备句柄
-// @param in_ep   IN 端点地址
-// @param out_ep  OUT 端点地址
-// ============================================================================
-AsyncHidTransfer::AsyncHidTransfer(AsyncTransferEngine& engine, libusb_device_handle* handle,
-                                     unsigned char in_ep, unsigned char out_ep)
-    : _engine(engine), _handle(handle), _in_ep(in_ep), _out_ep(out_ep) {}
-
-// ============================================================================
-// read_async - 单次异步读取（中断 IN 端点）
-//
-// 构造 AsyncTransferRequest 并提交给引擎。
-// 传输完成后，用户回调函数在事件线程中被调用。
+// 构造 AsyncTransferRequest 并调用 submit()。
+// 使用 bind_device() 设置的设备句柄和 IN 端点地址。
 //
 // @param length     要读取的字节数
 // @param callback   读取完成回调函数
 // @param timeout_ms 超时时间（毫秒）
 // ============================================================================
-void AsyncHidTransfer::read_async(int length, AsyncCallback callback, unsigned int timeout_ms) {
-    // 构造异步传输请求
+void AsyncTransfer::read_async(int length, AsyncCallback callback, unsigned int timeout_ms) {
+    // 构造中断读取请求
     AsyncTransferRequest req;
     req.type = AsyncTransferType::InterruptRead; // 中断读取
-    req.endpoint = _in_ep;                       // IN 端点地址
+    req.endpoint = _in_ep;                       // 使用绑定的 IN 端点
     req.length = length;                         // 读取长度
+    req.callback = std::move(callback);          // 用户回调
     req.timeout_ms = timeout_ms;                 // 超时时间
-    req.callback = std::move(callback);          // 移动回调函数
-    // 提交给异步引擎处理
-    _engine.submit(_handle, std::move(req));
+    // 提交请求
+    submit(_handle, std::move(req));
 }
 
 // ============================================================================
-// write_async - 单次异步写入（中断 OUT 端点）
+// write_async - 单次异步写入（HID 便捷方法，中断 OUT 端点）
 //
-// 构造 AsyncTransferRequest 并提交给引擎。
-// 传输完成后，用户回调函数在事件线程中被调用。
+// 构造 AsyncTransferRequest 并调用 submit()。
+// 使用 bind_device() 设置的设备句柄和 OUT 端点地址。
 //
 // @param data       要写入的数据
 // @param callback   写入完成回调函数
 // @param timeout_ms 超时时间（毫秒）
 // ============================================================================
-void AsyncHidTransfer::write_async(const std::vector<uint8_t>& data, AsyncCallback callback, unsigned int timeout_ms) {
-    // 构造异步传输请求
+void AsyncTransfer::write_async(const std::vector<uint8_t>& data, AsyncCallback callback, unsigned int timeout_ms) {
+    // 构造中断写入请求
     AsyncTransferRequest req;
     req.type = AsyncTransferType::InterruptWrite; // 中断写入
-    req.endpoint = _out_ep;                       // OUT 端点地址
-    req.data = data;                              // 拷贝写入数据
+    req.endpoint = _out_ep;                       // 使用绑定的 OUT 端点
+    req.data = data;                              // 写入数据
+    req.callback = std::move(callback);           // 用户回调
     req.timeout_ms = timeout_ms;                  // 超时时间
-    req.callback = std::move(callback);           // 移动回调函数
-    // 提交给异步引擎处理
-    _engine.submit(_handle, std::move(req));
+    // 提交请求
+    submit(_handle, std::move(req));
 }
 
 // ============================================================================
@@ -304,7 +306,7 @@ void AsyncHidTransfer::write_async(const std::vector<uint8_t>& data, AsyncCallba
 // @param callback   每次读取完成后的回调函数
 // @param timeout_ms 每次读取的超时时间（毫秒）
 // ============================================================================
-void AsyncHidTransfer::read_continuous(int length, AsyncCallback callback, unsigned int timeout_ms) {
+void AsyncTransfer::read_continuous(int length, AsyncCallback callback, unsigned int timeout_ms) {
     // 设置连续读取标志为 true
     _continuous.store(true, std::memory_order_release);
     // 创建包装回调：先调用用户回调，再检查是否需要继续读取
@@ -325,7 +327,7 @@ void AsyncHidTransfer::read_continuous(int length, AsyncCallback callback, unsig
 // 设置 _continuous 标志为 false。
 // 当前正在进行的读取完成后，不会重新提交下一次读取。
 // ============================================================================
-void AsyncHidTransfer::stop_continuous() {
+void AsyncTransfer::stop_continuous() {
     // 设置连续读取标志为 false（release 语义确保事件线程可见）
     _continuous.store(false, std::memory_order_release);
 }

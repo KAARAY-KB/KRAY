@@ -16,8 +16,7 @@
 //   - UsbDeviceManager  ：设备管理器（设备枚举和查询）
 //   - HidDevice         ：HID 设备操作（打开/关闭/报告读写）
 //   - SyncTransfer      ：同步传输（批量/中断/控制传输）
-//   - AsyncTransferEngine：异步传输引擎（事件处理线程）
-//   - AsyncHidTransfer  ：HID 异步传输（单次/连续读取）
+//   - AsyncTransfer     ：异步传输（引擎管理 + HID 传输操作，单类）
 //
 // 依赖关系：
 //   - usb_core/*    ：USB 核心模块（上下文、设备、设备管理器）
@@ -49,8 +48,7 @@ using core::EndpointInfo;        // 端点信息结构体
 using io::TransferResult;  // 传输结果结构体
 using io::SyncTransfer;    // 同步传输类
 using io::HidDevice;       // HID 设备类
-using io::AsyncTransferEngine; // 异步传输引擎
-using io::AsyncHidTransfer;    // HID 异步传输
+using io::AsyncTransfer;  // 异步传输类（单类）
 using io::AsyncCallback;       // 异步回调类型
 
 // ============================================================================
@@ -284,17 +282,19 @@ TransferResult hid_read_latest(int length, unsigned int drain_timeout_ms = 10);
     // @return SyncTransfer 指针（未打开设备时返回 nullptr）
     SyncTransfer* sync_transfer() { return _sync_transfer.get(); }
 
-    // 获取异步传输引擎指针
-    // @return AsyncTransferEngine 指针（未启动时返回 nullptr）
-    AsyncTransferEngine* async_engine() { return _async_engine.get(); }
+    // 获取异步传输对象指针
+    // @return AsyncTransfer 指针（未启动时返回 nullptr）
+    AsyncTransfer* async_transfer() { return _async_transfer.get(); }
 
 private:
     std::unique_ptr<UsbContext> _ctx;                   // USB 上下文（libusb 初始化）
     std::unique_ptr<UsbDeviceManager> _manager;         // 设备管理器（设备枚举和查询）
     std::unique_ptr<HidDevice> _hid_device;             // HID 设备（当前打开的设备）
     std::unique_ptr<SyncTransfer> _sync_transfer;       // 同步传输对象
-    std::unique_ptr<AsyncTransferEngine> _async_engine; // 异步传输引擎
-    std::unique_ptr<AsyncHidTransfer> _async_hid;       // HID 异步传输对象
+    std::unique_ptr<AsyncTransfer> _async_transfer;     // 异步传输对象（单类）
+
+    // 确保异步传输对象已创建并绑定设备（内部辅助方法）
+    void _ensure_async_bound();
 };
 
 } // namespace usb_ctrl

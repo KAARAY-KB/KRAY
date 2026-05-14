@@ -112,30 +112,30 @@ std::vector<uint8_t> parse_hex(const std::string& hex_str) {
 // ============================================================================
 void print_menu() {
     std::cout << "\n";
-    std::cout << "+--------------------------------------+\n";
-    std::cout << "|     USB Controller - Unified API     |\n";
-    std::cout << "+--------------------------------------+\n";
-    std::cout << "|  1. List all USB devices             |\n"; // 列出所有 USB 设备
-    std::cout << "|  2. List devices (detailed)          |\n"; // 列出设备详细信息
-    std::cout << "|  3. List devices (tree view)         |\n"; // 树形视图
-    std::cout << "|  4. List HID devices                 |\n"; // 列出 HID 设备
-    std::cout << "|  5. Open HID device by index         |\n"; // 按索引打开 HID
-    std::cout << "|  6. Open HID device by VID:PID       |\n"; // 按 VID:PID 打开 HID
-    std::cout << "|  7. Show device detail               |\n"; // 显示设备详情
-    std::cout << "|  8. HID read report (sync)           |\n"; // 同步 HID 读取
-    std::cout << "|  9. HID write report (sync)          |\n"; // 同步 HID 写入
-    std::cout << "| 10. HID get feature report           |\n"; // 获取特性报告
-    std::cout << "| 11. HID send feature report          |\n"; // 发送特性报告
-    std::cout << "| 12. HID read (single async)          |\n"; // 单次异步读取
-    std::cout << "| 13. HID read (continuous, 5s)        |\n"; // 连续异步读取
-    std::cout << "| 14. Raw endpoint bulk read           |\n"; // 原始批量读取
-    std::cout << "| 15. Raw endpoint bulk write          |\n"; // 原始批量写入
-    std::cout << "| 16. Find device by VID:PID           |\n"; // 按 VID:PID 查找
-    std::cout << "| 17. Run all demos (auto)             |\n"; // 自动运行所有演示
-    std::cout << "| 18. HID read latest (drain buffer)   |\n"; // 读取最新 HID 报告（排空缓冲区）
-    std::cout << "| 19. Async read (manual start/stop)   |\n"; // 连续异步读取（手动启停）
-    std::cout << "|  0. Exit                             |\n"; // 退出
-    std::cout << "+--------------------------------------+\n";
+    std::cout << "+----------------------------------------------------------------------------+\n";
+    std::cout << "|                        USB Controller - Unified API                        |\n";
+    std::cout << "+----------------------------------------------------------------------------+\n";
+    std::cout << "|  1. List all USB devices             -   1.列出所有 USB 设备               |\n"; // 列出所有 USB 设备
+    std::cout << "|  2. List devices (detailed)          -   2.列出设备详细信息                |\n"; // 列出设备详细信息
+    std::cout << "|  3. List devices (tree view)         -   3.树形视图                        |\n"; // 树形视图
+    std::cout << "|  4. List HID devices                 -   4.列出 HID 设备                   |\n"; // 列出 HID 设备
+    std::cout << "|  5. Open HID device by index         -   5.按索引打开 HID                  |\n"; // 按索引打开 HID
+    std::cout << "|  6. Open HID device by VID:PID       -   6.按 VID:PID 打开 HID             |\n"; // 按 VID:PID 打开 HID
+    std::cout << "|  7. Show device detail               -   7.显示设备详情                    |\n"; // 显示设备详情
+    std::cout << "|  8. HID read report (sync)           -   8.同步 HID 读取                   |\n"; // 同步 HID 读取
+    std::cout << "|  9. HID write report (sync)          -   9.同步 HID 写入                   |\n"; // 同步 HID 写入
+    std::cout << "| 10. HID get feature report           -  10.获取特性报告                    |\n"; // 获取特性报告
+    std::cout << "| 11. HID send feature report          -  11.发送特性报告                    |\n"; // 发送特性报告
+    std::cout << "| 12. HID read (single async)          -  12.单次异步读取                    |\n"; // 单次异步读取
+    std::cout << "| 13. HID read (continuous, 5s)        -  13.连续异步读取(5s)                |\n"; // 连续异步读取（5s）
+    std::cout << "| 14. Raw endpoint bulk read           -  14.原始批量读取                    |\n"; // 原始批量读取
+    std::cout << "| 15. Raw endpoint bulk write          -  15.原始批量写入                    |\n"; // 原始批量写入
+    std::cout << "| 16. Find device by VID:PID           -  16.按 VID:PID 查找                 |\n"; // 按 VID:PID 查找
+    std::cout << "| 17. HID read latest (drain buffer)   -  17.读取最新 HID 报告（排空缓冲区） |\n"; // 读取最新 HID 报告（排空缓冲区）
+    std::cout << "| 18. Async read (manual start/stop)   -  18.连续异步读取（手动启停）        |\n"; // 连续异步读取（手动启停）
+    std::cout << "| 19. Run all demos (auto)             -  19.自动运行所有演示                |\n"; // 自动运行所有演示
+    std::cout << "|  0. Exit                             -   0.退出                            |\n"; // 退出
+    std::cout << "+----------------------------------------------------------------------------+\n";
     std::cout << "Choice: "; // 提示用户输入
 }
 
@@ -268,109 +268,16 @@ void demo_hid_read(UsbController& ctrl) {
     }
     // 获取读取长度（默认 64 字节）
     int len = 64;
+    /*
     std::cout << "Read length (" << len << "): ";
     std::string input;
     std::cin.ignore(); // 忽略之前输入留下的换行符
     std::getline(std::cin, input);
     if (!input.empty()) len = std::stoi(input); // 用户自定义长度
-
+    */
     // 执行同步 HID 读取
     auto result = ctrl.hid_read(len, 1000);
     print_transfer_result("Read", result); // 输出结果
-}
-
-// ============================================================================
-// demo_hid_read_latest - 演示：读取最新的 HID 输入报告（先排空缓冲区）
-//
-// 与 demo_hid_read 的区别：
-//   demo_hid_read 调用 hid_read()，只能拿到 libusb 缓冲区中最旧的数据包。
-//   本函数调用 hid_read_latest()，先以短超时循环排空缓冲区，
-//   返回最后一次成功读取的数据（即设备最新发送的数据）。
-//
-// 适用场景：设备持续发送数据（如每 1 秒发一次），但你只关心当前最新值。
-// ============================================================================
-void demo_hid_read_latest(UsbController& ctrl) {
-    print_separator("18. HID Read Latest Report (drain buffer first)");
-    // 如果未打开 HID 设备，自动尝试打开
-    if (!ctrl.is_hid_open()) {
-        auto& devs = ctrl.devices();
-        bool opened = false;
-        // 遍历设备，打开第一个有 HID 接口的设备
-        for (size_t i = 0; i < devs.size(); ++i) {
-            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
-                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
-                opened = true;
-                break;
-            }
-        }
-        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
-    }
-    // 获取读取长度（默认 64 字节）
-    int len = 64;
-    std::cout << "Read length (" << len << "): ";
-    std::string input;
-    std::cin.ignore(); // 忽略之前输入留下的换行符
-    std::getline(std::cin, input);
-    if (!input.empty()) len = std::stoi(input); // 用户自定义长度
-
-    // 执行排空缓冲区后的最新数据读取
-    // 默认每次排空读取超时 10ms，循环直到队列为空
-    auto result = ctrl.hid_read_latest(len, 10);
-    print_transfer_result("ReadLatest", result); // 输出结果
-}
-
-// ============================================================================
-// demo_async_start_stop - 演示：手动控制连续异步读取的启停
-//
-// 与 demo_continuous_read（固定 5 秒）不同，本函数让用户手动控制：
-//   1. 启动连续异步读取
-//   2. 数据持续打印到终端
-//   3. 用户按 Enter 键停止
-//
-// 适用场景：需要灵活控制异步读取的启停时机。
-// ============================================================================
-void demo_async_start_stop(UsbController& ctrl) {
-    print_separator("19. Async Continuous Read (manual start/stop)");
-    // 如果未打开 HID 设备，自动尝试打开
-    if (!ctrl.is_hid_open()) {
-        auto& devs = ctrl.devices();
-        bool opened = false;
-        // 遍历设备，打开第一个有 HID 接口的设备
-        for (size_t i = 0; i < devs.size(); ++i) {
-            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
-                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
-                opened = true;
-                break;
-            }
-        }
-        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
-    }
-
-    // 确保异步引擎已启动
-    ctrl.async_start();
-
-    // 读取计数器（原子变量，线程安全）
-    std::atomic<int> count{0};
-    // 启动连续异步读取
-    ctrl.hid_read_continuous(64, [&count](const TransferResult& r) {
-        // 回调函数：每次读取完成时调用（在异步引擎线程中执行）
-        if (r.success && r.bytes_transferred > 0) {
-            ++count;
-            std::cout << "  [#" << count << "] " << r.bytes_transferred
-                      << " bytes: " << io::bytes_to_hex(r.data, 32) << "\n";
-        }
-    }, 500);
-
-    std::cout << "  Continuous async read started. Press Enter to stop...\n";
-    // 先清除菜单选择时残留的换行符
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    // 等待用户真正按 Enter 键
-    std::cin.get();
-    // 停止连续读取
-    ctrl.hid_stop_continuous();
-    // 等待最后的回调完成
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    std::cout << "  Stopped. Total reads: " << count << "\n"; // 显示总读取次数
 }
 
 // ============================================================================
@@ -478,8 +385,8 @@ void demo_continuous_read(UsbController& ctrl) {
         // 回调函数：每次读取完成时调用
         if (r.success && r.bytes_transferred > 0) {
             ++count;
-            std::cout << "  [#" << count << "] " << r.bytes_transferred
-                      << " bytes: " << io::bytes_to_hex(r.data, 32) << "\n";
+            std::cout << "  [#" << count << "] " 
+                      << format_transfer_result(r, 32) << "\n";
         }
     }, 500);
 
@@ -562,13 +469,108 @@ void demo_find_device(UsbController& ctrl) {
 }
 
 // ============================================================================
+// demo_hid_read_latest - 演示：读取最新的 HID 输入报告（先排空缓冲区）
+//
+// 与 demo_hid_read 的区别：
+//   demo_hid_read 调用 hid_read()，只能拿到 libusb 缓冲区中最旧的数据包。
+//   本函数调用 hid_read_latest()，先以短超时循环排空缓冲区，
+//   返回最后一次成功读取的数据（即设备最新发送的数据）。
+//
+// 适用场景：设备持续发送数据（如每 1 秒发一次），但你只关心当前最新值。
+// ============================================================================
+void demo_hid_read_latest(UsbController& ctrl) {
+    print_separator("17. HID Read Latest Report (drain buffer first)");
+    // 如果未打开 HID 设备，自动尝试打开
+    if (!ctrl.is_hid_open()) {
+        auto& devs = ctrl.devices();
+        bool opened = false;
+        // 遍历设备，打开第一个有 HID 接口的设备
+        for (size_t i = 0; i < devs.size(); ++i) {
+            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
+                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
+                opened = true;
+                break;
+            }
+        }
+        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
+    }
+    // 获取读取长度（默认 64 字节）
+    int len = 64;
+    /*
+    std::cout << "Read length (" << len << "): ";
+    std::string input;
+    std::cin.ignore(); // 忽略之前输入留下的换行符
+    std::getline(std::cin, input);
+    if (!input.empty()) len = std::stoi(input); // 用户自定义长度
+    */
+    // 执行排空缓冲区后的最新数据读取
+    // 默认每次排空读取超时 10ms，循环直到队列为空
+    auto result = ctrl.hid_read_latest(len, 10);
+    print_transfer_result("ReadLatest", result); // 输出结果
+}
+
+// ============================================================================
+// demo_async_start_stop - 演示：手动控制连续异步读取的启停
+//
+// 与 demo_continuous_read（固定 5 秒）不同，本函数让用户手动控制：
+//   1. 启动连续异步读取
+//   2. 数据持续打印到终端
+//   3. 用户按 Enter 键停止
+//
+// 适用场景：需要灵活控制异步读取的启停时机。
+// ============================================================================
+void demo_async_start_stop(UsbController& ctrl) {
+    print_separator("18. Async Continuous Read (manual start/stop)");
+    // 如果未打开 HID 设备，自动尝试打开
+    if (!ctrl.is_hid_open()) {
+        auto& devs = ctrl.devices();
+        bool opened = false;
+        // 遍历设备，打开第一个有 HID 接口的设备
+        for (size_t i = 0; i < devs.size(); ++i) {
+            if (devs[i].has_hid_interface() && ctrl.open_hid_device(i)) {
+                std::cout << "Auto-opened [" << i << "] " << ctrl.hid_device_info() << "\n";
+                opened = true;
+                break;
+            }
+        }
+        if (!opened) { std::cout << "Could not auto-open any HID device\n"; return; }
+    }
+
+    // 确保异步引擎已启动
+    ctrl.async_start();
+
+    // 读取计数器（原子变量，线程安全）
+    std::atomic<int> count{0};
+    // 启动连续异步读取
+    ctrl.hid_read_continuous(64, [&count](const TransferResult& r) {
+        // 回调函数：每次读取完成时调用（在异步引擎线程中执行）
+        if (r.success && r.bytes_transferred > 0) {
+            ++count;
+            std::cout << "  [#" << count << "] " 
+                      << format_transfer_result(r, 32) << "\n";
+        }
+    }, 500);
+
+    std::cout << "  Continuous async read started. Press Enter to stop...\n";
+    // 先清除菜单选择时残留的换行符
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // 等待用户真正按 Enter 键
+    std::cin.get();
+    // 停止连续读取
+    ctrl.hid_stop_continuous();
+    // 等待最后的回调完成
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::cout << "  Stopped. Total reads: " << count << "\n"; // 显示总读取次数
+}
+
+// ============================================================================
 // demo_run_all - 演示：自动运行所有演示
 //
 // 自动执行一系列演示操作，无需用户交互。
 // 包括：设备列表、HID 列表、打开 HID、同步读写、异步读写、连续读取等。
 // ============================================================================
 void demo_run_all(UsbController& ctrl) {
-    std::cout << "\n  ===== AUTO DEMO MODE =====\n"; // 自动演示模式标题
+    std::cout << "\n  ===== 19.AUTO DEMO MODE =====\n"; // 自动演示模式标题
 
     // 演示 1：列出所有设备
     demo_list_devices(ctrl);
@@ -703,9 +705,9 @@ int main() {
                 case 14: demo_bulk_read(ctrl); break;          // 原始批量读取
                 case 15: demo_bulk_write(ctrl); break;         // 原始批量写入
                 case 16: demo_find_device(ctrl); break;        // 按 VID:PID 查找
-                case 17: demo_run_all(ctrl); break;            // 自动运行所有演示
-                case 18: demo_hid_read_latest(ctrl); break; // 读取最新 HID 报告（排空缓冲区）
-                case 19: demo_async_start_stop(ctrl); break; // 连续异步读取（手动启停）
+                case 17: demo_hid_read_latest(ctrl); break; // 读取最新 HID 报告（排空缓冲区）
+                case 18: demo_async_start_stop(ctrl); break; // 连续异步读取（手动启停）
+                case 19: demo_run_all(ctrl); break;            // 自动运行所有演示
                 case 0:  g_running = false; break;             // 退出程序
                 default: std::cout << "Invalid choice\n"; break; // 无效选择
             }

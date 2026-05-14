@@ -11,7 +11,7 @@
 //   2. 设备查询：委托给 UsbDeviceManager
 //   3. HID 操作：委托给 HidDevice
 //   4. 同步传输：委托给 SyncTransfer
-//   5. 异步传输：委托给 AsyncTransferEngine / AsyncHidTransfer
+//   5. 异步传输：委托给 AsyncTransfer
 // ============================================================================
 
 #include "usb_controller.hpp"
@@ -116,7 +116,7 @@ bool UsbController::open_hid_device_by_vid_pid(uint16_t vid, uint16_t pid) {
 
 // 关闭 HID 设备
 void UsbController::close_hid_device() {
-    _async_hid.reset();     // 释放异步 HID 传输对象
+    _async_transfer.reset(); // 释放异步传输对象
     _sync_transfer.reset(); // 释放同步传输对象
     _hid_device.reset();    // 释放 HID 设备对象（自动调用 close()）
 }
@@ -192,64 +192,60 @@ TransferResult UsbController::interrupt_write(uint8_t endpoint, const std::vecto
 
 // 启动异步传输引擎
 void UsbController::async_start() {
-    if (!_async_engine) {
-        // 创建异步引擎（使用 libusb 上下文）
-        _async_engine = std::make_unique<AsyncTransferEngine>(_ctx->handle());
-        _async_engine->start(); // 启动事件处理线程
+    if (!_async_transfer) {
+        // 创建异步传输对象（使用 libusb 上下文）
+        _async_transfer = std::make_unique<AsyncTransfer>(_ctx->handle());
+        _async_transfer->start(); // 启动事件处理线程
     }
 }
 
 // 停止异步传输引擎
 void UsbController::async_stop() {
-    _async_hid.reset(); // 先释放 HID 异步传输对象
-    if (_async_engine) {
-        _async_engine->stop(); // 停止事件处理线程
-        _async_engine.reset(); // 释放引擎对象
+    if (_async_transfer) {
+        _async_transfer->stop(); // 停止事件处理线程
+        _async_transfer.reset(); // 释放异步传输对象
     }
+}
+
+// 确保异步传输对象已创建并绑定设备
+void UsbController::_ensure_async_bound() {
+    async_start(); // 确保引擎已启动
+    // 绑定设备（如果尚未绑定）
+    if (!_async_transfer->is_bound())
+        _async_transfer->bind_device(_hid_device->handle(),
+                                     _hid_device->in_endpoint().address,
+                                     _hid_device->out_endpoint().address);
 }
 
 // 单次异步 HID 读取
 void UsbController::hid_read_async(int length, AsyncCallback callback, unsigned int timeout_ms) {
     if (!_hid_device || !_hid_device->is_open()) return; // 设备未打开
-    async_start(); // 确保异步引擎已启动
-    // 创建 HID 异步传输对象（如果尚未创建）
-    if (!_async_hid)
-        _async_hid = std::make_unique<AsyncHidTransfer>(*_async_engine, _hid_device->handle(),
-                                                         _hid_device->in_endpoint().address,
-                                                         _hid_device->out_endpoint().address);
-    _async_hid->read_async(length, std::move(callback), timeout_ms); // 提交异步读取
+    _ensure_async_bound(); // 确保引擎已启动且设备已绑定
+    _async_transfer->read_async(length, std::move(callback), timeout_ms); // 提交异步读取
 }
 
 // 单次异步 HID 写入
 void UsbController::hid_write_async(const std::vector<uint8_t>& data, AsyncCallback callback, unsigned int timeout_ms) {
     if (!_hid_device || !_hid_device->is_open()) return;
-    async_start();
-    if (!_async_hid)
-        _async_hid = std::make_unique<AsyncHidTransfer>(*_async_engine, _hid_device->handle(),
-                                                         _hid_device->in_endpoint().address,
-                                                         _hid_device->out_endpoint().address);
-    _async_hid->write_async(data, std::move(callback), timeout_ms); // 提交异步写入
+    _ensure_async_bound();
+    _async_transfer->write_async(data, std::move(callback), timeout_ms); // 提交异步写入
 }
 
 // 连续异步 HID 读取
 void UsbController::hid_read_continuous(int length, AsyncCallback callback, unsigned int timeout_ms) {
     if (!_hid_device || !_hid_device->is_open()) return;
-    async_start();
-    if (!_async_hid)
-        _async_hid = std::make_unique<AsyncHidTransfer>(*_async_engine, _hid_device->handle(),
-                                                         _hid_device->in_endpoint().address,
-                                                         _hid_device->out_endpoint().address);
-    _async_hid->read_continuous(length, std::move(callback), timeout_ms); // 启动连续读取
+    _ensure_async_bound();
+    _async_transfer->read_continuous(length, std::move(callback), timeout_ms); // 启动连续读取
 }
 
 // 停止连续异步读取
 void UsbController::hid_stop_continuous() {
-    if (_async_hid) _async_hid->stop_continuous(); // 委托给 AsyncHidTransfer
+    if (_async_transfer) _async_transfer->stop_continuous(); // 委托给 AsyncTransfer
 }
 
 // 获取异步传输待处理数量
 size_t UsbController::async_pending_count() const {
-    return _async_engine ? _async_engine->pending_count() : 0; // 引擎未启动时返回 0
+    return _async_transfer ? _async_transfer->pending_count() : 0; // 引擎未启动时返回 0
 }
 
 } // namespace usb_ctrl

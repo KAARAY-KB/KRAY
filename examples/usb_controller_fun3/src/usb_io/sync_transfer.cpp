@@ -238,7 +238,7 @@ std::string bytes_to_hex(const std::vector<uint8_t>& data, size_t max_bytes) {
         oss << std::uppercase << std::hex << std::setw(2) << std::setfill('0')
             << static_cast<int>(data[i]) << " "; // 两位十六进制 + 空格
         // 每 16 个字节换行（但不是最后一行）
-        if ((i + 1) % 16 == 0 && i + 1 < len) oss << "\n";
+        // if ((i + 1) % 16 == 0 && i + 1 < len) oss << "\n";
     }
     // 如果数据超过最大显示字节数，显示省略提示
     if (data.size() > max_bytes) oss << "... (" << data.size() << " bytes total)";
