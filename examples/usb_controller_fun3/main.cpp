@@ -585,9 +585,15 @@ void demo_hotplug_monitor(UsbController& ctrl) {
     // 检查平台是否支持热插拔
     if (!UsbController::is_hotplug_supported()) {
         std::cout << "  Hotplug is NOT supported on this platform.\n";
-        std::cout << "  (Requires libusb >= 1.0.22 on Windows, or udev on Linux)\n";
+        std::cout << "  (Requires libusb >= 1.0.22 with hotplug on Linux/macOS)\n";
         return;
     }
+
+#ifdef _WIN32
+    std::cout << "  Using Windows native hotplug (WM_DEVICECHANGE + SetupDi)\n";
+#else
+    std::cout << "  Using libusb native hotplug API\n";
+#endif
 
     // 如果已在监听，先停止
     if (ctrl.is_hotplug_listening()) {

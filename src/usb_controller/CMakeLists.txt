@@ -15,6 +15,7 @@ list(FILTER LIB_SRC EXCLUDE REGEX "main\\.cpp$")
 list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugWindows")
 list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugLinux")
 list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugMac")
+list(FILTER LIB_SRC EXCLUDE REGEX "USBMsg")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "${SUB_NAME} running on: windows")

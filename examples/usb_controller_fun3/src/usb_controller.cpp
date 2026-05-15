@@ -259,39 +259,26 @@ size_t UsbController::async_pending_count() const {
 // 热插拔监听
 // ============================================================================
 
-// 检查当前平台是否支持热插拔（委托给 UsbHotplug）
+// 检查当前平台是否支持热插拔
 bool UsbController::is_hotplug_supported() {
-    return UsbHotplug::is_supported();
+    return UsbHotplugBase::is_supported();
 }
 
 // 启动热插拔监听（无过滤，监听所有设备）
 bool UsbController::hotplug_start(HotplugCallback callback) {
-    // 确保事件线程已启动（热插拔回调由事件线程驱动）
-    async_start();
-    // 如果已在监听，先停止
     if (_hotplug) _hotplug->stop();
-    // 创建热插拔监听对象
-    _hotplug = std::make_unique<UsbHotplug>(_ctx->handle());
-    // 设置回调
+    _hotplug = core::create_hotplug(_ctx->handle());
     _hotplug->set_callback(std::move(callback));
-    // 启动监听
     return _hotplug->start();
 }
 
 // 启动热插拔监听（带 VID/PID 过滤）
 bool UsbController::hotplug_start(uint16_t vid, uint16_t pid, HotplugCallback callback) {
-    // 确保事件线程已启动
-    async_start();
-    // 如果已在监听，先停止
     if (_hotplug) _hotplug->stop();
-    // 创建热插拔监听对象
-    _hotplug = std::make_unique<UsbHotplug>(_ctx->handle());
-    // 设置过滤条件
+    _hotplug = core::create_hotplug(_ctx->handle());
     _hotplug->set_vid_filter(vid);
     _hotplug->set_pid_filter(pid);
-    // 设置回调
     _hotplug->set_callback(std::move(callback));
-    // 启动监听
     return _hotplug->start();
 }
 

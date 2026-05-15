@@ -32,18 +32,37 @@ add_library(usb_controller_fun3_lib STATIC
     usb_core/usb_device.cpp
     usb_core/usb_device_manager.cpp
     usb_core/usb_event_thread.cpp
-    usb_core/usb_hotplug.cpp
+    usb_core/usb_hotplug_base.cpp
+    usb_core/usb_hotplug_linux.cpp
     usb_io/sync_transfer.cpp
     usb_io/hid_device.cpp
     usb_io/async_transfer.cpp
     usb_controller.cpp
 )
 
+# Windows 平台添加热插拔回退源文件
+if(WIN32)
+    target_sources(usb_controller_fun3_lib PRIVATE
+        usb_core/usb_hotplug_win.cpp
+    )
+endif()
+
 # ============================================================================
 # 链接依赖
-# PUBLIC 表示使用此库的目标也会自动链接 libusb
+# 使用库文件路径而非库名，避免链接器查找失败
 # ============================================================================
-target_link_libraries(usb_controller_fun3_lib PUBLIC libusb)
+if(MINGW OR MSVC)
+    target_link_libraries(usb_controller_fun3_lib PUBLIC
+        ${LIBUSB_LIB_DIR}/${LIBUSB_LIB_NAME}  # libusb 静态库文件路径
+    )
+else()
+    target_link_libraries(usb_controller_fun3_lib PUBLIC libusb-1.0)
+endif()
+
+# Windows 平台链接 user32 + setupapi（用于热插拔回退）
+if(WIN32)
+    target_link_libraries(usb_controller_fun3_lib PUBLIC user32 setupapi)
+endif()
 
 # ============================================================================
 # 头文件搜索路径

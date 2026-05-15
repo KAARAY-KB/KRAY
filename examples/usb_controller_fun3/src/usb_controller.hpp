@@ -28,7 +28,7 @@
 #include "usb_core/usb_context.hpp"
 #include "usb_core/usb_device.hpp"
 #include "usb_core/usb_device_manager.hpp"
-#include "usb_core/usb_hotplug.hpp"
+#include "usb_core/usb_hotplug_base.hpp"
 #include "usb_io/sync_transfer.hpp"
 #include "usb_io/hid_device.hpp"
 #include "usb_io/async_transfer.hpp"
@@ -52,7 +52,7 @@ using io::HidDevice;       // HID 设备类
 using core::UsbEventThread;    // 事件处理线程（独立于传输逻辑）
 using io::AsyncTransfer;       // 异步传输类
 using io::AsyncCallback;       // 异步回调类型
-using core::UsbHotplug;        // 热插拔监听类
+using core::UsbHotplugBase;     // 热插拔抽象基类
 using core::HotplugEvent;      // 热插拔事件类型
 using core::HotplugCallback;   // 热插拔回调类型
 
@@ -327,7 +327,8 @@ private:
     std::unique_ptr<SyncTransfer> _sync_transfer;       // 同步传输对象
     std::unique_ptr<UsbEventThread> _event_thread;      // 事件处理线程（独立于传输逻辑）
     std::unique_ptr<AsyncTransfer> _async_transfer;     // 异步传输对象
-    std::unique_ptr<UsbHotplug> _hotplug;               // 热插拔监听对象
+
+    std::unique_ptr<UsbHotplugBase> _hotplug;          // 热插拔监听（平台无关）
 
     // 确保异步传输对象已创建并绑定设备（内部辅助方法）
     void _ensure_async_bound();

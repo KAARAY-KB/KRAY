@@ -171,6 +171,11 @@ public:
     // @param raw_dev libusb_device* 原始指针
     explicit UsbDevice(libusb_device* raw_dev);
 
+    // 构造函数：从设备信息创建 UsbDevice（设备已拔出，无法操作）
+    // 用于热插拔拔出事件：设备已不在，但需要告诉回调"谁走了"
+    // @param info 设备信息记录
+    explicit UsbDevice(const DeviceInfo& info);
+
     // 析构函数：关闭设备句柄并减少引用计数
     ~UsbDevice();
 
@@ -183,8 +188,11 @@ public:
     UsbDevice& operator=(UsbDevice&& other) noexcept;
 
     // 获取底层 libusb_device 原始指针
-    // @return libusb_device* 原始指针
+    // 设备离线时（已拔出）返回 nullptr
     libusb_device* handle() const { return _dev; }
+
+    // 检查设备是否离线（已拔出，只剩信息记录，无法再操作设备）
+    bool is_offline() const { return _dev == nullptr; }
 
     // 获取设备的完整信息（包括所有描述符）
     // 该方法会尝试打开设备以读取字符串描述符
@@ -236,6 +244,7 @@ private:
     libusb_device* _dev = nullptr;               // libusb 设备原始指针
     mutable libusb_device_handle* _handle = nullptr; // 设备操作句柄（mutable 允许在 const 方法中修改）
     mutable bool _opened = false;                // 标记设备是否已打开
+    DeviceInfo _saved_info;                       // 保存的设备信息（设备离线时使用）
 
     // 将二进制数据格式化为十六进制+ASCII 对照显示
     // @param data     原始数据指针

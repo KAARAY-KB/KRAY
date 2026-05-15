@@ -147,6 +147,15 @@ UsbDevice::UsbDevice(libusb_device* raw_dev) : _dev(raw_dev) {
 }
 
 // ============================================================================
+// UsbDevice 离线构造函数
+//
+// 从 DeviceInfo 创建 UsbDevice，设备已拔出，没有 libusb_device*。
+// 用于热插拔拔出事件：设备已不在，但需要告诉回调"谁走了"。
+// 此模式下 get_info() 返回保存的信息，无法打开设备或读取字符串。
+// ============================================================================
+UsbDevice::UsbDevice(const DeviceInfo& info) : _dev(nullptr), _saved_info(info) {}
+
+// ============================================================================
 // UsbDevice 析构函数
 //
 // 先关闭设备句柄（如果已打开），再减少设备引用计数。
@@ -226,9 +235,11 @@ void UsbDevice::try_open() const {
 // 读取失败时返回 0。
 // ============================================================================
 uint16_t UsbDevice::vid() const {
+    // 设备离线：直接返回保存的信息
+    if (!_dev) return _saved_info.vendor_id;
     libusb_device_descriptor desc; // 设备描述符结构体
     // 获取设备描述符，成功返回 0
-    return libusb_get_device_descriptor(_dev, &desc) == 0 ? desc.idVendor : 0;
+    return libusb_get_device_descriptor(_dev, &desc) == LIBUSB_SUCCESS ? desc.idVendor : 0;
 }
 
 // ============================================================================
@@ -238,9 +249,11 @@ uint16_t UsbDevice::vid() const {
 // 读取失败时返回 0。
 // ============================================================================
 uint16_t UsbDevice::pid() const {
+    // 设备离线：直接返回保存的信息
+    if (!_dev) return _saved_info.product_id;
     libusb_device_descriptor desc; // 设备描述符结构体
     // 获取设备描述符，成功返回 0
-    return libusb_get_device_descriptor(_dev, &desc) == 0 ? desc.idProduct : 0;
+    return libusb_get_device_descriptor(_dev, &desc) == LIBUSB_SUCCESS ? desc.idProduct : 0;
 }
 
 // ============================================================================
@@ -493,6 +506,15 @@ std::string UsbDevice::_config_details(const DeviceInfo& info) const {
 //   VID:0x046D PID:0xC077 Speed:Full (12Mbps) USB:2.0 [USB Optical Mouse] (Logitech) Ifaces:1
 // ============================================================================
 std::string UsbDevice::summary() const {
+    // 设备离线：用保存的信息生成摘要
+    if (!_dev) {
+        std::ostringstream oss;
+        oss << std::uppercase << std::hex << std::setfill('0');
+        oss << "VID:0x" << std::setw(4) << _saved_info.vendor_id
+            << " PID:0x" << std::setw(4) << _saved_info.product_id
+            << " [disconnected]";
+        return oss.str();
+    }
     auto info = get_info(); // 获取设备完整信息
     std::ostringstream oss;
     oss << std::uppercase << std::hex << std::setfill('0'); // 设置十六进制大写格式

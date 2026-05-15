@@ -90,11 +90,21 @@ add_subdirectory(src)
 add_executable(${LIB_NAME} main.cpp) # 可执行文件源文件
 
 # 链接依赖库
-target_link_libraries(${LIB_NAME} PRIVATE 
-    usb_controller_fun3_lib # USB 控制器静态库
-    ${LIBUSB_LIB_NAME}      # libusb 库
-    ${PLATFORM_LIBS}        # 平台相关库（Windows: setupapi）
-)
+if(MINGW OR MSVC)
+    # Windows：直接使用静态库文件路径，避免 -l 查找失败
+    target_link_libraries(${LIB_NAME} PRIVATE 
+        usb_controller_fun3_lib                  # USB 控制器静态库
+        ${LIBUSB_LIB_DIR}/${LIBUSB_LIB_NAME}     # libusb 静态库文件
+        ${PLATFORM_LIBS}                         # 平台相关库（Windows: setupapi）
+    )
+else()
+    # Linux：使用 pkg-config 返回的库名
+    target_link_libraries(${LIB_NAME} PRIVATE 
+        usb_controller_fun3_lib # USB 控制器静态库
+        ${LIBUSB_LIB_NAME}      # libusb 库
+        ${PLATFORM_LIBS}        # 平台相关库
+    )
+endif()
 
 # 头文件搜索路径
 target_include_directories(${LIB_NAME} PRIVATE
