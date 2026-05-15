@@ -8,7 +8,7 @@
 //
 // 设计模式：策略模式（Strategy Pattern）
 //   UsbHotplugBase = 策略接口
-//   UsbHotplug     = Linux 策略（libusb 原生热插拔）
+//   UsbHotplugLinux = Linux 策略（libusb 原生热插拔）
 //   UsbHotplugWin  = Windows 策略（WM_DEVICECHANGE + SetupDi）
 // ============================================================================
 

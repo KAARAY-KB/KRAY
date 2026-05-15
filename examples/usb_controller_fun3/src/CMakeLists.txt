@@ -49,20 +49,9 @@ endif()
 
 # ============================================================================
 # 链接依赖
-# 使用库文件路径而非库名，避免链接器查找失败
+# PUBLIC 表示使用此库的目标也会自动链接 libusb
 # ============================================================================
-if(MINGW OR MSVC)
-    target_link_libraries(usb_controller_fun3_lib PUBLIC
-        ${LIBUSB_LIB_DIR}/${LIBUSB_LIB_NAME}  # libusb 静态库文件路径
-    )
-else()
-    target_link_libraries(usb_controller_fun3_lib PUBLIC libusb-1.0)
-endif()
-
-# Windows 平台链接 user32 + setupapi（用于热插拔回退）
-if(WIN32)
-    target_link_libraries(usb_controller_fun3_lib PUBLIC user32 setupapi)
-endif()
+target_link_libraries(usb_controller_fun3_lib PUBLIC libusb)
 
 # ============================================================================
 # 头文件搜索路径

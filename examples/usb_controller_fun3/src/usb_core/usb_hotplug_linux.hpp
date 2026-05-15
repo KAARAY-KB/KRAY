@@ -1,5 +1,5 @@
 // ============================================================================
-// usb_hotplug.hpp - USB 热插拔异步监听模块 - Linux 版本（头文件）
+// usb_hotplug_linux.hpp - USB 热插拔异步监听模块 - Linux 版本（头文件）
 //
 // 功能说明：
 //   基于 libusb_hotplug API 实现 USB 设备异步热插拔监听。
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "usb_hotplug_base.hpp"
-#include <libusb.h>
+#include "libusb.h"
 
 struct libusb_context;
 struct libusb_device;
@@ -28,19 +28,19 @@ namespace usb_ctrl {
 namespace core {
 
 // ============================================================================
-// UsbHotplug - USB 热插拔异步监听类（Linux/macOS 实现）
+// UsbHotplugLinux - USB 热插拔异步监听类（Linux/macOS 实现）
 // ============================================================================
-class UsbHotplug : public UsbHotplugBase {
+class UsbHotplugLinux : public UsbHotplugBase {
 public:
     // 构造函数：绑定 libusb 上下文
-    explicit UsbHotplug(libusb_context* ctx);
+    explicit UsbHotplugLinux(libusb_context* ctx);
 
     // 析构函数：自动注销热插拔回调
-    ~UsbHotplug() override;
+    ~UsbHotplugLinux() override;
 
     // 禁止拷贝
-    UsbHotplug(const UsbHotplug&) = delete;
-    UsbHotplug& operator=(const UsbHotplug&) = delete;
+    UsbHotplugLinux(const UsbHotplugLinux&) = delete;
+    UsbHotplugLinux& operator=(const UsbHotplugLinux&) = delete;
 
     // 检查当前平台是否支持热插拔
     static bool is_supported();

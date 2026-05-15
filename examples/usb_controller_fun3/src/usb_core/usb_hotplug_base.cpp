@@ -22,7 +22,7 @@ bool UsbHotplugBase::is_supported() {
 #ifdef _WIN32
     return UsbHotplugWin::is_supported();
 #else
-    return UsbHotplug::is_supported();
+    return UsbHotplugLinux::is_supported();
 #endif
 }
 
@@ -32,7 +32,7 @@ std::unique_ptr<UsbHotplugBase> create_hotplug(libusb_context* ctx) {
     (void)ctx; // Windows 不需要 libusb 上下文
     return std::make_unique<UsbHotplugWin>();
 #else
-    return std::make_unique<UsbHotplug>(ctx);
+    return std::make_unique<UsbHotplugLinux>(ctx);
 #endif
 }
 
