@@ -83,7 +83,7 @@ void print_separator(const char* title = nullptr) {
 // @param r     传输结果结构体
 // ============================================================================
 void print_transfer_result(const char* label, const TransferResult& r) {
-    std::cout << "  [" << label << "] " << format_transfer_result(r, 32) << "\n";
+    std::cout << "  [" << label << "] " << format_transfer_result(r, r.bytes_transferred) << "\n";
 }
 
 // ============================================================================
@@ -359,7 +359,7 @@ void demo_async_read(UsbController& ctrl) {
     // 提交异步读取请求
     ctrl.hid_read_async(64, [](const TransferResult& r) {
         // 回调函数：传输完成时调用
-        std::cout << "  [Async Single] " << format_transfer_result(r, 32) << "\n";
+        std::cout << "  [Async Single] " << format_transfer_result(r, r.bytes_transferred) << "\n";
     }, 2000);
 
     // 等待异步传输完成
@@ -386,7 +386,7 @@ void demo_continuous_read(UsbController& ctrl) {
         if (r.success && r.bytes_transferred > 0) {
             ++count;
             std::cout << "  [#" << count << "] " 
-                      << format_transfer_result(r, 32) << "\n";
+                      << format_transfer_result(r, r.bytes_transferred) << "\n";
         }
     }, 500);
 
@@ -547,7 +547,7 @@ void demo_async_start_stop(UsbController& ctrl) {
         if (r.success && r.bytes_transferred > 0) {
             ++count;
             std::cout << "  [#" << count << "] " 
-                      << format_transfer_result(r, 32) << "\n";
+                      << format_transfer_result(r, r.bytes_transferred) << "\n";
         }
     }, 500);
 
@@ -611,7 +611,7 @@ void demo_run_all(UsbController& ctrl) {
 
         // 单次异步 HID 读取
         ctrl.hid_read_async(64, [](const TransferResult& r) {
-            std::cout << "  [Async] " << format_transfer_result(r, 16) << "\n";
+            std::cout << "  [Async] " << format_transfer_result(r, r.bytes_transferred) << "\n";
         }, 2000);
 
         std::cout << "  Waiting for async completion...\n";
