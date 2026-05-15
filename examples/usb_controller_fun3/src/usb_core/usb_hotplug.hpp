@@ -122,7 +122,7 @@ public:
     bool is_listening() const { return _handle != 0; }
 
 private:
-    // libusb 热插拔回调的静态入口函数
+    // libusb 热插拔回调的静态入口函数（静态，C 链接）
     // 由 libusb 在事件循环中调用，转发给 _on_event
     static int LIBUSB_CALL _hotplug_cb(
         libusb_context* ctx,

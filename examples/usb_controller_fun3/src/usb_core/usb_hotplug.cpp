@@ -96,7 +96,7 @@ void UsbHotplug::set_class_filter(uint8_t cls) { _cls = cls; }
 // ============================================================================
 bool UsbHotplug::start() {
     // 如果已在监听，直接返回成功
-    if (_handle != 0) return true;
+    if (is_listening()) return true;
 
     // 检查平台是否支持热插拔
     if (!is_supported()) return false;
