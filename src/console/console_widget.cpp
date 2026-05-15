@@ -15,13 +15,13 @@ static QIcon createConsoleIcon()
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing); // 开启抗锯齿
     // 背景矩形
-    painter.setBrush(QColor(50, 50, 50));
-    painter.setPen(QPen(QColor(200, 200, 200), 2));
-    painter.drawRoundedRect(2, 4, 28, 24, 4, 4);
+    painter.setBrush(QColor(50, 50, 50)); // 背景颜色为暗黑色
+    painter.setPen(QPen(QColor(220, 220, 220), 2)); // 边框颜色为白色
+    painter.drawRoundedRect(2, 2, 28, 28, 5, 5); // 绘制圆角矩形，圆角半径为5
     // 终端提示符 >_
-    painter.setPen(QColor(230, 230, 230));
-    painter.setFont(QFont("Maple Mono NF CN", 12, QFont::Bold));
-    painter.drawText(6, 20, ">_");
+    painter.setPen(QColor(255, 255, 255)); // 文本颜色为白色
+    painter.setFont(QFont("Maple Mono NF CN", 12, QFont::Bold)); // 字体为Maple Mono NF CN，大小12，加粗
+    painter.drawText(6, 20, ">_"); // 绘制文本">_"
 
     return QIcon(pixmap);
 }
