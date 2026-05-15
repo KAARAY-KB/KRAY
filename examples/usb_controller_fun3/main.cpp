@@ -31,6 +31,7 @@
 //   17. 自动运行所有演示
 //   18. 读取最新 HID 报告（先排空缓冲区）
 //   19. 连续异步读取（手动启停）
+//   20. USB 热插拔监听（异步回调）
 //
 // 依赖关系：
 //   - usb_controller.hpp：UsbController 统一接口
@@ -40,6 +41,7 @@
 // ============================================================================
 
 #include "usb_controller.hpp"
+#include <libusb.h>      // libusb_get_version() 获取运行时版本
 
 #include <iostream>
 #include <iomanip>    // std::hex, std::dec 格式化
@@ -134,6 +136,7 @@ void print_menu() {
     std::cout << "| 17. HID read latest (drain buffer)   -  17.读取最新 HID 报告（排空缓冲区） |\n"; // 读取最新 HID 报告（排空缓冲区）
     std::cout << "| 18. Async read (manual start/stop)   -  18.连续异步读取（手动启停）        |\n"; // 连续异步读取（手动启停）
     std::cout << "| 19. Run all demos (auto)             -  19.自动运行所有演示                |\n"; // 自动运行所有演示
+    std::cout << "| 20. Hotplug monitor (async)          -  20.USB 热插拔监听（异步回调）     |\n"; // 热插拔监听
     std::cout << "|  0. Exit                             -   0.退出                            |\n"; // 退出
     std::cout << "+----------------------------------------------------------------------------+\n";
     std::cout << "Choice: "; // 提示用户输入
@@ -564,6 +567,72 @@ void demo_async_start_stop(UsbController& ctrl) {
 }
 
 // ============================================================================
+// demo_hotplug_monitor - 演示：USB 热插拔异步监听
+//
+// 启动热插拔监听后，当设备插入或拔出时自动触发回调。
+// 回调在事件线程中异步执行，无需轮询。
+// 用户按 Enter 键停止监听。
+// ============================================================================
+void demo_hotplug_monitor(UsbController& ctrl) {
+    print_separator("20. USB Hotplug Monitor (async)");
+
+    // 获取 libusb 运行时版本号
+    const libusb_version* ver = libusb_get_version();
+    std::cout << "  libusb runtime version: "
+              << ver->major << "." << ver->minor << "." << ver->micro
+              << " (API: 0x" << std::hex << LIBUSB_API_VERSION << std::dec << ")\n";
+
+    // 检查平台是否支持热插拔
+    if (!UsbController::is_hotplug_supported()) {
+        std::cout << "  Hotplug is NOT supported on this platform.\n";
+        std::cout << "  (Requires libusb >= 1.0.22 on Windows, or udev on Linux)\n";
+        return;
+    }
+
+    // 如果已在监听，先停止
+    if (ctrl.is_hotplug_listening()) {
+        std::cout << "  Hotplug already listening. Stopping first...\n";
+        ctrl.hotplug_stop();
+    }
+
+    // 事件计数器（原子变量，线程安全）
+    std::atomic<int> arrive_count{0};
+    std::atomic<int> leave_count{0};
+
+    // 启动热插拔监听（监听所有设备）
+    bool ok = ctrl.hotplug_start([&arrive_count, &leave_count](HotplugEvent ev, UsbDevice& dev) {
+        if (ev == HotplugEvent::Arrived) {
+            // 设备插入
+            ++arrive_count;
+            std::cout << "  [HOTPLUG +] Device arrived: " << dev.summary() << "\n";
+        } else {
+            // 设备拔出
+            ++leave_count;
+            std::cout << "  [HOTPLUG -] Device left:    " << dev.summary() << "\n";
+        }
+    });
+
+    if (!ok) {
+        std::cout << "  Failed to start hotplug monitoring.\n";
+        return;
+    }
+
+    std::cout << "  Hotplug monitoring started (async callback).\n";
+    std::cout << "  Plug/unplug USB devices to see events.\n";
+    std::cout << "  Press Enter to stop...\n";
+
+    // 清除残留换行符
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // 等待用户按 Enter
+    std::cin.get();
+
+    // 停止热插拔监听
+    ctrl.hotplug_stop();
+    std::cout << "  Hotplug stopped. Arrived: " << arrive_count
+              << ", Left: " << leave_count << "\n";
+}
+
+// ============================================================================
 // demo_run_all - 演示：自动运行所有演示
 //
 // 自动执行一系列演示操作，无需用户交互。
@@ -709,6 +778,7 @@ int main() {
                 case 17: demo_hid_read_latest(ctrl); break; // 读取最新 HID 报告（排空缓冲区）
                 case 18: demo_async_start_stop(ctrl); break; // 连续异步读取（手动启停）
                 case 19: demo_run_all(ctrl); break;            // 自动运行所有演示
+                case 20: demo_hotplug_monitor(ctrl); break;    // 热插拔监听
                 case 0:  g_running = false; break;             // 退出程序
                 default: std::cout << "Invalid choice\n"; break; // 无效选择
             }

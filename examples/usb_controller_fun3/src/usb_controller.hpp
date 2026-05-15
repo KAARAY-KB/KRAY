@@ -28,6 +28,7 @@
 #include "usb_core/usb_context.hpp"
 #include "usb_core/usb_device.hpp"
 #include "usb_core/usb_device_manager.hpp"
+#include "usb_core/usb_hotplug.hpp"
 #include "usb_io/sync_transfer.hpp"
 #include "usb_io/hid_device.hpp"
 #include "usb_io/async_transfer.hpp"
@@ -51,6 +52,9 @@ using io::HidDevice;       // HID 设备类
 using core::UsbEventThread;    // 事件处理线程（独立于传输逻辑）
 using io::AsyncTransfer;       // 异步传输类
 using io::AsyncCallback;       // 异步回调类型
+using core::UsbHotplug;        // 热插拔监听类
+using core::HotplugEvent;      // 热插拔事件类型
+using core::HotplugCallback;   // 热插拔回调类型
 
 // ============================================================================
 // UsbController - USB 控制器统一接口类
@@ -272,6 +276,35 @@ TransferResult hid_read_latest(int length, unsigned int drain_timeout_ms = 10);
     size_t async_pending_count() const;
 
     // ========================================================================
+    // 热插拔监听（异步回调，无需轮询）
+    // ========================================================================
+
+    // 检查当前平台是否支持热插拔
+    // @return true 表示支持
+    static bool is_hotplug_supported();
+
+    // 启动热插拔监听
+    // 注册回调后，设备插入/拔出时自动触发回调（由事件线程驱动）
+    // @param callback 热插拔回调函数
+    // @return true 表示启动成功
+    bool hotplug_start(HotplugCallback callback);
+
+    // 启动热插拔监听（带 VID/PID 过滤）
+    // 仅监听指定厂商和产品的设备
+    // @param vid      厂商 ID（LIBUSB_HOTPLUG_MATCH_ANY 匹配所有）
+    // @param pid      产品 ID（LIBUSB_HOTPLUG_MATCH_ANY 匹配所有）
+    // @param callback 热插拔回调函数
+    // @return true 表示启动成功
+    bool hotplug_start(uint16_t vid, uint16_t pid, HotplugCallback callback);
+
+    // 停止热插拔监听
+    void hotplug_stop();
+
+    // 检查热插拔是否正在监听
+    // @return true 表示正在监听
+    bool is_hotplug_listening() const;
+
+    // ========================================================================
     // 底层对象访问（高级用法）
     // ========================================================================
 
@@ -294,6 +327,7 @@ private:
     std::unique_ptr<SyncTransfer> _sync_transfer;       // 同步传输对象
     std::unique_ptr<UsbEventThread> _event_thread;      // 事件处理线程（独立于传输逻辑）
     std::unique_ptr<AsyncTransfer> _async_transfer;     // 异步传输对象
+    std::unique_ptr<UsbHotplug> _hotplug;               // 热插拔监听对象
 
     // 确保异步传输对象已创建并绑定设备（内部辅助方法）
     void _ensure_async_bound();

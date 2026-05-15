@@ -32,6 +32,7 @@ add_library(usb_controller_fun3_lib STATIC
     usb_core/usb_device.cpp
     usb_core/usb_device_manager.cpp
     usb_core/usb_event_thread.cpp
+    usb_core/usb_hotplug.cpp
     usb_io/sync_transfer.cpp
     usb_io/hid_device.cpp
     usb_io/async_transfer.cpp
@@ -52,4 +53,6 @@ target_link_libraries(usb_controller_fun3_lib PUBLIC libusb)
 # ============================================================================
 target_include_directories(usb_controller_fun3_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${LIBUSB_INCLUDE_DIR}
+    ${LIBUSB_INCLUDE_DIRS}
 )

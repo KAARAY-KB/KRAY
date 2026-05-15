@@ -36,6 +36,7 @@ UsbController::UsbController() {
 // unique_ptr 会自动释放剩余资源。
 // ============================================================================
 UsbController::~UsbController() {
+    hotplug_stop();      // 停止热插拔监听
     close_hid_device(); // 关闭 HID 设备（释放接口、重新附加内核驱动）
     async_stop();       // 停止异步引擎（停止事件处理线程）
 }
@@ -252,6 +253,59 @@ void UsbController::hid_stop_continuous() {
 // 获取异步传输待处理数量
 size_t UsbController::async_pending_count() const {
     return _async_transfer ? _async_transfer->pending_count() : 0; // 引擎未启动时返回 0
+}
+
+// ============================================================================
+// 热插拔监听
+// ============================================================================
+
+// 检查当前平台是否支持热插拔（委托给 UsbHotplug）
+bool UsbController::is_hotplug_supported() {
+    return UsbHotplug::is_supported();
+}
+
+// 启动热插拔监听（无过滤，监听所有设备）
+bool UsbController::hotplug_start(HotplugCallback callback) {
+    // 确保事件线程已启动（热插拔回调由事件线程驱动）
+    async_start();
+    // 如果已在监听，先停止
+    if (_hotplug) _hotplug->stop();
+    // 创建热插拔监听对象
+    _hotplug = std::make_unique<UsbHotplug>(_ctx->handle());
+    // 设置回调
+    _hotplug->set_callback(std::move(callback));
+    // 启动监听
+    return _hotplug->start();
+}
+
+// 启动热插拔监听（带 VID/PID 过滤）
+bool UsbController::hotplug_start(uint16_t vid, uint16_t pid, HotplugCallback callback) {
+    // 确保事件线程已启动
+    async_start();
+    // 如果已在监听，先停止
+    if (_hotplug) _hotplug->stop();
+    // 创建热插拔监听对象
+    _hotplug = std::make_unique<UsbHotplug>(_ctx->handle());
+    // 设置过滤条件
+    _hotplug->set_vid_filter(vid);
+    _hotplug->set_pid_filter(pid);
+    // 设置回调
+    _hotplug->set_callback(std::move(callback));
+    // 启动监听
+    return _hotplug->start();
+}
+
+// 停止热插拔监听
+void UsbController::hotplug_stop() {
+    if (_hotplug) {
+        _hotplug->stop(); // 注销回调
+        _hotplug.reset(); // 释放对象
+    }
+}
+
+// 检查热插拔是否正在监听
+bool UsbController::is_hotplug_listening() const {
+    return _hotplug && _hotplug->is_listening();
 }
 
 } // namespace usb_ctrl

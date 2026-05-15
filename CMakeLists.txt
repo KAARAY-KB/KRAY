@@ -73,6 +73,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::PrintSupport
     core
     resources
+    # WIN32 # If you need a terminal for debug, please comment this statement 
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -88,7 +89,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}        # Bundle版本号
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}  # 短版本字符串
     MACOSX_BUNDLE TRUE                                     # 启用macOS Bundle
-    WIN32_EXECUTABLE TRUE                                  # Windows下使用GUI子系统（不显示控制台窗口）
+    # WIN32_EXECUTABLE TRUE                                  # Windows下使用GUI子系统（不显示控制台窗口）
 )
 
 # 设置应用图标（macOS/iOS）
