@@ -6,7 +6,7 @@
 #   该静态库被根 CMakeLists.txt 中的可执行文件链接使用。
 #
 # 源文件组织：
-#   usb_core/ - USB 核心模块（上下文、设备、设备管理器）
+#   usb_core/ - USB 核心模块（上下文、设备、设备管理器、事件线程）
 #   usb_io/   - USB 数据传输模块（同步传输、HID 设备、异步传输）
 #   usb_controller.cpp - USB 控制器统一接口
 #
@@ -21,15 +21,17 @@
 #   1. usb_core/usb_context.cpp      - USB 上下文管理（libusb 初始化）
 #   2. usb_core/usb_device.cpp       - USB 设备信息封装
 #   3. usb_core/usb_device_manager.cpp - USB 设备管理器（枚举和查询）
-#   4. usb_io/sync_transfer.cpp      - 同步传输（控制/批量/中断）
-#   5. usb_io/hid_device.cpp         - HID 设备操作
-#   6. usb_io/async_transfer.cpp     - 异步传输引擎
-#   7. usb_controller.cpp            - USB 控制器统一接口
+#   4. usb_core/usb_event_thread.cpp   - libusb 事件处理线程
+#   5. usb_io/sync_transfer.cpp      - 同步传输（控制/批量/中断）
+#   6. usb_io/hid_device.cpp         - HID 设备操作
+#   7. usb_io/async_transfer.cpp     - 异步传输
+#   8. usb_controller.cpp            - USB 控制器统一接口
 # ============================================================================
 add_library(usb_controller_fun3_lib STATIC
     usb_core/usb_context.cpp
     usb_core/usb_device.cpp
     usb_core/usb_device_manager.cpp
+    usb_core/usb_event_thread.cpp
     usb_io/sync_transfer.cpp
     usb_io/hid_device.cpp
     usb_io/async_transfer.cpp

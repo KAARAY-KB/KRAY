@@ -117,6 +117,7 @@ bool UsbController::open_hid_device_by_vid_pid(uint16_t vid, uint16_t pid) {
 // 关闭 HID 设备
 void UsbController::close_hid_device() {
     _async_transfer.reset(); // 释放异步传输对象
+    _event_thread.reset();   // 停止并释放事件线程
     _sync_transfer.reset(); // 释放同步传输对象
     _hid_device.reset();    // 释放 HID 设备对象（自动调用 close()）
 }
@@ -192,29 +193,34 @@ TransferResult UsbController::interrupt_write(uint8_t endpoint, const std::vecto
 
 // 启动异步传输引擎
 void UsbController::async_start() {
-    if (!_async_transfer) {
+    if (!_event_thread) {
         // 创建异步传输对象（使用 libusb 上下文）
-        _async_transfer = std::make_unique<AsyncTransfer>(_ctx->handle());
-        _async_transfer->start(); // 启动事件处理线程
+        _event_thread = std::make_unique<UsbEventThread>(_ctx->handle());
+        _event_thread->start(); // 启动事件处理线程
     }
 }
 
 // 停止异步传输引擎
 void UsbController::async_stop() {
-    if (_async_transfer) {
-        _async_transfer->stop(); // 停止事件处理线程
-        _async_transfer.reset(); // 释放异步传输对象
+    _async_transfer.reset(); // 释放异步传输对象
+    if (_event_thread) {
+        _event_thread->stop();
+        _event_thread.reset(); // 释放事件线程
     }
 }
 
 // 确保异步传输对象已创建并绑定设备
 void UsbController::_ensure_async_bound() {
     async_start(); // 确保引擎已启动
+    if (_hid_device && _hid_device->is_open()) {
+        if (!_async_transfer)
+            _async_transfer = std::make_unique<AsyncTransfer>(*_event_thread);
     // 绑定设备（如果尚未绑定）
-    if (!_async_transfer->is_bound())
-        _async_transfer->bind_device(_hid_device->handle(),
-                                     _hid_device->in_endpoint().address,
-                                     _hid_device->out_endpoint().address);
+        if (!_async_transfer->is_bound())
+            _async_transfer->bind_device(_hid_device->handle(),
+                                         _hid_device->in_endpoint().address,
+                                         _hid_device->out_endpoint().address);
+    }
 }
 
 // 单次异步 HID 读取

@@ -670,6 +670,7 @@ static const char * _usb_controller_log = R"(
 // @return 0 表示正常退出，1 表示异常退出
 // ============================================================================
 int main() {
+    std::system("chcp 65001 >nul"); // 设置程序运行的控制台编码为 UTF-8
     try {
         // 打印 ASCII 艺术字横幅
         std::cout << _usb_controller_log << "\n";

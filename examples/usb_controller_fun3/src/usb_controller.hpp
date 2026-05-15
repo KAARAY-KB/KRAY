@@ -48,7 +48,8 @@ using core::EndpointInfo;        // 端点信息结构体
 using io::TransferResult;  // 传输结果结构体
 using io::SyncTransfer;    // 同步传输类
 using io::HidDevice;       // HID 设备类
-using io::AsyncTransfer;  // 异步传输类（单类）
+using core::UsbEventThread;    // 事件处理线程（独立于传输逻辑）
+using io::AsyncTransfer;       // 异步传输类
 using io::AsyncCallback;       // 异步回调类型
 
 // ============================================================================
@@ -291,7 +292,8 @@ private:
     std::unique_ptr<UsbDeviceManager> _manager;         // 设备管理器（设备枚举和查询）
     std::unique_ptr<HidDevice> _hid_device;             // HID 设备（当前打开的设备）
     std::unique_ptr<SyncTransfer> _sync_transfer;       // 同步传输对象
-    std::unique_ptr<AsyncTransfer> _async_transfer;     // 异步传输对象（单类）
+    std::unique_ptr<UsbEventThread> _event_thread;      // 事件处理线程（独立于传输逻辑）
+    std::unique_ptr<AsyncTransfer> _async_transfer;     // 异步传输对象
 
     // 确保异步传输对象已创建并绑定设备（内部辅助方法）
     void _ensure_async_bound();

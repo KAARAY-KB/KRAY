@@ -26,6 +26,7 @@
 #pragma once
 
 #include "sync_transfer.hpp"
+#include "usb_core/usb_event_thread.hpp"
 #include <atomic>
 #include <functional>
 #include <thread>
@@ -108,33 +109,16 @@ struct AsyncTransferRequest {
 // ============================================================================
 class AsyncTransfer {
 public:
-    // 构造函数：绑定到指定的 libusb 上下文
-    // @param ctx 已初始化的 libusb_context 指针
-    explicit AsyncTransfer(libusb_context* ctx);
+    // 构造函数：绑定到指定的事件线程
+    // @param event_thread 已构造的 UsbEventThread 引用（需外部调用 start()）
+    explicit AsyncTransfer(core::UsbEventThread& event_thread);
 
-    // 析构函数：自动调用 stop() 停止线程并清理资源
-    ~AsyncTransfer();
+    // 析构函数
+    ~AsyncTransfer() = default;
 
-    // 禁止拷贝（引擎拥有事件线程的唯一所有权）
+    // 禁止拷贝
     AsyncTransfer(const AsyncTransfer&) = delete;
     AsyncTransfer& operator=(const AsyncTransfer&) = delete;
-
-    // ========================================================================
-    // 引擎管理
-    // ========================================================================
-
-    // 启动事件处理线程
-    // 如果已经启动，此方法不执行任何操作（幂等操作）
-    void start();
-
-    // 停止事件处理线程
-    // 如果未启动，此方法不执行任何操作（幂等操作）
-    // 阻塞等待线程退出后返回
-    void stop();
-
-    // 检查引擎是否正在运行
-    // @return true 表示事件线程正在运行
-    bool is_running() const { return _running.load(std::memory_order_acquire); }
 
     // 获取当前待处理的传输数量
     // @return 待处理传输计数
@@ -200,13 +184,6 @@ public:
     void stop_continuous();
 
 private:
-    // ========================================================================
-    // 内部方法
-    // ========================================================================
-
-    // 事件循环（在独立线程中运行）
-    void _event_loop();
-
     // 处理传输完成（回调处理）
     void _handle_completion(libusb_transfer* transfer);
 
@@ -221,7 +198,7 @@ private:
     // 此结构体通过 new 分配，在回调完成后 delete 释放。
     // ========================================================================
     struct TransferContext {
-        AsyncTransfer* engine;   // 指向异步传输引擎
+        AsyncTransfer* self;         // 指向 AsyncTransfer 实例
         AsyncCallback callback;  // 用户回调函数
     };
 
@@ -229,12 +206,10 @@ private:
     // 成员变量
     // ========================================================================
 
-    libusb_context* _ctx = nullptr;          // libusb 上下文指针（不拥有所有权）
+    core::UsbEventThread& _event_thread;     // 事件线程引用（不拥有所有权）
     libusb_device_handle* _handle = nullptr; // 设备句柄（不拥有所有权，bind_device 设置）
     unsigned char _in_ep = 0;                // IN 端点地址（bind_device 设置）
     unsigned char _out_ep = 0;               // OUT 端点地址（bind_device 设置）
-    std::atomic<bool> _running{false};       // 运行标志（线程安全）
-    std::thread _event_thread;               // 事件处理线程对象
     std::atomic<size_t> _pending{0};         // 待处理传输计数（线程安全）
     std::atomic<bool> _continuous{false};    // 连续读取标志（线程安全）
 };

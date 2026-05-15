@@ -37,48 +37,8 @@ namespace io {
 //
 // @param ctx 已初始化的 libusb_context 指针
 // ============================================================================
-AsyncTransfer::AsyncTransfer(libusb_context* ctx) : _ctx(ctx) {}
-
-// ============================================================================
-// AsyncTransfer 析构函数
-//
-// 自动调用 stop() 停止事件处理线程，确保线程安全退出。
-// ============================================================================
-AsyncTransfer::~AsyncTransfer() { stop(); }
-
-// ============================================================================
-// start - 启动事件处理线程
-//
-// 创建并启动一个独立线程，在其中循环调用 libusb_handle_events_timeout。
-// 如果引擎已经在运行，此方法不执行任何操作（幂等操作）。
-//
-// 线程安全：使用 atomic 变量 _running 控制线程生命周期。
-// ============================================================================
-void AsyncTransfer::start() {
-    // 如果已经在运行，直接返回（幂等操作）
-    if (_running.load(std::memory_order_acquire)) return;
-    // 设置运行标志为 true（release 语义确保后续操作可见）
-    _running.store(true, std::memory_order_release);
-    // 创建事件处理线程，执行 _event_loop 成员函数
-    _event_thread = std::thread(&AsyncTransfer::_event_loop, this);
-}
-
-// ============================================================================
-// stop - 停止事件处理线程
-//
-// 设置 _running 标志为 false，等待事件线程退出。
-// 如果引擎未运行，此方法不执行任何操作（幂等操作）。
-//
-// 线程安全：使用 atomic 变量通知线程退出，join() 等待线程结束。
-// ============================================================================
-void AsyncTransfer::stop() {
-    // 如果未运行，直接返回（幂等操作）
-    if (!_running.load(std::memory_order_acquire)) return;
-    // 设置运行标志为 false（release 语义确保线程可见）
-    _running.store(false, std::memory_order_release);
-    // 等待事件处理线程退出
-    if (_event_thread.joinable()) _event_thread.join();
-}
+AsyncTransfer::AsyncTransfer(core::UsbEventThread& event_thread)
+    : _event_thread(event_thread) {}
 
 // ============================================================================
 // bind_device - 绑定要操作的 HID 设备
@@ -111,8 +71,8 @@ void AsyncTransfer::bind_device(libusb_device_handle* handle, unsigned char in_e
 // @return true 表示提交成功，false 表示提交失败
 // ============================================================================
 bool AsyncTransfer::submit(libusb_device_handle* handle, AsyncTransferRequest&& request) {
-    // 检查引擎是否在运行
-    if (!_running.load(std::memory_order_acquire)) return false;
+    // 检查事件线程是否在运行
+    if (!_event_thread.is_running()) return false;
 
     // 分配 libusb_transfer 结构体（参数 0 表示同步数据包数为 0）
     auto* transfer = libusb_alloc_transfer(0);
@@ -178,25 +138,6 @@ bool AsyncTransfer::submit(libusb_device_handle* handle, AsyncTransferRequest&& 
 }
 
 // ============================================================================
-// _event_loop - 事件处理循环（在独立线程中运行）
-//
-// 循环调用 libusb_handle_events_timeout 驱动异步传输完成。
-// 每次循环等待最多 100ms（0.1 秒），以便及时响应 _running 标志变化。
-// 当 _running 变为 false 时退出循环。
-// ============================================================================
-void AsyncTransfer::_event_loop() {
-    // 循环直到 _running 变为 false
-    while (_running.load(std::memory_order_acquire)) {
-        // 设置超时时间为 100ms（0.1 秒）
-        struct timeval tv = {0, 100000};
-        // 调用 libusb 事件处理，驱动异步传输完成
-        int rc = libusb_handle_events_timeout(_ctx, &tv);
-        // 如果发生错误且引擎仍在运行，退出循环
-        if (rc < 0 && _running.load(std::memory_order_acquire)) break;
-    }
-}
-
-// ============================================================================
 // _transfer_cb - libusb 传输完成静态回调函数
 //
 // 由 libusb 在传输完成时调用（在事件处理线程中）。
@@ -208,8 +149,7 @@ void AsyncTransfer::_event_loop() {
 void LIBUSB_CALL AsyncTransfer::_transfer_cb(libusb_transfer* transfer) {
     // 从 user_data 中取出传输上下文
     auto* ctx = static_cast<TransferContext*>(transfer->user_data);
-    // 安全检查：上下文或引擎指针为空则直接返回
-    if (!ctx || !ctx->engine) return;
+    if (!ctx || !ctx->self) return; // 安全检查
 
     // 创建传输结果结构体
     TransferResult result;
@@ -241,7 +181,7 @@ void LIBUSB_CALL AsyncTransfer::_transfer_cb(libusb_transfer* transfer) {
     if (ctx->callback) ctx->callback(result);
 
     // 减少待处理传输计数
-    ctx->engine->_pending.fetch_sub(1, std::memory_order_release);
+    ctx->self->_pending.fetch_sub(1, std::memory_order_release);
     // 释放 libusb_transfer 结构体（同时释放缓冲区，因为设置了 FREE_BUFFER 标志）
     libusb_free_transfer(transfer);
     // 释放传输上下文
