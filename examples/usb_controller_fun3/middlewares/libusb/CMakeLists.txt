@@ -1,4 +1,4 @@
-set(SUB_NAME libusb)
+set(SUB_NAME libusb_f3)
 
 set(LIBUSB_LIBRARIES    )
 set(LIBUSB_INCLUDE_DIRS )
@@ -17,6 +17,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(STATUS "${SUB_NAME} running on: linux")
+#     # ========================================================================
+#     # Linux 配置（通过 pkg-config 查找 libusb）
+#     # ========================================================================
+#     find_package(PkgConfig REQUIRED)                    # 查找 pkg-config 工具
+#     pkg_check_modules(LIBUSB REQUIRED libusb-1.0)       # 查找 libusb-1.0 包
+#     set(LIBUSB_LIB_NAME ${LIBUSB_LIBRARIES})            # 使用 pkg-config 返回的库
+#     set(PLATFORM_LIBS "")                               # Linux 不需要额外平台库
+
     list(APPEND LIBUSB_LIBRARIES    /usr/local/lib/libusb-1.0.so)
     list(APPEND LIBUSB_INCLUDE_DIRS /usr/local/include/libusb-1.0)
 

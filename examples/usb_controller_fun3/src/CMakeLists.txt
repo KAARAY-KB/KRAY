@@ -51,7 +51,7 @@ endif()
 # 链接依赖
 # PUBLIC 表示使用此库的目标也会自动链接 libusb
 # ============================================================================
-target_link_libraries(usb_controller_fun3_lib PUBLIC libusb)
+target_link_libraries(usb_controller_fun3_lib PUBLIC libusb_f3)
 
 # ============================================================================
 # 头文件搜索路径
