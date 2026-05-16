@@ -40,6 +40,11 @@ add_library(usb_controller_fun3_lib STATIC
     usb_controller.cpp
 )
 
+# 启用位置无关代码（-fPIC），使静态库可被共享库链接
+set_target_properties(usb_controller_fun3_lib PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 # Windows 平台添加热插拔回退源文件
 if(WIN32)
     target_sources(usb_controller_fun3_lib PRIVATE
