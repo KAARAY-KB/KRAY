@@ -28,7 +28,7 @@ import platform
 # 查找并加载共享库
 # ============================================================================
 def find_lib():
-    """查找共享库（跨平台）"""
+    """查找共享库（跨平台，自动搜索所有构建类型目录）"""
     # 根据平台确定库文件名
     if platform.system() == "Windows":
         lib_name = "usb_ctrl_capi.dll"
@@ -39,22 +39,30 @@ def find_lib():
 
     # 获取脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # 构建类型目录名
-    cfg_dir = "Debug"
-    # 可能的库路径
-    candidates = [
-        # 脚本同目录
-        os.path.join(script_dir, lib_name),
-        # build/usb/<Config>/lib/dynamic/ 或 lib/shared/
-        os.path.join(script_dir, "..", "..", "..", "build", "usb", cfg_dir, "lib", "dynamic", lib_name),
-        os.path.join(script_dir, "..", "..", "..", "build", "usb", cfg_dir, "lib", "shared", lib_name),
-        # build/usb/lib/dynamic/ 或 lib/shared/（无构建类型子目录）
-        os.path.join(script_dir, "..", "..", "..", "build", "usb", "lib", "dynamic", lib_name),
-        os.path.join(script_dir, "..", "..", "..", "build", "usb", "lib", "shared", lib_name),
-        # 旧路径兼容
-        os.path.join(script_dir, "..", "build", "test", lib_name),
-        os.path.join(script_dir, "..", "build", lib_name),
-    ]
+    # 项目根目录
+    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+    # 构建根目录
+    build_root = os.path.join(project_root, "build")
+
+    # 所有可能的构建类型目录名
+    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
+    # 共享库可能的子目录
+    lib_subdirs = ["lib/dynamic", "lib/shared", "lib"]
+    # 构建目标子目录（main 或 usb）
+    target_dirs = ["usb", "main", ""]
+
+    # 候选路径列表
+    candidates = [os.path.join(script_dir, lib_name)]
+
+    # 遍历所有组合
+    for target in target_dirs:
+        for cfg in cfg_dirs:
+            for lib_sub in lib_subdirs:
+                candidates.append(os.path.join(build_root, target, cfg, lib_sub, lib_name))
+        for lib_sub in lib_subdirs:
+            candidates.append(os.path.join(build_root, target, lib_sub, lib_name))
+
+    # 搜索存在的路径
     for path in candidates:
         abs_path = os.path.abspath(path)
         if os.path.exists(abs_path):
@@ -254,8 +262,17 @@ class UsbTestApp:
     def __init__(self, root):
         self.root = root
         self.root.title("USB Controller - Integrated Test UI")
-        self.root.geometry("1600x800") # 初始窗口大小
-        self.root.minsize(1600, 800) # 最小窗口大小
+
+        # 获取屏幕大小
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        w = 1600
+        h = 800
+        # 初始窗口大小，居中显示
+        self.root.geometry(f"{w}x{h}+{screen_width//2-w//2}+{screen_height//2-h//2}")
+        # 最小窗口大小
+        self.root.minsize(w, h) 
 
         # 创建控制器
         self.handle = lib.usb_ctrl_create()
