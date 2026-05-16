@@ -25,17 +25,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)        # 禁用编译器扩展（保证可移植性）
 
+
+# ============================================================================
+# 输出目录设置（按构建类型分子目录）
+# 所有可执行文件输出到              ${CMAKE_BINARY_DIR}/$<CONFIG>/bin
+# 静态库文件(.a .lib)输出到         ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/static
+# 动态库文件(.so .dylib .dll)输出到 ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/dynamic
+# ============================================================================
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/lib/static)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/lib/dynamic)
+
+
 if(WIN32)
     add_definitions(-D_WIN32_WINNT=0x0601)  # 目标 Windows 版本（Vista+）
     add_definitions(-DWIN32_LEAN_AND_MEAN)  # 精简 Windows 头文件
     add_definitions(-DNOMINMAX)             # 禁用 min/max 宏（避免与 std::min/max 冲突）
 endif()
-
-# ============================================================================
-# 输出目录设置
-# 所有可执行文件输出到 ${CMAKE_BINARY_DIR}/bin
-# ============================================================================
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(middlewares/libusb)
 add_subdirectory(src)

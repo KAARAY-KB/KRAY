@@ -24,4 +24,6 @@ target_include_directories(usb_ctrl_capi PRIVATE
 set_target_properties(usb_ctrl_capi PROPERTIES
     PREFIX "lib"  # 输出前缀
     OUTPUT_NAME "usb_ctrl_capi"  # 输出名称
+    # CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${BUILD_TYPE_DIR}/lib/static
+    # CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${BUILD_TYPE_DIR}/lib/dynamic
 )

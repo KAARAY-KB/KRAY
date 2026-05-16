@@ -15,6 +15,16 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ============================================================================
+# 输出目录设置（按构建类型分子目录）
+# 所有可执行文件输出到              ${CMAKE_BINARY_DIR}/$<CONFIG>/bin
+# 静态库文件(.a .lib)输出到         ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/static
+# 动态库文件(.so .dylib .dll)输出到 ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/dynamic
+# ============================================================================
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/lib/static)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/lib/dynamic)
+
 # 查找Qt库，优先找Qt6，反之则找Qt5
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Core Gui PrintSupport LinguistTools)
@@ -104,9 +114,9 @@ include(GNUInstallDirs)
 
 # 配置安装规则
 install(TARGETS ${PROJECT_NAME}
-    BUNDLE DESTINATION .                                   # macOS Bundle安装到根目录
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}            # 库文件安装到lib目录
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}            # 可执行文件安装到bin目录
+    BUNDLE DESTINATION .                        # macOS Bundle安装到根目录
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} # 库文件安装到lib目录
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # 可执行文件安装到bin目录
 )
 
 # Qt6需要调用finalize来完成可执行文件的构建
