@@ -130,7 +130,7 @@ if errorlevel 1 (
 echo [INFO] USB 示例编译完成:
 echo [INFO]   可执行文件: %USB_BUILD%\bin\
 echo [INFO]   单元测试:   %USB_BUILD%\bin\test_*.exe
-echo [INFO]   C API 库:   %USB_BUILD%\lib\dynamic\usb_ctrl_capi.dll
+echo [INFO]   C API 库:   %USB_BUILD%\Debug\lib\dynamic\libusb_ctrl_capi.dll
 
 :skip_usb
 

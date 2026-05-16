@@ -29,9 +29,9 @@ import platform
 # ============================================================================
 def find_lib():
     """查找共享库（跨平台，自动搜索所有构建类型目录）"""
-    # 根据平台确定库文件名
+    # 根据平台确定库文件名（与 CMakeLists.txt 中 PREFIX "lib" 一致）
     if platform.system() == "Windows":
-        lib_name = "usb_ctrl_capi.dll"
+        lib_name = "libusb_ctrl_capi.dll"  # CMake 设置了 PREFIX "lib"
     elif platform.system() == "Darwin":
         lib_name = "libusb_ctrl_capi.dylib"
     else:
@@ -39,28 +39,26 @@ def find_lib():
 
     # 获取脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # 项目根目录
+    # 项目根目录（test/ -> usb_controller_fun3/ -> examples/ -> KRAY/）
     project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
     # 构建根目录
     build_root = os.path.join(project_root, "build")
 
-    # 所有可能的构建类型目录名
-    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
-    # 共享库可能的子目录
-    lib_subdirs = ["lib/dynamic", "lib/shared", "lib"]
-    # 构建目标子目录（main 或 usb）
+    # 构建类型目录名（单配置生成器如 MinGW）
+    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel", ""]
+    # 共享库子目录（与 CMakeLists.txt 中 CMAKE_LIBRARY_OUTPUT_DIRECTORY 对应）
+    lib_subdirs = ["lib/dynamic", "lib/shared", "lib", "bin", ""]
+    # 构建目标子目录（build.bat usb 输出到 build/usb/）
     target_dirs = ["usb", "main", ""]
 
-    # 候选路径列表
+    # 候选路径：脚本同目录优先
     candidates = [os.path.join(script_dir, lib_name)]
 
-    # 遍历所有组合
+    # 遍历所有组合：build/{target}/{cfg}/{lib_sub}/lib_name
     for target in target_dirs:
         for cfg in cfg_dirs:
             for lib_sub in lib_subdirs:
                 candidates.append(os.path.join(build_root, target, cfg, lib_sub, lib_name))
-        for lib_sub in lib_subdirs:
-            candidates.append(os.path.join(build_root, target, lib_sub, lib_name))
 
     # 搜索存在的路径
     for path in candidates:
@@ -77,6 +75,40 @@ if not LIB_PATH:
     print("  Linux/macOS: ./build.sh usb")
     print("  Windows:     build.bat usb")
     sys.exit(1)
+
+# Windows 下添加 DLL 搜索路径（MinGW 运行时依赖）
+if platform.system() == "Windows":
+    # 将 DLL 所在目录加入搜索路径
+    dll_dir = os.path.dirname(LIB_PATH)
+    os.add_dll_directory(dll_dir)
+
+    # 查找 MinGW 运行时目录（libgcc_s_seh-1.dll / libstdc++-6.dll / libwinpthread-1.dll）
+    def _find_mingw_bin():
+        """从 CMakeCache.txt 中读取编译器路径，推导 MinGW bin 目录"""
+        # 从 DLL 所在目录向上搜索 CMakeCache.txt
+        search_dir = dll_dir
+        for _ in range(5):
+            cache_path = os.path.join(search_dir, "CMakeCache.txt")
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, "r", encoding="utf-8", errors="ignore") as f:
+                        for line in f:
+                            if "CMAKE_CXX_COMPILER:FILEPATH=" in line:
+                                compiler = line.split("=", 1)[1].strip()
+                                if compiler.endswith("g++.exe"):
+                                    return os.path.dirname(compiler)
+                except Exception:
+                    pass
+                break
+            parent = os.path.dirname(search_dir)
+            if parent == search_dir:
+                break
+            search_dir = parent
+        return None
+
+    mingw_bin = _find_mingw_bin()
+    if mingw_bin and os.path.isdir(mingw_bin):
+        os.add_dll_directory(mingw_bin)
 
 print(f"Loading library: {LIB_PATH}")
 lib = ctypes.CDLL(LIB_PATH)
