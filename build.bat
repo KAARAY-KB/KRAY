@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM ============================================================================
 REM build.bat - KRAY 项目一键编译脚本（Windows）
 REM
@@ -21,12 +22,69 @@ REM 去掉末尾反斜杠
 set "ROOT_DIR=%ROOT_DIR:~0,-1%"
 REM 构建根目录
 set "BUILD_ROOT=%ROOT_DIR%\build"
-REM 并行数
-set "JOBS=%NUMBER_OF_PROCESSORS%"
+REM 并行构建任务数（限制避免 MinGW 内存溢出）
+set /a "JOBS=%NUMBER_OF_PROCESSORS%"
+if %JOBS% GTR 4 set "JOBS=4"
 REM 构建类型（默认 Debug）
 set "BUILD_TYPE=Debug"
 REM 是否编译示例（空值表示使用 CMakeLists.txt 默认值）
 set "EXAMPLES_FLAG="
+
+REM ============================================================================
+REM Auto-detect CMake generator and compiler
+REM Prefer Qt-bundled MinGW (complete toolchain) over standalone MinGW
+REM ============================================================================
+set "CMAKE_GENERATOR="
+set "CMAKE_COMPILER_FLAG="
+
+REM 1) Find Qt-bundled MinGW (preferred)
+set "QT_GCC="
+for %%q in ("D:\ProgramFiles\Qt" "C:\Qt" "D:\Qt") do (
+    if exist %%~q (
+        for /f "delims=" %%i in ('where /r "%%~q" g++.exe 2^>nul ^| findstr /i "mingw"') do (
+            set "QT_GCC=%%i"
+            goto :found_qt_gcc
+        )
+    )
+)
+:found_qt_gcc
+if defined QT_GCC (
+    set "CMAKE_GENERATOR=MinGW Makefiles"
+    set "CMAKE_COMPILER_FLAG=-DCMAKE_CXX_COMPILER=%QT_GCC%"
+    echo [INFO] Qt MinGW: %QT_GCC%
+    goto :generator_done
+)
+
+REM 2) Find system MinGW
+where mingw32-make >nul 2>&1
+if not errorlevel 1 (
+    set "CMAKE_GENERATOR=MinGW Makefiles"
+    echo [INFO] System MinGW
+    goto :generator_done
+)
+
+REM 3) Find NMake (MSVC)
+where nmake >nul 2>&1
+if not errorlevel 1 (
+    set "CMAKE_GENERATOR=NMake Makefiles"
+    echo [INFO] MSVC NMake
+    goto :generator_done
+)
+
+REM 4) Find make
+where make >nul 2>&1
+if not errorlevel 1 (
+    set "CMAKE_GENERATOR=MinGW Makefiles"
+    echo [INFO] System make
+    goto :generator_done
+)
+
+:generator_done
+if defined CMAKE_GENERATOR (
+    echo [INFO] CMake generator: %CMAKE_GENERATOR%
+) else (
+    echo [WARN] No Make tool found, CMake will auto-select generator
+)
 
 REM 解析参数
 set "TARGET=all"
@@ -80,7 +138,11 @@ set "MAIN_BUILD=%BUILD_DIR%\main"
 if not exist "%MAIN_BUILD%" mkdir "%MAIN_BUILD%"
 
 echo [INFO] CMake 配置...
-cmake -S "%ROOT_DIR%" -B "%MAIN_BUILD%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %EXAMPLES_FLAG%
+if defined CMAKE_GENERATOR (
+    cmake -S "%ROOT_DIR%" -B "%MAIN_BUILD%" -G "%CMAKE_GENERATOR%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %CMAKE_COMPILER_FLAG% %EXAMPLES_FLAG%
+) else (
+    cmake -S "%ROOT_DIR%" -B "%MAIN_BUILD%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %EXAMPLES_FLAG%
+)
 if errorlevel 1 (
     echo [ERROR] CMake 配置失败
     exit /b 1
@@ -114,7 +176,11 @@ set "USB_BUILD=%BUILD_DIR%\usb"
 if not exist "%USB_BUILD%" mkdir "%USB_BUILD%"
 
 echo [INFO] CMake 配置...
-cmake -S "%USB_SRC%" -B "%USB_BUILD%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+if defined CMAKE_GENERATOR (
+    cmake -S "%USB_SRC%" -B "%USB_BUILD%" -G "%CMAKE_GENERATOR%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %CMAKE_COMPILER_FLAG%
+) else (
+    cmake -S "%USB_SRC%" -B "%USB_BUILD%" -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+)
 if errorlevel 1 (
     echo [ERROR] CMake 配置失败
     exit /b 1
