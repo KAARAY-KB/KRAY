@@ -28,14 +28,32 @@ import platform
 # 查找并加载共享库
 # ============================================================================
 def find_lib():
-    """查找 libusb_ctrl_capi.so 共享库"""
+    """查找共享库（跨平台）"""
+    # 根据平台确定库文件名
+    if platform.system() == "Windows":
+        lib_name = "usb_ctrl_capi.dll"
+    elif platform.system() == "Darwin":
+        lib_name = "libusb_ctrl_capi.dylib"
+    else:
+        lib_name = "libusb_ctrl_capi.so"
+
     # 获取脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建类型目录名
+    cfg_dir = "Debug"
     # 可能的库路径
     candidates = [
-        os.path.join(script_dir, "libusb_ctrl_capi.so"),
-        os.path.join(script_dir, "..", "build", "test", "libusb_ctrl_capi.so"),
-        os.path.join(script_dir, "..", "build", "libusb_ctrl_capi.so"),
+        # 脚本同目录
+        os.path.join(script_dir, lib_name),
+        # build/usb/<Config>/lib/dynamic/ 或 lib/shared/
+        os.path.join(script_dir, "..", "..", "..", "build", "usb", cfg_dir, "lib", "dynamic", lib_name),
+        os.path.join(script_dir, "..", "..", "..", "build", "usb", cfg_dir, "lib", "shared", lib_name),
+        # build/usb/lib/dynamic/ 或 lib/shared/（无构建类型子目录）
+        os.path.join(script_dir, "..", "..", "..", "build", "usb", "lib", "dynamic", lib_name),
+        os.path.join(script_dir, "..", "..", "..", "build", "usb", "lib", "shared", lib_name),
+        # 旧路径兼容
+        os.path.join(script_dir, "..", "build", "test", lib_name),
+        os.path.join(script_dir, "..", "build", lib_name),
     ]
     for path in candidates:
         abs_path = os.path.abspath(path)
@@ -45,9 +63,11 @@ def find_lib():
 
 LIB_PATH = find_lib()
 if not LIB_PATH:
-    print("ERROR: libusb_ctrl_capi.so not found!")
+    print("ERROR: Shared library not found!")
+    print(f"  Platform: {platform.system()}")
     print("Please build the project first:")
-    print("  cd build && cmake .. && make")
+    print("  Linux/macOS: ./build.sh usb")
+    print("  Windows:     build.bat usb")
     sys.exit(1)
 
 print(f"Loading library: {LIB_PATH}")
