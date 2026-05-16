@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # ============================================================================
-# usb_test_ui.py - USB 控制器集成测试 UI
+# usb_test_ui.py - USB 控制器集成测试 UI（Flet 现代化版本）
 #
 # 功能说明：
-#   使用 tkinter 构建图形界面，通过 ctypes 调用 C API 共享库，
-#   整合所有 USB 控制器功能，提供可视化操作界面。
+#   使用 Flet (Flutter) 构建现代化 Material Design 3 风格界面，
+#   通过 ctypes 调用 C API 共享库，整合所有 USB 控制器功能。
+#
+# 特性：
+#   - Material Design 3 风格
+#   - 支持暗色/亮色主题切换
+#   - 响应式布局
+#   - 圆角卡片、阴影效果
+#   - 平滑动画过渡
 #
 # 功能模块：
 #   1. 设备枚举：列出/刷新/搜索设备
@@ -15,10 +22,10 @@
 #   6. 热插拔：监听设备插拔事件
 # ============================================================================
 
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+import flet as ft
 import ctypes
 import ctypes.util
+import datetime
 import json
 import os
 import sys
@@ -29,9 +36,9 @@ import platform
 # ============================================================================
 def find_lib():
     """查找共享库（跨平台，自动搜索所有构建类型目录）"""
-    # 根据平台确定库文件名（与 CMakeLists.txt 中 PREFIX "lib" 一致）
+    # 根据平台确定库文件名
     if platform.system() == "Windows":
-        lib_name = "libusb_ctrl_capi.dll"  # CMake 设置了 PREFIX "lib"
+        lib_name = "usb_ctrl_capi.dll"
     elif platform.system() == "Darwin":
         lib_name = "libusb_ctrl_capi.dylib"
     else:
@@ -39,26 +46,28 @@ def find_lib():
 
     # 获取脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # 项目根目录（test/ -> usb_controller_fun3/ -> examples/ -> KRAY/）
+    # 项目根目录
     project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
     # 构建根目录
     build_root = os.path.join(project_root, "build")
 
-    # 构建类型目录名（单配置生成器如 MinGW）
-    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel", ""]
-    # 共享库子目录（与 CMakeLists.txt 中 CMAKE_LIBRARY_OUTPUT_DIRECTORY 对应）
-    lib_subdirs = ["lib/dynamic", "lib/shared", "lib", "bin", ""]
-    # 构建目标子目录（build.bat usb 输出到 build/usb/）
+    # 所有可能的构建类型目录名
+    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
+    # 共享库可能的子目录
+    lib_subdirs = ["lib/dynamic", "lib/shared", "lib"]
+    # 构建目标子目录（main 或 usb）
     target_dirs = ["usb", "main", ""]
 
-    # 候选路径：脚本同目录优先
+    # 候选路径列表
     candidates = [os.path.join(script_dir, lib_name)]
 
-    # 遍历所有组合：build/{target}/{cfg}/{lib_sub}/lib_name
+    # 遍历所有组合
     for target in target_dirs:
         for cfg in cfg_dirs:
             for lib_sub in lib_subdirs:
                 candidates.append(os.path.join(build_root, target, cfg, lib_sub, lib_name))
+        for lib_sub in lib_subdirs:
+            candidates.append(os.path.join(build_root, target, lib_sub, lib_name))
 
     # 搜索存在的路径
     for path in candidates:
@@ -66,6 +75,7 @@ def find_lib():
         if os.path.exists(abs_path):
             return abs_path
     return None
+
 
 LIB_PATH = find_lib()
 if not LIB_PATH:
@@ -286,383 +296,527 @@ def format_result(result):
 
 
 # ============================================================================
-# 主窗口类
+# 主应用类
 # ============================================================================
-class UsbTestApp:
+class UsbTestApp(ft.Column):
     """USB 控制器集成测试 UI"""
 
-    def __init__(self, root):
-        self.root = root
-        self.root.title("USB Controller - Integrated Test UI")
-
-        # 获取屏幕大小
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-
-        w = 1600
-        h = 800
-        # 初始窗口大小，居中显示
-        self.root.geometry(f"{w}x{h}+{screen_width//2-w//2}+{screen_height//2-h//2}")
-        # 最小窗口大小
-        self.root.minsize(w, h) 
-
+    def __init__(self):
+        super().__init__(expand=True)
+        
         # 创建控制器
         self.handle = lib.usb_ctrl_create()
         if not self.handle:
-            messagebox.showerror("Error", "Failed to create USB controller")
-            sys.exit(1)
+            raise RuntimeError("Failed to create USB controller")
 
         # 异步轮询状态
         self.async_running = False
         self.hotplug_running = False
-
+        self.async_count = 0
+        
+        # 主题模式
+        self.theme_mode = ft.ThemeMode.LIGHT
+        
         # 构建 UI
         self._build_ui()
 
-        # 初始刷新
-        self._refresh_devices()
-
-        # 关闭窗口时清理
-        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-
-    def _on_close(self):
-        """窗口关闭时清理资源"""
-        self._stop_async()
-        self._stop_hotplug()
-        if self.handle:
-            lib.usb_ctrl_destroy(self.handle)
-            self.handle = None
-        self.root.destroy()
-
-    # ========================================================================
-    # UI 构建
-    # ========================================================================
     def _build_ui(self):
         """构建主界面"""
-        # 顶部工具栏
-        toolbar = ttk.Frame(self.root)
-        toolbar.pack(fill=tk.X, padx=5, pady=3)
+        # 预创建状态栏文本控件（不能在容器内赋值）
+        self.device_count_text = ft.Text("0", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE)
+        self.hid_status_text = ft.Text("Closed", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.RED)
 
-        ttk.Button(toolbar, text="Refresh", command=self._refresh_devices).pack(side=tk.LEFT, padx=2)
-        ttk.Label(toolbar, text="  Device Count:").pack(side=tk.LEFT)
-        self.lbl_count = ttk.Label(toolbar, text="0")
-        self.lbl_count.pack(side=tk.LEFT)
-        ttk.Label(toolbar, text="  HID:").pack(side=tk.LEFT)
-        self.lbl_hid = ttk.Label(toolbar, text="Closed", foreground="red")
-        self.lbl_hid.pack(side=tk.LEFT)
+        # 顶部应用栏
+        self.appbar = ft.AppBar(
+            title=ft.Text("USB Controller Test", size=20, weight=ft.FontWeight.BOLD),
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH,
+            actions=[
+                ft.IconButton(
+                    icon=ft.Icons.DARK_MODE if self.theme_mode == ft.ThemeMode.LIGHT else ft.Icons.LIGHT_MODE,
+                    tooltip="Toggle Theme",
+                    on_click=self._toggle_theme,
+                ),
+                ft.PopupMenuButton(
+                    items=[
+                        ft.PopupMenuItem(content="About", on_click=lambda _: self._show_snack("USB Controller Test v1.0")),
+                    ],
+                ),
+            ],
+        )
 
-        # 主区域：左侧控制面板 + 右侧输出
-        main = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        main.pack(fill=tk.BOTH, expand=True, padx=5, pady=3)
+        # 状态栏
+        self.status_bar = ft.Container(
+            content=ft.Row([
+                ft.Icon(ft.Icons.USB, color=ft.Colors.BLUE),
+                ft.Text("Devices:", size=12),
+                self.device_count_text,
+                ft.Container(width=20),
+                ft.Icon(ft.Icons.LOCK_OUTLINE, color=ft.Colors.RED),
+                ft.Text("HID:", size=12),
+                self.hid_status_text,
+            ], spacing=5),
+            padding=ft.Padding(15, 8, 15, 8),
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOWEST,
+            border_radius=10,
+        )
 
-        # 左侧：功能面板（使用 Notebook 分页）
-        left = ttk.Frame(main, width=320)
-        main.add(left, weight=0)
+        # 输出日志区域（expand=True 自适应窗口大小）
+        self.output_field = ft.TextField(
+            multiline=True,
+            min_lines=5,
+            read_only=True,
+            value="",
+            text_size=11,
+            text_style=ft.TextStyle(font_family="Consolas"),
+            hint_text="Output will appear here...",
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            focused_border_color=ft.Colors.PRIMARY,
+            content_padding=12,
+            expand=True,
+        )
 
-        self.notebook = ttk.Notebook(left)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        # 左侧导航栏（Tab 切换）
+        self.navigation_rail = ft.NavigationRail(
+            selected_index=0,
+            label_type=ft.NavigationRailLabelType.ALL,
+            min_width=100,
+            min_extended_width=150,
+            destinations=[
+                ft.NavigationRailDestination(icon=ft.Icons.USB, label="Device", selected_icon=ft.Icons.USB),
+                ft.NavigationRailDestination(icon=ft.Icons.LOCK_OUTLINE, label="HID", selected_icon=ft.Icons.LOCK_OPEN),
+                ft.NavigationRailDestination(icon=ft.Icons.SYNC_ALT, label="I/O", selected_icon=ft.Icons.SYNC_ALT),
+                ft.NavigationRailDestination(icon=ft.Icons.TIMELAPSE, label="Async", selected_icon=ft.Icons.TIMELAPSE),
+                ft.NavigationRailDestination(icon=ft.Icons.CABLE, label="Hotplug", selected_icon=ft.Icons.CABLE),
+            ],
+            on_change=self._on_tab_change,
+        )
 
-        self._build_device_tab()
-        self._build_hid_tab()
-        self._build_io_tab()
-        self._build_async_tab()
-        self._build_hotplug_tab()
+        # 内容区域容器
+        self.content_area = ft.Container(
+            content=self._build_device_tab(),
+            expand=True,
+        )
 
-        # 右侧：输出区域
-        right = ttk.Frame(main)
-        main.add(right, weight=1)
+        # 主布局
+        self.controls = [
+            self.appbar,
+            ft.Divider(height=1),
+            self.status_bar,
+            ft.Divider(height=1),
+            ft.Row(
+                [
+                    self.navigation_rail,
+                    ft.VerticalDivider(width=1),
+                    ft.Column(
+                        [
+                            ft.Card(
+                                content=ft.Container(
+                                    content=self.content_area,
+                                    padding=16,
+                                ),
+                                elevation=1,
+                                expand=3,
+                            ),
+                            ft.Divider(height=1),
+                            ft.Card(
+                                content=ft.Container(
+                                    content=self.output_field,
+                                    padding=8,
+                                ),
+                                elevation=1,
+                                expand=2,
+                            ),
+                        ],
+                        expand=True,
+                    ),
+                ],
+                expand=True,
+            ),
+        ]
 
-        ttk.Label(right, text="Output:").pack(anchor=tk.W)
-        self.output = scrolledtext.ScrolledText(right, wrap=tk.WORD, font=("Monospace", 9))
-        self.output.pack(fill=tk.BOTH, expand=True)
-        self.output.config(state=tk.DISABLED)
+    # ---- Tab 切换 ----
+    def _on_tab_change(self, e):
+        """处理 Tab 切换事件"""
+        index = e.control.selected_index
+        tabs = [
+            self._build_device_tab(),
+            self._build_hid_tab(),
+            self._build_io_tab(),
+            self._build_async_tab(),
+            self._build_hotplug_tab(),
+        ]
+        self.content_area.content = tabs[index]
+        self.update()
+
+    # ---- 主题切换 ----
+    def _toggle_theme(self, e):
+        """切换暗色/亮色主题"""
+        self.theme_mode = ft.ThemeMode.DARK if self.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
+        self.page.theme_mode = self.theme_mode
+        self.appbar.actions[0].icon = ft.Icons.DARK_MODE if self.theme_mode == ft.ThemeMode.LIGHT else ft.Icons.LIGHT_MODE
+        self.page.update()
 
     # ---- 设备枚举页 ----
     def _build_device_tab(self):
-        """设备枚举页"""
-        frame = ttk.Frame(self.notebook, padding=5)
-        self.notebook.add(frame, text="Device")
+        """构建设备枚举页"""
+        # 设备索引输入框
+        self.dev_idx_field = ft.TextField(label="Device Index", width=120, value="0")
+        # VID/PID 输入框
+        self.vid_field = ft.TextField(label="VID", width=80, value="0x")
+        self.pid_field = ft.TextField(label="PID", width=80, value="0x")
 
-        ttk.Button(frame, text="List All Devices", command=self._list_devices).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="List Devices Detail", command=self._list_detail).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="Device Tree", command=self._list_tree).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="List HID Devices", command=self._list_hid).pack(fill=tk.X, pady=2)
+        return ft.Column([
+            # 刷新按钮行
+            ft.Row([
+                ft.Button(
+                    "Refresh",
+                    icon=ft.Icons.REFRESH,
+                    style=ft.ButtonStyle(bgcolor=ft.Colors.PRIMARY_CONTAINER),
+                    on_click=self._refresh_devices,
+                ),
+                ft.Button(
+                    "List All",
+                    icon=ft.Icons.LIST,
+                    style=ft.ButtonStyle(bgcolor=ft.Colors.SECONDARY_CONTAINER),
+                    on_click=self._list_devices,
+                ),
+            ], spacing=10),
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+            ft.Divider(),
 
-        ttk.Label(frame, text="Device Index:").pack(anchor=tk.W)
-        self.ent_dev_idx = ttk.Entry(frame, width=10)
-        self.ent_dev_idx.insert(0, "0")
-        self.ent_dev_idx.pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="Device Detail", command=self._device_detail).pack(fill=tk.X, pady=2)
+            # 设备操作按钮组
+            ft.Text("Device Operations", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([
+                ft.OutlinedButton("List Detail", icon=ft.Icons.INFO_OUTLINE, on_click=self._list_detail),
+                ft.OutlinedButton("Device Tree", icon=ft.Icons.ACCOUNT_TREE_OUTLINED, on_click=self._list_tree),
+                ft.OutlinedButton("List HID", icon=ft.Icons.USB, on_click=self._list_hid),
+            ], wrap=True, spacing=8),
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+            ft.Divider(),
 
-        ttk.Label(frame, text="Find by VID:PID").pack(anchor=tk.W)
-        row = ttk.Frame(frame)
-        row.pack(fill=tk.X, pady=2)
-        ttk.Label(row, text="VID:").pack(side=tk.LEFT)
-        self.ent_vid = ttk.Entry(row, width=6)
-        self.ent_vid.insert(0, "0x")
-        self.ent_vid.pack(side=tk.LEFT, padx=2)
-        ttk.Label(row, text="PID:").pack(side=tk.LEFT)
-        self.ent_pid = ttk.Entry(row, width=6)
-        self.ent_pid.insert(0, "0x")
-        self.ent_pid.pack(side=tk.LEFT, padx=2)
+            # 单设备查询
+            ft.Text("Query Single Device", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([self.dev_idx_field], spacing=10),
+            ft.FilledButton("Get Device Detail", icon=ft.Icons.SEARCH, on_click=self._device_detail),
+
+            ft.Divider(),
+
+            # VID/PID 查找
+            ft.Text("Find by VID:PID", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([self.vid_field, self.pid_field], spacing=10),
+        ], spacing=8)
 
     # ---- HID 设备页 ----
     def _build_hid_tab(self):
-        """HID 设备页"""
-        frame = ttk.Frame(self.notebook, padding=5)
-        self.notebook.add(frame, text="HID")
+        """构建 HID 设备页"""
+        # 打开索引输入框
+        self.hid_idx_field = ft.TextField(label="Index", width=100, value="0")
+        # VID/PID 输入框
+        self.hid_vid_field = ft.TextField(label="VID", width=80, value="0x")
+        self.hid_pid_field = ft.TextField(label="PID", width=80, value="0x")
 
-        ttk.Label(frame, text="Open by Index:").pack(anchor=tk.W)
-        row1 = ttk.Frame(frame)
-        row1.pack(fill=tk.X, pady=2)
-        self.ent_hid_idx = ttk.Entry(row1, width=10)
-        self.ent_hid_idx.insert(0, "0")
-        self.ent_hid_idx.pack(side=tk.LEFT, padx=2)
-        ttk.Button(row1, text="Open", command=self._open_hid_idx).pack(side=tk.LEFT, padx=2)
+        return ft.Column([
+            ft.Text("Open by Index", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([self.hid_idx_field, ft.FilledButton("Open", icon=ft.Icons.DOOR_FRONT_DOOR, on_click=self._open_hid_idx)], spacing=10),
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+            ft.Divider(),
 
-        ttk.Label(frame, text="Open by VID:PID:").pack(anchor=tk.W)
-        row2 = ttk.Frame(frame)
-        row2.pack(fill=tk.X, pady=2)
-        ttk.Label(row2, text="VID:").pack(side=tk.LEFT)
-        self.ent_hid_vid = ttk.Entry(row2, width=6)
-        self.ent_hid_vid.insert(0, "0x")
-        self.ent_hid_vid.pack(side=tk.LEFT, padx=2)
-        ttk.Label(row2, text="PID:").pack(side=tk.LEFT)
-        self.ent_hid_pid = ttk.Entry(row2, width=6)
-        self.ent_hid_pid.insert(0, "0x")
-        self.ent_hid_pid.pack(side=tk.LEFT, padx=2)
-        ttk.Button(row2, text="Open", command=self._open_hid_vid_pid).pack(side=tk.LEFT, padx=2)
+            ft.Text("Open by VID:PID", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([self.hid_vid_field, self.hid_pid_field, ft.FilledButton("Open", icon=ft.Icons.DOOR_FRONT_DOOR, on_click=self._open_hid_vid_pid)], spacing=10),
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+            ft.Divider(),
 
-        ttk.Button(frame, text="HID Info", command=self._hid_info).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="Close HID", command=self._close_hid).pack(fill=tk.X, pady=2)
+            ft.Text("HID Control", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Row([
+                ft.OutlinedButton("HID Info", icon=ft.Icons.INFO_OUTLINE, on_click=self._hid_info),
+                ft.OutlinedButton("Close HID", icon=ft.Icons.DOOR_BACK_DOOR, on_click=self._close_hid, style=ft.ButtonStyle(color=ft.Colors.ERROR)),
+            ], wrap=True, spacing=8),
+        ], spacing=8)
 
     # ---- HID I/O 页 ----
     def _build_io_tab(self):
-        """HID I/O 页"""
-        frame = ttk.Frame(self.notebook, padding=5)
-        self.notebook.add(frame, text="I/O")
-
-        # 读取
-        ttk.Label(frame, text="Read Length:").pack(anchor=tk.W)
-        self.ent_read_len = ttk.Entry(frame, width=10)
-        self.ent_read_len.insert(0, "64")
-        self.ent_read_len.pack(fill=tk.X, pady=2)
-
-        ttk.Label(frame, text="Timeout (ms):").pack(anchor=tk.W)
-        self.ent_read_timeout = ttk.Entry(frame, width=10)
-        self.ent_read_timeout.insert(0, "1000")
-        self.ent_read_timeout.pack(fill=tk.X, pady=2)
-
-        ttk.Button(frame, text="HID Read", command=self._hid_read).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="HID Read Latest", command=self._hid_read_latest).pack(fill=tk.X, pady=2)
-
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
-        # 写入
-        ttk.Label(frame, text="Write Data (hex):").pack(anchor=tk.W)
-        self.ent_write_data = ttk.Entry(frame)
-        self.ent_write_data.insert(0, "00010203")
-        self.ent_write_data.pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="HID Write", command=self._hid_write).pack(fill=tk.X, pady=2)
-
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
+        """构建 HID I/O 页"""
+        # 读取参数
+        self.read_len_field = ft.TextField(label="Read Length", width=100, value="64")
+        self.read_timeout_field = ft.TextField(label="Timeout (ms)", width=100, value="1000")
+        # 写入数据
+        self.write_data_field = ft.TextField(label="Write Data (hex)", value="00010203")
         # 特性报告
-        ttk.Label(frame, text="Feature Report ID (hex):").pack(anchor=tk.W)
-        self.ent_report_id = ttk.Entry(frame, width=6)
-        self.ent_report_id.insert(0, "0")
-        self.ent_report_id.pack(fill=tk.X, pady=2)
-
-        ttk.Button(frame, text="Get Feature", command=self._hid_get_feature).pack(fill=tk.X, pady=2)
-
-        ttk.Label(frame, text="Send Feature Data (hex):").pack(anchor=tk.W)
-        self.ent_feature_data = ttk.Entry(frame)
-        self.ent_feature_data.insert(0, "000102")
-        self.ent_feature_data.pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="Send Feature", command=self._hid_send_feature).pack(fill=tk.X, pady=2)
-
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
+        self.report_id_field = ft.TextField(label="Report ID", width=60, value="0")
+        self.feature_data_field = ft.TextField(label="Feature Data (hex)", value="000102")
         # 批量传输
-        ttk.Label(frame, text="Bulk Endpoint (hex):").pack(anchor=tk.W)
-        self.ent_bulk_ep = ttk.Entry(frame, width=6)
-        self.ent_bulk_ep.insert(0, "0x81")
-        self.ent_bulk_ep.pack(fill=tk.X, pady=2)
+        self.bulk_ep_field = ft.TextField(label="Endpoint (hex)", width=80, value="0x81")
 
-        ttk.Button(frame, text="Bulk Read", command=self._bulk_read).pack(fill=tk.X, pady=2)
-        ttk.Button(frame, text="Bulk Write", command=self._bulk_write).pack(fill=tk.X, pady=2)
+        return ft.Column([
+            # 读取区域卡片
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.DOWNLOAD, color=ft.Colors.BLUE), ft.Text("Read Operations", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([self.read_len_field, self.read_timeout_field], spacing=10),
+                        ft.Row([
+                            ft.FilledButton("HID Read", icon=ft.Icons.DOWNLOAD, on_click=self._hid_read),
+                            ft.FilledButton("Read Latest", icon=ft.Icons.UPDATE, on_click=self._hid_read_latest),
+                        ], wrap=True, spacing=8),
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+
+            # 写入区域卡片
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.UPLOAD, color=ft.Colors.GREEN), ft.Text("Write Operation", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        self.write_data_field,
+                        ft.FilledButton("HID Write", icon=ft.Icons.UPLOAD, on_click=self._hid_write),
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+
+            # 特性报告卡片
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.SETTINGS, color=ft.Colors.ORANGE), ft.Text("Feature Report", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([self.report_id_field], spacing=10),
+                        ft.Row([
+                            ft.FilledButton("Get Feature", icon=ft.Icons.DOWNLOAD, on_click=self._hid_get_feature),
+                        ]),
+                        self.feature_data_field,
+                        ft.FilledButton("Send Feature", icon=ft.Icons.UPLOAD, on_click=self._hid_send_feature),
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+
+            # 批量传输卡片
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.STORAGE, color=ft.Colors.PURPLE), ft.Text("Bulk Transfer", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([self.bulk_ep_field], spacing=10),
+                        ft.Row([
+                            ft.FilledButton("Bulk Read", icon=ft.Icons.DOWNLOAD, on_click=self._bulk_read),
+                            ft.FilledButton("Bulk Write", icon=ft.Icons.UPLOAD, on_click=self._bulk_write),
+                        ], wrap=True, spacing=8),
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+        ], spacing=12, scroll=ft.ScrollMode.AUTO)
 
     # ---- 异步传输页 ----
     def _build_async_tab(self):
-        """异步传输页"""
-        frame = ttk.Frame(self.notebook, padding=5)
-        self.notebook.add(frame, text="Async")
+        """构建异步传输页"""
+        # 异步参数
+        self.async_len_field = ft.TextField(label="Read Length", width=100, value="64")
+        self.async_timeout_field = ft.TextField(label="Timeout (ms)", width=100, value="2000")
 
-        ttk.Label(frame, text="Read Length:").pack(anchor=tk.W)
-        self.ent_async_len = ttk.Entry(frame, width=10)
-        self.ent_async_len.insert(0, "64")
-        self.ent_async_len.pack(fill=tk.X, pady=2)
+        # 状态显示
+        self.async_status_text = ft.Text("Status: Idle", size=12, color=ft.Colors.GREY)
+        self.async_count_text = ft.Text("Reads: 0", size=12)
+        self.async_pending_text = ft.Text("Pending: 0", size=12)
 
-        ttk.Label(frame, text="Timeout (ms):").pack(anchor=tk.W)
-        self.ent_async_timeout = ttk.Entry(frame, width=10)
-        self.ent_async_timeout.insert(0, "2000")
-        self.ent_async_timeout.pack(fill=tk.X, pady=2)
+        # 按钮
+        self.btn_async_start = ft.FilledButton(
+            "Start Continuous Read",
+            icon=ft.Icons.PLAY_ARROW,
+            style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN),
+            on_click=self._start_async,
+        )
+        self.btn_async_stop = ft.OutlinedButton(
+            "Stop",
+            icon=ft.Icons.STOP,
+            style=ft.ButtonStyle(color=ft.Colors.ERROR),
+            on_click=self._stop_async,
+            disabled=True,
+        )
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
-        self.btn_async_start = ttk.Button(frame, text="Start Continuous Read", command=self._start_async)
-        self.btn_async_start.pack(fill=tk.X, pady=2)
-
-        self.btn_async_stop = ttk.Button(frame, text="Stop Continuous Read", command=self._stop_async, state=tk.DISABLED)
-        self.btn_async_stop.pack(fill=tk.X, pady=2)
-
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
-        self.lbl_async_status = ttk.Label(frame, text="Status: Idle")
-        self.lbl_async_status.pack(anchor=tk.W)
-        self.lbl_async_count = ttk.Label(frame, text="Reads: 0")
-        self.lbl_async_count.pack(anchor=tk.W)
-        self.lbl_async_pending = ttk.Label(frame, text="Pending: 0")
-        self.lbl_async_pending.pack(anchor=tk.W)
+        return ft.Column([
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.TIMELAPSE, color=ft.Colors.CYAN), ft.Text("Async Settings", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([self.async_len_field, self.async_timeout_field], spacing=10),
+                        ft.Row([self.btn_async_start, self.btn_async_stop], spacing=10),
+                        ft.Divider(),
+                        ft.Row([self.async_status_text, ft.Container(width=20), self.async_count_text, ft.Container(width=20), self.async_pending_text], alignment=ft.MainAxisAlignment.START, spacing=10),
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+        ], spacing=8)
 
     # ---- 热插拔页 ----
     def _build_hotplug_tab(self):
-        """热插拔页"""
-        frame = ttk.Frame(self.notebook, padding=5)
-        self.notebook.add(frame, text="Hotplug")
+        """构建热插拔页"""
+        supported = bool(lib.usb_ctrl_is_hotplug_supported())
+        
+        # 支持状态标签
+        support_color = ft.Colors.GREEN if supported else ft.Colors.RED
+        support_text = "Supported" if supported else "Not Supported"
 
-        supported = lib.usb_ctrl_is_hotplug_supported()
-        self.lbl_hotplug_support = ttk.Label(
-            frame,
-            text=f"Supported: {'Yes' if supported else 'No'}",
-            foreground="green" if supported else "red"
+        # 热插拔事件日志
+        self.hotplug_log = ft.TextField(
+            multiline=True,
+            min_lines=6,
+            max_lines=10,
+            read_only=True,
+            value="",
+            text_size=11,
+            text_style=ft.TextStyle(font_family="Consolas"),
+            hint_text="Hotplug events...",
         )
-        self.lbl_hotplug_support.pack(anchor=tk.W, pady=5)
 
-        self.btn_hotplug_start = ttk.Button(frame, text="Start Monitoring", command=self._start_hotplug)
-        self.btn_hotplug_start.pack(fill=tk.X, pady=2)
+        # 按钮
+        self.btn_hotplug_start = ft.FilledButton(
+            "Start Monitoring",
+            icon=ft.Icons.RADAR,
+            on_click=self._start_hotplug,
+        )
+        self.btn_hotplug_stop = ft.OutlinedButton(
+            "Stop Monitoring",
+            icon=ft.Icons.STOP,
+            on_click=self._stop_hotplug,
+            disabled=True,
+        )
 
-        self.btn_hotplug_stop = ttk.Button(frame, text="Stop Monitoring", command=self._stop_hotplug, state=tk.DISABLED)
-        self.btn_hotplug_stop.pack(fill=tk.X, pady=2)
+        # 状态文本
+        self.hotplug_status_text = ft.Text("Status: Idle", size=12, color=ft.Colors.GREY)
 
-        self.lbl_hotplug_status = ttk.Label(frame, text="Status: Idle")
-        self.lbl_hotplug_status.pack(anchor=tk.W, pady=5)
-
-        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
-
-        ttk.Label(frame, text="Hotplug Events:").pack(anchor=tk.W)
-        self.hotplug_log = scrolledtext.ScrolledText(frame, height=8, font=("Monospace", 9))
-        self.hotplug_log.pack(fill=tk.BOTH, expand=True, pady=2)
+        return ft.Column([
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Row([ft.Icon(ft.Icons.CABLE, color=support_color), ft.Text(support_text, size=13, weight=ft.FontWeight.W_600, color=support_color)], spacing=8),
+                        ft.Divider(),
+                        ft.Row([self.btn_hotplug_start, self.btn_hotplug_stop], spacing=10),
+                        self.hotplug_status_text,
+                    ], spacing=8),
+                    padding=12,
+                ),
+                elevation=0,
+            ),
+            ft.Divider(),
+            ft.Text("Event Log:", size=13, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            self.hotplug_log,
+        ], spacing=8)
 
     # ========================================================================
     # 输出辅助
     # ========================================================================
     def _log(self, text):
         """向输出区域追加文本"""
-        self.output.config(state=tk.NORMAL)
-        self.output.insert(tk.END, text + "\n")
-        self.output.see(tk.END)
-        self.output.config(state=tk.DISABLED)
+        current = self.output_field.value or ""
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        new_value = current + f"[{timestamp}] {text}\n"
+        self.output_field.value = new_value[-50000:]  # 限制最大长度，避免内存问题
+        self.update()
+
+    def _show_snack(self, msg):
+        """显示 SnackBar 提示"""
+        snack = ft.SnackBar(content=ft.Text(msg), duration=2000)
+        self.page.overlay.append(snack)
+        snack.open = True
+        self.page.update()
 
     def _update_status(self):
         """更新状态标签"""
         count = lib.usb_ctrl_device_count(self.handle)
-        self.lbl_count.config(text=str(count))
-        is_open = lib.usb_ctrl_is_hid_open(self.handle)
-        self.lbl_hid.config(
-            text="Opened" if is_open else "Closed",
-            foreground="green" if is_open else "red"
-        )
+        self.device_count_text.value = str(count)
+        is_open = bool(lib.usb_ctrl_is_hid_open(self.handle))
+        self.hid_status_text.value = "Opened" if is_open else "Closed"
+        self.hid_status_text.color = ft.Colors.GREEN if is_open else ft.Colors.RED
+        self.update()
 
     # ========================================================================
     # 设备枚举操作
     # ========================================================================
-    def _refresh_devices(self):
+    def _refresh_devices(self, e):
         """刷新设备列表"""
         lib.usb_ctrl_refresh(self.handle)
         self._update_status()
         self._log("Devices refreshed")
 
-    def _list_devices(self):
+    def _list_devices(self, e):
         """列出所有设备"""
         s = call_str(lib.usb_ctrl_list_devices, self.handle)
-        self._log(s if s else "(empty)")
+        self._log(s if s else "No devices found")
 
-    def _list_detail(self):
-        """列出设备详情"""
+    def _list_detail(self, e):
+        """列出设备详细信息"""
         s = call_str(lib.usb_ctrl_list_devices_detail, self.handle)
-        self._log(s if s else "(empty)")
+        self._log(s if s else "No devices found")
 
-    def _list_tree(self):
+    def _list_tree(self, e):
         """列出设备树"""
         s = call_str(lib.usb_ctrl_list_devices_tree, self.handle)
-        self._log(s if s else "(empty)")
+        self._log(s if s else "No devices found")
 
-    def _list_hid(self):
+    def _list_hid(self, e):
         """列出 HID 设备"""
         s = call_str(lib.usb_ctrl_list_hid_devices, self.handle)
-        self._log(s if s else "(no HID devices)")
+        self._log(s if s else "No HID devices found")
 
-    def _device_detail(self):
-        """获取设备详情"""
+    def _device_detail(self, e):
+        """获取单个设备详情"""
         try:
-            idx = int(self.ent_dev_idx.get())
+            idx = int(self.dev_idx_field.value)
         except ValueError:
-            self._log("ERROR: Invalid index")
+            self._log("ERROR: Invalid device index")
             return
         s = call_str(lib.usb_ctrl_device_detail, self.handle, idx)
-        self._log(s if s else "(not found)")
+        self._log(s if s else f"No device at index {idx}")
 
     # ========================================================================
     # HID 设备操作
     # ========================================================================
-    def _open_hid_idx(self):
-        """按索引打开 HID"""
+    def _open_hid_idx(self, e):
+        """按索引打开 HID 设备"""
         try:
-            idx = int(self.ent_hid_idx.get())
+            idx = int(self.hid_idx_field.value)
         except ValueError:
             self._log("ERROR: Invalid index")
             return
         ok = lib.usb_ctrl_open_hid(self.handle, idx)
         if ok:
             info = call_str(lib.usb_ctrl_hid_info, self.handle)
-            self._log(f"HID opened: {info}")
+            self._log(f"HID opened: {info}" if info else "HID opened")
         else:
             self._log("Failed to open HID device")
         self._update_status()
 
-    def _open_hid_vid_pid(self):
-        """按 VID:PID 打开 HID"""
+    def _open_hid_vid_pid(self, e):
+        """按 VID:PID 打开 HID 设备"""
         try:
-            vid = int(self.ent_hid_vid.get(), 16)
-            pid = int(self.ent_hid_pid.get(), 16)
+            vid = int(self.hid_vid_field.value, 16)
+            pid = int(self.hid_pid_field.value, 16)
         except ValueError:
             self._log("ERROR: Invalid VID/PID")
             return
         ok = lib.usb_ctrl_open_hid_vid_pid(self.handle, vid, pid)
         if ok:
             info = call_str(lib.usb_ctrl_hid_info, self.handle)
-            self._log(f"HID opened: {info}")
+            self._log(f"HID opened: {info}" if info else "HID opened")
         else:
             self._log("Failed to open HID device by VID:PID")
         self._update_status()
 
-    def _close_hid(self):
+    def _close_hid(self, e):
         """关闭 HID 设备"""
-        self._stop_async()
+        self._stop_async(None)
         lib.usb_ctrl_close_hid(self.handle)
         self._log("HID device closed")
         self._update_status()
 
-    def _hid_info(self):
+    def _hid_info(self, e):
         """获取 HID 信息"""
         info = call_str(lib.usb_ctrl_hid_info, self.handle)
         self._log(f"HID Info: {info}" if info else "No HID device opened")
@@ -670,30 +824,30 @@ class UsbTestApp:
     # ========================================================================
     # HID I/O 操作
     # ========================================================================
-    def _hid_read(self):
+    def _hid_read(self, e):
         """同步 HID 读取"""
         try:
-            length = int(self.ent_read_len.get())
-            timeout = int(self.ent_read_timeout.get())
+            length = int(self.read_len_field.value)
+            timeout = int(self.read_timeout_field.value)
         except ValueError:
             self._log("ERROR: Invalid length/timeout")
             return
         result = call_json(lib.usb_ctrl_hid_read, self.handle, length, timeout)
-        self._log(f"HID Read: {format_result(result)}")
+        self._log(f"HID Read:\n{format_result(result)}")
 
-    def _hid_read_latest(self):
+    def _hid_read_latest(self, e):
         """读取最新 HID 报告"""
         try:
-            length = int(self.ent_read_len.get())
+            length = int(self.read_len_field.value)
         except ValueError:
             self._log("ERROR: Invalid length")
             return
         result = call_json(lib.usb_ctrl_hid_read_latest, self.handle, length, 10)
-        self._log(f"HID ReadLatest: {format_result(result)}")
+        self._log(f"HID ReadLatest:\n{format_result(result)}")
 
-    def _hid_write(self):
+    def _hid_write(self, e):
         """同步 HID 写入"""
-        hex_str = self.ent_write_data.get().strip()
+        hex_str = self.write_data_field.value.strip()
         if not hex_str:
             self._log("ERROR: No data")
             return
@@ -703,26 +857,26 @@ class UsbTestApp:
             self._log("ERROR: Invalid hex data")
             return
         try:
-            timeout = int(self.ent_read_timeout.get())
+            timeout = int(self.read_timeout_field.value)
         except ValueError:
             timeout = 1000
         result = call_json(lib.usb_ctrl_hid_write, self.handle, arr, length, timeout)
-        self._log(f"HID Write: {format_result(result)}")
+        self._log(f"HID Write:\n{format_result(result)}")
 
-    def _hid_get_feature(self):
+    def _hid_get_feature(self, e):
         """获取特性报告"""
         try:
-            report_id = int(self.ent_report_id.get(), 16)
-            length = int(self.ent_read_len.get())
+            report_id = int(self.report_id_field.value, 16)
+            length = int(self.read_len_field.value)
         except ValueError:
             self._log("ERROR: Invalid report_id/length")
             return
         result = call_json(lib.usb_ctrl_hid_get_feature, self.handle, report_id, length, 1000)
-        self._log(f"GetFeature: {format_result(result)}")
+        self._log(f"GetFeature:\n{format_result(result)}")
 
-    def _hid_send_feature(self):
+    def _hid_send_feature(self, e):
         """发送特性报告"""
-        hex_str = self.ent_feature_data.get().strip()
+        hex_str = self.feature_data_field.value.strip()
         if not hex_str:
             self._log("ERROR: No data")
             return
@@ -732,30 +886,30 @@ class UsbTestApp:
             self._log("ERROR: Invalid hex data")
             return
         result = call_json(lib.usb_ctrl_hid_send_feature, self.handle, arr, length, 1000)
-        self._log(f"SendFeature: {format_result(result)}")
+        self._log(f"SendFeature:\n{format_result(result)}")
 
     # ========================================================================
     # 批量传输
     # ========================================================================
-    def _bulk_read(self):
+    def _bulk_read(self, e):
         """批量读取"""
         try:
-            ep = int(self.ent_bulk_ep.get(), 16)
-            length = int(self.ent_read_len.get())
+            ep = int(self.bulk_ep_field.value, 16)
+            length = int(self.read_len_field.value)
         except ValueError:
             self._log("ERROR: Invalid endpoint/length")
             return
         result = call_json(lib.usb_ctrl_bulk_read, self.handle, ep, length, 2000)
-        self._log(f"BulkRead: {format_result(result)}")
+        self._log(f"BulkRead:\n{format_result(result)}")
 
-    def _bulk_write(self):
+    def _bulk_write(self, e):
         """批量写入"""
         try:
-            ep = int(self.ent_bulk_ep.get(), 16)
+            ep = int(self.bulk_ep_field.value, 16)
         except ValueError:
             self._log("ERROR: Invalid endpoint")
             return
-        hex_str = self.ent_write_data.get().strip()
+        hex_str = self.write_data_field.value.strip()
         if not hex_str:
             self._log("ERROR: No data")
             return
@@ -765,19 +919,19 @@ class UsbTestApp:
             self._log("ERROR: Invalid hex data")
             return
         result = call_json(lib.usb_ctrl_bulk_write, self.handle, ep, arr, length, 2000)
-        self._log(f"BulkWrite: {format_result(result)}")
+        self._log(f"BulkWrite:\n{format_result(result)}")
 
     # ========================================================================
     # 异步传输
     # ========================================================================
-    def _start_async(self):
+    def _start_async(self, e):
         """启动连续异步读取"""
         if not lib.usb_ctrl_is_hid_open(self.handle):
             self._log("ERROR: No HID device opened")
             return
         try:
-            length = int(self.ent_async_len.get())
-            timeout = int(self.ent_async_timeout.get())
+            length = int(self.async_len_field.value)
+            timeout = int(self.async_timeout_field.value)
         except ValueError:
             self._log("ERROR: Invalid length/timeout")
             return
@@ -787,13 +941,15 @@ class UsbTestApp:
         self.async_running = True
         self.async_count = 0
 
-        self.btn_async_start.config(state=tk.DISABLED)
-        self.btn_async_stop.config(state=tk.NORMAL)
-        self.lbl_async_status.config(text="Status: Running", foreground="green")
+        self.btn_async_start.disabled = True
+        self.btn_async_stop.disabled = False
+        self.async_status_text.value = "Status: Running"
+        self.async_status_text.color = ft.Colors.GREEN
+        self.update()
 
         self._poll_async()
 
-    def _stop_async(self):
+    def _stop_async(self, e):
         """停止连续异步读取"""
         if not self.async_running:
             return
@@ -801,16 +957,17 @@ class UsbTestApp:
         lib.usb_ctrl_async_stop_continuous(self.handle)
         lib.usb_ctrl_async_stop(self.handle)
 
-        self.btn_async_start.config(state=tk.NORMAL)
-        self.btn_async_stop.config(state=tk.DISABLED)
-        self.lbl_async_status.config(text="Status: Idle", foreground="black")
+        self.btn_async_start.disabled = False
+        self.btn_async_stop.disabled = True
+        self.async_status_text.value = "Status: Idle"
+        self.async_status_text.color = ft.Colors.GREY
+        self.update()
 
     def _poll_async(self):
         """轮询异步读取结果"""
         if not self.async_running:
             return
 
-        # 轮询所有可用结果
         while True:
             ptr = lib.usb_ctrl_async_poll(self.handle)
             if not ptr:
@@ -819,7 +976,7 @@ class UsbTestApp:
             s = result.decode("utf-8", errors="replace") if result else ""
             lib.usb_ctrl_free_str(ptr)
             self.async_count += 1
-            self.lbl_async_count.config(text=f"Reads: {self.async_count}")
+            self.async_count_text.value = f"Reads: {self.async_count}"
             try:
                 data = json.loads(s)
                 hex_data = data.get("data_hex", "")
@@ -831,18 +988,23 @@ class UsbTestApp:
             except json.JSONDecodeError:
                 self._log(f"[Async] {s}")
 
-        # 更新 pending
         pending = lib.usb_ctrl_async_pending(self.handle)
-        self.lbl_async_pending.config(text=f"Pending: {pending}")
+        self.async_pending_text.value = f"Pending: {pending}"
+        self.update()
 
-        # 继续轮询（100ms 间隔）
         if self.async_running:
-            self.root.after(100, self._poll_async)
+            self.page.run_task(self._async_poll_task)
+
+    async def _async_poll_task(self):
+        """异步轮询任务"""
+        import asyncio
+        await asyncio.sleep(0.1)  # 100ms 间隔
+        self._poll_async()
 
     # ========================================================================
     # 热插拔
     # ========================================================================
-    def _start_hotplug(self):
+    def _start_hotplug(self, e):
         """启动热插拔监听"""
         if not lib.usb_ctrl_is_hotplug_supported():
             self._log("Hotplug not supported on this platform")
@@ -852,22 +1014,26 @@ class UsbTestApp:
             self._log("Failed to start hotplug monitoring")
             return
         self.hotplug_running = True
-        self.btn_hotplug_start.config(state=tk.DISABLED)
-        self.btn_hotplug_stop.config(state=tk.NORMAL)
-        self.lbl_hotplug_status.config(text="Status: Monitoring", foreground="green")
+        self.btn_hotplug_start.disabled = True
+        self.btn_hotplug_stop.disabled = False
+        self.hotplug_status_text.value = "Status: Monitoring"
+        self.hotplug_status_text.color = ft.Colors.GREEN
         self._log("Hotplug monitoring started")
+        self.update()
         self._poll_hotplug()
 
-    def _stop_hotplug(self):
+    def _stop_hotplug(self, e):
         """停止热插拔监听"""
         if not self.hotplug_running:
             return
         self.hotplug_running = False
         lib.usb_ctrl_hotplug_stop(self.handle)
-        self.btn_hotplug_start.config(state=tk.NORMAL)
-        self.btn_hotplug_stop.config(state=tk.DISABLED)
-        self.lbl_hotplug_status.config(text="Status: Idle", foreground="black")
+        self.btn_hotplug_start.disabled = False
+        self.btn_hotplug_stop.disabled = True
+        self.hotplug_status_text.value = "Status: Idle"
+        self.hotplug_status_text.color = ft.Colors.GREY
         self._log("Hotplug monitoring stopped")
+        self.update()
 
     def _poll_hotplug(self):
         """轮询热插拔事件"""
@@ -887,27 +1053,44 @@ class UsbTestApp:
                 summary = data.get("summary", "")
                 symbol = "[+]" if event == "arrived" else "[-]"
                 line = f"{symbol} {event}: {summary}\n"
-                self.hotplug_log.config(state=tk.NORMAL)
-                self.hotplug_log.insert(tk.END, line)
-                self.hotplug_log.see(tk.END)
-                self.hotplug_log.config(state=tk.DISABLED)
+                current = self.hotplug_log.value or ""
+                self.hotplug_log.value = current + line
                 self._log(f"Hotplug {symbol} {summary}")
             except json.JSONDecodeError:
                 self._log(f"Hotplug: {s}")
 
-        # 继续轮询（200ms 间隔）
+        self.update()
+
         if self.hotplug_running:
-            self.root.after(200, self._poll_hotplug)
+            self.page.run_task(self._hotplug_poll_task)
+
+    async def _hotplug_poll_task(self):
+        """热插拔轮询任务"""
+        import asyncio
+        await asyncio.sleep(0.2)  # 200ms 间隔
+        self._poll_hotplug()
 
 
 # ============================================================================
 # 入口
 # ============================================================================
-def main():
-    root = tk.Tk()
-    app = UsbTestApp(root)
-    root.mainloop()
+def main(page: ft.Page):
+    """主入口函数"""
+    page.title = "USB Controller Test"
+    page.window.width = 1400
+    page.window.height = 900
+    page.window.min_width = 1100
+    page.window.min_height = 700
+    page.padding = 0
+    page.bgcolor = ft.Colors.SURFACE
+    
+    app = UsbTestApp()
+    
+    page.add(app)
+    
+    # 添加到 page 后再刷新设备列表
+    app._refresh_devices(None)
 
 
 if __name__ == "__main__":
-    main()
+    ft.run(main)
