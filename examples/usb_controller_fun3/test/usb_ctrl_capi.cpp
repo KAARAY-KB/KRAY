@@ -32,6 +32,8 @@ static char* dup_str(const std::string& s) {
 
 // ============================================================================
 // 内部辅助：TransferResult 转 JSON 字符串
+// hex 格式：逗号分隔，如 "0xAA,0xBB,0xCC"
+// ascii 格式：不可打印字符显示为 '.'，如 "He..o"
 // ============================================================================
 static char* result_to_json(const TransferResult& r) {
     std::string json = "{"; // JSON 开始
@@ -39,12 +41,20 @@ static char* result_to_json(const TransferResult& r) {
     json += ",\"bytes\":" + std::to_string(r.bytes_transferred); // 传输字节数
     json += ",\"error_code\":" + std::to_string(r.error_code); // 错误码
     json += ",\"error_msg\":\"" + r.error_message + "\""; // 错误消息
-    // 数据的十六进制表示
+    // 数据的十六进制表示（逗号分隔，完整输出）
     json += ",\"data_hex\":\"";
-    for (size_t i = 0; i < r.data.size() && i < 256; ++i) {
-        char buf[4];
-        snprintf(buf, sizeof(buf), "%02X", r.data[i]); // 转十六进制
+    for (size_t i = 0; i < r.data.size(); ++i) {
+        if (i > 0) json += ","; // 逗号分隔
+        char buf[6];
+        snprintf(buf, sizeof(buf), "0x%02X", r.data[i]); // 0x 前缀十六进制
         json += buf;
+    }
+    json += "\"";
+    // 数据的 ASCII 表示（不可打印字符显示为 '.'）
+    json += ",\"data_ascii\":\"";
+    for (size_t i = 0; i < r.data.size(); ++i) {
+        char c = static_cast<char>(r.data[i]); // 转为字符
+        json += (c >= 0x20 && c <= 0x7E) ? c : '.'; // 可打印范围外显示 '.'
     }
     json += "\"";
     json += "}";
@@ -249,11 +259,20 @@ void usb_ctrl_async_read_continuous(UsbCtrlHandle h, int len, unsigned int timeo
         std::string json = "{"; // 构建 JSON
         json += "\"success\":" + std::string(r.success ? "true" : "false");
         json += ",\"bytes\":" + std::to_string(r.bytes_transferred);
+        // 十六进制（逗号分隔，完整输出）
         json += ",\"data_hex\":\"";
-        for (size_t i = 0; i < r.data.size() && i < 256; ++i) {
-            char buf[4];
-            snprintf(buf, sizeof(buf), "%02X", r.data[i]);
+        for (size_t i = 0; i < r.data.size(); ++i) {
+            if (i > 0) json += ","; // 逗号分隔
+            char buf[6];
+            snprintf(buf, sizeof(buf), "0x%02X", r.data[i]);
             json += buf;
+        }
+        json += "\"";
+        // ASCII（不可打印字符显示为 '.'）
+        json += ",\"data_ascii\":\"";
+        for (size_t i = 0; i < r.data.size(); ++i) {
+            char c = static_cast<char>(r.data[i]);
+            json += (c >= 0x20 && c <= 0x7E) ? c : '.';
         }
         json += "\"}";
         std::lock_guard<std::mutex> lock(q->mtx); // 加锁

@@ -207,6 +207,24 @@ def hex_to_bytes(hex_str):
     return arr, len(data)
 
 
+def format_result(result):
+    """格式化传输结果为可读字符串"""
+    success = result.get("success", False)
+    bytes_count = result.get("bytes", 0)
+    hex_data = result.get("data_hex", "")
+    ascii_data = result.get("data_ascii", "")
+    error_msg = result.get("error_msg", "")
+    status = "OK" if success else "FAIL"
+    lines = [f"[{status}] {bytes_count} bytes"]
+    if hex_data:
+        lines.append(f"  HEX  : {hex_data}")
+    if ascii_data:
+        lines.append(f"  ASCII: {ascii_data}")
+    if error_msg:
+        lines.append(f"  Error: {error_msg}")
+    return "\n".join(lines)
+
+
 # ============================================================================
 # 主窗口类
 # ============================================================================
@@ -216,8 +234,8 @@ class UsbTestApp:
     def __init__(self, root):
         self.root = root
         self.root.title("USB Controller - Integrated Test UI")
-        self.root.geometry("960x720")
-        self.root.minsize(800, 600)
+        self.root.geometry("1600x800") # 初始窗口大小
+        self.root.minsize(1600, 800) # 最小窗口大小
 
         # 创建控制器
         self.handle = lib.usb_ctrl_create()
@@ -426,7 +444,7 @@ class UsbTestApp:
 
         ttk.Label(frame, text="Timeout (ms):").pack(anchor=tk.W)
         self.ent_async_timeout = ttk.Entry(frame, width=10)
-        self.ent_async_timeout.insert(0, "500")
+        self.ent_async_timeout.insert(0, "2000")
         self.ent_async_timeout.pack(fill=tk.X, pady=2)
 
         ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
@@ -592,7 +610,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid length/timeout")
             return
         result = call_json(lib.usb_ctrl_hid_read, self.handle, length, timeout)
-        self._log(f"HID Read: {json.dumps(result, indent=2)}")
+        self._log(f"HID Read: {format_result(result)}")
 
     def _hid_read_latest(self):
         """读取最新 HID 报告"""
@@ -602,7 +620,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid length")
             return
         result = call_json(lib.usb_ctrl_hid_read_latest, self.handle, length, 10)
-        self._log(f"HID ReadLatest: {json.dumps(result, indent=2)}")
+        self._log(f"HID ReadLatest: {format_result(result)}")
 
     def _hid_write(self):
         """同步 HID 写入"""
@@ -620,7 +638,7 @@ class UsbTestApp:
         except ValueError:
             timeout = 1000
         result = call_json(lib.usb_ctrl_hid_write, self.handle, arr, length, timeout)
-        self._log(f"HID Write: {json.dumps(result, indent=2)}")
+        self._log(f"HID Write: {format_result(result)}")
 
     def _hid_get_feature(self):
         """获取特性报告"""
@@ -631,7 +649,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid report_id/length")
             return
         result = call_json(lib.usb_ctrl_hid_get_feature, self.handle, report_id, length, 1000)
-        self._log(f"GetFeature: {json.dumps(result, indent=2)}")
+        self._log(f"GetFeature: {format_result(result)}")
 
     def _hid_send_feature(self):
         """发送特性报告"""
@@ -645,7 +663,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid hex data")
             return
         result = call_json(lib.usb_ctrl_hid_send_feature, self.handle, arr, length, 1000)
-        self._log(f"SendFeature: {json.dumps(result, indent=2)}")
+        self._log(f"SendFeature: {format_result(result)}")
 
     # ========================================================================
     # 批量传输
@@ -659,7 +677,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid endpoint/length")
             return
         result = call_json(lib.usb_ctrl_bulk_read, self.handle, ep, length, 2000)
-        self._log(f"BulkRead: {json.dumps(result, indent=2)}")
+        self._log(f"BulkRead: {format_result(result)}")
 
     def _bulk_write(self):
         """批量写入"""
@@ -678,7 +696,7 @@ class UsbTestApp:
             self._log("ERROR: Invalid hex data")
             return
         result = call_json(lib.usb_ctrl_bulk_write, self.handle, ep, arr, length, 2000)
-        self._log(f"BulkWrite: {json.dumps(result, indent=2)}")
+        self._log(f"BulkWrite: {format_result(result)}")
 
     # ========================================================================
     # 异步传输
@@ -736,9 +754,11 @@ class UsbTestApp:
             try:
                 data = json.loads(s)
                 hex_data = data.get("data_hex", "")
+                ascii_data = data.get("data_ascii", "")
                 bytes_count = data.get("bytes", 0)
-                # 打印前 64 字节（最多）
-                self._log(f"[Async #{self.async_count}] {bytes_count} bytes: {hex_data[:64]}")
+                self._log(f"[Async #{self.async_count}] {bytes_count} bytes")
+                self._log(f"  HEX  : {hex_data}")
+                self._log(f"  ASCII: {ascii_data}")
             except json.JSONDecodeError:
                 self._log(f"[Async] {s}")
 
