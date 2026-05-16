@@ -8,39 +8,32 @@
 #include <QColorDialog>
 #include <QPainter>
 
-
-#include "USBHelper.h"
-#include "GT64HeController.h"
-
-
+#include "devices/usb_device_info.hpp"
+#include "devices/gt64he_device.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class GT64HeWidget; }
 QT_END_NAMESPACE
 
 class GT64HeWidget : public QWidget
-                //    , public GT64HeController
 {
     Q_OBJECT
 
 public:
-    explicit GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent = nullptr);
+    explicit GT64HeWidget(UsbDeviceInfo info, QWidget *parent = nullptr);
     ~GT64HeWidget();
 
     void closeEvent(QCloseEvent *event) override;
     void closeWidget(void);
 
-    GT64HeController *controller = nullptr;
+    GT64HeDevice *device = nullptr; // GT-64HE 设备实例
 
 private:
-    libusb_context *m_ctx = nullptr;
     bool m_activeWindow = false;
     QTimer *m_activeWindowTimer = nullptr;
     void updateParamValue();
 
-    
-    USBTransferCallback::TransferAction read_done(libusb_transfer *transfer);
-    USBTransferCallback::TransferAction write_done(libusb_transfer *transfer);
+    void on_read_done(const std::vector<uint8_t>& data); // 读取完成回调
 protected: 
     void paintEvent(QPaintEvent *) {
         QStyleOption opt;

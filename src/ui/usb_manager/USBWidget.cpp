@@ -10,28 +10,17 @@ USBWidget::USBWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    int ret = libusb_init(nullptr);
-    // int ret = libusb_init_context(&ctx, nullptr, 0);
-    if (ret != LIBUSB_SUCCESS) {
-        Console::out() << "libusb init failed" << libusb_error_name(ret) << std::endl;
-    }
+    // 刷新设备列表
+    m_ctrl.refresh_devices();
 
+    // 初始化热插拔监听
     dev_hotplug_init();
-    Console::out() << "size " << m_usbHotplug->handle->get_decice_info().size() << std::endl;
-    for (int i = 0; i < m_usbHotplug->handle->get_decice_info().size(); i++) {
-        USBHelper::DevMsg_t info = USBHelper::find_device_support(m_usbHotplug->handle->get_decice_info()[i], USBHelper::DevFindType::FIND_DEV_TYPE_VID_PID);
-        if (info.id.ty != USBHelper::DEV_UNKNOWN) {
-            ui->usbDeviceManager->haveDevice(info);
-        }
-        else {
-            ui->usbDeviceManager->haveDevice(info);
-        }
-    }
 
-    // demo
-    if (m_usbHotplug->handle->get_decice_info().size() == 0) {
-        USBHelper::DevMsg_t info;
-        USBHelper::debug_msg(info);
+    // 遍历当前设备，添加到设备管理器
+    auto& devs = m_ctrl.devices();
+    Console::out() << "USBWidget: found " << devs.size() << " devices" << std::endl;
+    for (auto& dev : devs) {
+        UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(dev);
         ui->usbDeviceManager->haveDevice(info);
     }
 
@@ -43,21 +32,12 @@ USBWidget::USBWidget(QWidget *parent)
             m_gt64heWidget = nullptr;
         }
     });
-
-    m_usbThread = new USBThread();
 }
 
 USBWidget::~USBWidget()
 {
     Console::out() << "USBWidget::~USBWidget()" << std::endl;
-
-    if (m_usbHotplug) {
-        delete m_usbHotplug;
-    }
-    if (m_usbThread) {
-        m_usbThread->end();
-    }
-    libusb_exit(nullptr);
+    m_ctrl.hotplug_stop(); // 停止热插拔监听
     delete ui;
 }
 
@@ -77,33 +57,33 @@ void USBWidget::show_top(void)
 
 void USBWidget::dev_hotplug_init(void)
 {
-    m_usbHotplug = new USBHotplug();
-    if (!m_usbHotplug->handle->start_detector()) {
-        Console::out() << "Failed to start detector for USB hotplug events" << std::endl;
-        delete m_usbHotplug;
-        m_usbHotplug = nullptr;
-    }
-    else {
-        m_usbHotplug->handle->register_cb(std::bind(&USBWidget::dev_insert, this, std::placeholders::_1),
-                                std::bind(&USBWidget::dev_remove, this, std::placeholders::_1));
-        // m_usbHotplug->handle->refresh_device_evt();
+    // 启动热插拔监听，注册插入/拔出回调
+    bool ok = m_ctrl.hotplug_start(
+        [this](usb_ctrl::core::HotplugEvent event, usb_ctrl::core::UsbDevice& device) {
+            UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(device);
+            if (event == usb_ctrl::core::HotplugEvent::Arrived) {
+                dev_insert(info);   // 设备插入
+            } else {
+                dev_remove(info);   // 设备拔出
+            }
+        }
+    );
+    if (!ok) {
+        Console::out() << "Failed to start hotplug listener" << std::endl;
     }
 }
 
-void USBWidget::openUSBWidget(USBHelper::DevMsg_t &info) {
-    // if (info.id.ty == USBHelper::DEV_KB_GT64HE) { 
+void USBWidget::openUSBWidget(UsbDeviceInfo &info) {
     gt64heWidget(info);
-    // }
 }
-void USBWidget::closeUSBWidget(USBHelper::DevMsg_t &info) {
+void USBWidget::closeUSBWidget(UsbDeviceInfo &info) {
     
 }
 
-void USBWidget::gt64heWidget(USBHelper::DevMsg_t &info)
+void USBWidget::gt64heWidget(UsbDeviceInfo &info)
 {
     if (m_gt64heWidget == nullptr)
     {
-        m_usbThread->begin(USBThread::RUN_TYPE_EVT);
         Console::out() << "open keyboard Widget" << std::endl;
         m_gt64heWidget = new GT64HeWidget(info);
         Ui::USBWidget::page_t *pt = ui->addSubWidget(Ui::USBWidget::PAGE_TY_KB, m_gt64heWidget);
@@ -114,17 +94,14 @@ void USBWidget::gt64heWidget(USBHelper::DevMsg_t &info)
             if (m_gt64heWidget) {
                 delete m_gt64heWidget;
                 m_gt64heWidget = nullptr;
-                m_usbThread->begin(USBThread::RUN_TYPE_NONE);
             }
         });
         connect(m_gt64heWidget, &GT64HeWidget::exitWindow, this, [=](){
             if (m_gt64heWidget) {
                 delete m_gt64heWidget;
                 m_gt64heWidget = nullptr;
-                m_usbThread->begin(USBThread::RUN_TYPE_NONE);
             }
         });
         ui->showSubWidget(pt->type, pt->idx);
     }
 }
-

@@ -12,26 +12,25 @@
 #include <QGridLayout>
 #include <QPushButton>
 #include <QCloseEvent>
-#include "USBHelper.h"
+#include "devices/usb_device_info.hpp"
 
-// USBDeviceWidget 类声明
 class USBDeviceSubWidget : public QFrame {
     Q_OBJECT
 
 public:
-    explicit USBDeviceSubWidget(USBHelper::DevMsg_t &info, QWidget *parent = nullptr);
+    explicit USBDeviceSubWidget(UsbDeviceInfo &info, QWidget *parent = nullptr);
     enum {
         WIDTH = 300,
         HEIGHT = 200
     };
-    USBHelper::DevMsg_t getInfo(void) const { return m_info; }
+    UsbDeviceInfo getInfo(void) const { return m_info; }
 private:
-    USBHelper::DevMsg_t m_info;
+    UsbDeviceInfo m_info;
     QVBoxLayout *layout;
     QLabel *label;
     QPushButton *btn_enter;
 signals:
-    void enterRequested(USBHelper::DevMsg_t &m_info);
+    void enterRequested(UsbDeviceInfo &m_info);
 };
 
 class USBDeviceManagerWidget : public QWidget 
@@ -41,9 +40,9 @@ class USBDeviceManagerWidget : public QWidget
 public:
     USBDeviceManagerWidget(QWidget *parent = nullptr);
 
-    void haveDevice(USBHelper::DevMsg_t &info);
-    void addDevice(USBHelper::DevMsg_t &info);
-    void delDevice(USBHelper::DevMsg_t info);
+    void haveDevice(UsbDeviceInfo &info);
+    void addDevice(UsbDeviceInfo &info);
+    void delDevice(UsbDeviceInfo info);
 
 private:
     QGridLayout* gridLayout;
@@ -60,7 +59,7 @@ private:
 signals:
     void exitWindow();
     void exitWidget();
-    void enterRequested(USBHelper::DevMsg_t &m_info);
+    void enterRequested(UsbDeviceInfo &m_info);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

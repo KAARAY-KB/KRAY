@@ -3,19 +3,18 @@
 #include "console.h"
 
 
-void USBWidget::dev_insert(USBHelper::DevMsg_t info) {
-    Console::out() << "device insert:" << std::endl;
+void USBWidget::dev_insert(UsbDeviceInfo info) {
+    Console::out() << "device insert:" << info.to_string() << std::endl;
     ui->usbDeviceManager->addDevice(info);
 }
 
-void USBWidget::dev_remove(USBHelper::DevMsg_t info) {
-    Console::out() << "device remove:" << std::endl;
+void USBWidget::dev_remove(UsbDeviceInfo info) {
+    Console::out() << "device remove:" << info.to_string() << std::endl;
     ui->usbDeviceManager->delDevice(info);
-    
 }
 
 
-void USBWidget::on_usbDeviceManager_enterRequested(USBHelper::DevMsg_t &req_info) {
+void USBWidget::on_usbDeviceManager_enterRequested(UsbDeviceInfo &req_info) {
     openUSBWidget(req_info);
 }
 void USBWidget::on_stackedWidget_widgetRemoved(int idx) {
@@ -24,8 +23,6 @@ void USBWidget::on_stackedWidget_widgetRemoved(int idx) {
 void USBWidget::on_stackedWidget_currentChanged(int idx) {
     Console::out() << "页面发生变化:" << idx << std::endl;
     Ui::USBWidget::page_t *pt = ui->getSubWidget(idx);
-    
-    // ui->widgetSizeChanged(pt);
     
     switch (pt->type) {
         case Ui::USBWidget::PAGE_TY_MAIN:

@@ -5,19 +5,20 @@
 #include <QDebug>
 
 
-GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent) 
+GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent) 
     : QWidget(parent)
     , ui(new Ui::GT64HeWidget)
 {
     ui->setupUi(this);
-    // updateParamValue();
 
-    libusb_device *dev = USBHelper::find_device(info);
-    if ( dev != nullptr ) {
-        Console::out() << "Found device" << std::endl;
-        controller = new GT64HeController(dev, 
-            std::set<int>{0});
+    // 创建并打开 GT-64HE 设备
+    device = new GT64HeDevice(info);
+    if (device->open()) {
+        Console::out() << "GT64HeWidget: device opened" << std::endl;
+    } else {
+        Console::out() << "GT64HeWidget: device open failed" << std::endl;
     }
+
     connect(this, &GT64HeWidget::activeWindowChanged, this, &GT64HeWidget::slot_activeWindowChanged);
     m_activeWindowTimer = new QTimer(this);
     connect(m_activeWindowTimer, &QTimer::timeout, this, [this](){
@@ -31,13 +32,6 @@ GT64HeWidget::GT64HeWidget(USBHelper::DevMsg_t info, QWidget *parent)
     });
     connect(ui->keyboard->layout, &MKeyboardLayout::keyClicked, this, &GT64HeWidget::slot_keyboard_key_clicked);
 
-    // char ch[64];
-    // int len = sprintf(ch, "%s / %s", info.ch.mfr.c_str(), info.ch.prod.c_str());
-
-    // QString str;
-    // str.append(ch);
-    // qDebug() << "test: " << str;
-    // ui->statebar->label_cfgFile->setText(str);
     m_activeWindowTimer->start(50);
 }
 
@@ -50,9 +44,10 @@ GT64HeWidget::~GT64HeWidget() {
         m_activeWindowTimer->stop();
         delete m_activeWindowTimer;
     }
-    if (controller) {
-        Console::out() << "GT64HeWidget::~controller" << std::endl;
-        delete controller;
+    if (device) {
+        Console::out() << "GT64HeWidget::~device" << std::endl;
+        device->close();
+        delete device;
     }
     delete ui;
 }
@@ -73,20 +68,12 @@ void GT64HeWidget::updateParamValue() {
     ui->param->property->spinBox_param[0]->setValue(val);
 }
 
-
-USBTransferCallback::TransferAction GT64HeWidget::read_done(libusb_transfer *transfer) {
-    std::string str = "";
-    str = "usb rx[" + std::to_string(transfer->length) + "]: ";
-    for (int i = 0; i < 10; ++i) {
-        str += std::to_string(transfer->buffer[i]) + ",";
+// 读取完成回调
+void GT64HeWidget::on_read_done(const std::vector<uint8_t>& data) {
+    std::string str = "usb rx[" + std::to_string(data.size()) + "]: ";
+    for (size_t i = 0; i < 10 && i < data.size(); ++i) {
+        str += std::to_string(data[i]) + ",";
     }
-    str.pop_back();
-    // qDebug() << QString(str.c_str());
+    if (!data.empty()) str.pop_back();
     Console::out() << str << std::endl;
-    
-    return USBTransferCallback::TransferAction::TRANSFER_CONTINUE;
 }
-USBTransferCallback::TransferAction GT64HeWidget::write_done(libusb_transfer *transfer) {
-    return USBTransferCallback::TransferAction::TRANSFER_ONCE;
-}
-

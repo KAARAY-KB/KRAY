@@ -1,59 +1,50 @@
-include(../../cmake/helpers.cmake)
-
+# ============================================================================
+# CMakeLists.txt - USB 控制器库构建文件
+#
+# 构建静态库 usb_controller，包含新模块的所有源文件：
+#   usb_core/  - USB 核心模块（上下文、设备、设备管理器、事件线程、热插拔）
+#   usb_io/    - USB 数据传输模块（同步传输、HID 设备、异步传输）
+#   usb_controller.cpp - USB 控制器统一接口
+# ============================================================================
 
 set(SUB_NAME usb_controller)
 
-file(GLOB_RECURSE LIB_SRC CONFIGURE_DEPENDS
-    USB*.cpp
-    USB*.h
-    devices/*.cpp
-    devices/*.h
+# 核心源文件
+add_library(${SUB_NAME}
+    usb_core/usb_context.cpp
+    usb_core/usb_device.cpp
+    usb_core/usb_device_manager.cpp
+    usb_core/usb_event_thread.cpp
+    usb_core/usb_hotplug_base.cpp
+    usb_core/usb_hotplug_linux.cpp
+    usb_io/sync_transfer.cpp
+    usb_io/hid_device.cpp
+    usb_io/async_transfer.cpp
+    usb_controller.cpp
+    devices/usb_device_info.cpp
+    devices/usb_device_base.cpp
+    devices/gt64he_device.cpp
 )
 
-# 排除所有平台特定文件
-list(FILTER LIB_SRC EXCLUDE REGEX "main\\.cpp$")
-list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugWindows")
-list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugLinux")
-list(FILTER LIB_SRC EXCLUDE REGEX "hotplug/USBHotplugMac")
-list(FILTER LIB_SRC EXCLUDE REGEX "USBMsg")
+# 启用位置无关代码
+set_target_properties(${SUB_NAME} PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    message(STATUS "${SUB_NAME} running on: windows")
-    list(APPEND LIB_SRC
-        hotplug/USBHotplugWindows.cpp
-        hotplug/USBHotplugWindows.h
+# Windows 平台添加热插拔回退源文件
+if(WIN32)
+    target_sources(${SUB_NAME} PRIVATE
+        usb_core/usb_hotplug_win.cpp
     )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    message(STATUS "${SUB_NAME} running on: linux")
-    list(APPEND LIB_SRC
-        hotplug/USBHotplugLinux.cpp
-        hotplug/USBHotplugLinux.h
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    message(STATUS "${SUB_NAME} running on: macos")
-    list(APPEND LIB_SRC
-        hotplug/USBHotplugMac.cpp
-        hotplug/USBHotplugMac.h
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    message(FATAL_ERROR "${SUB_NAME} This platform has not yet undergone compatibility processing.")
-else()
-    message(FATAL_ERROR "${SUB_NAME} not supported on this platform.")
 endif()
 
-
-# 添加库
-add_library(${SUB_NAME} 
-    ${LIB_SRC}
-)
-# 链接库
+# 链接依赖
 target_link_libraries(${SUB_NAME} PUBLIC
     libusb
     console
 )
-# 添加目录
+
+# 头文件搜索路径
 target_include_directories(${SUB_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/devices
-    ${CMAKE_CURRENT_SOURCE_DIR}/hotplug
 )

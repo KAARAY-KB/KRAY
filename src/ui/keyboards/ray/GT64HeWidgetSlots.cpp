@@ -14,34 +14,31 @@ void GT64HeWidget::slot_keyboard_key_clicked(int idx, bool checked) {
 
 
 void GT64HeWidget::on_param_dbg_btn_usbTx_clicked() {
-    //    struct hiddev_usage_ref uref; /* hid驱动定义的数据包 */
-    //    struct hiddev_report_info rinfo; /* hid驱动定义的 */
+    if (!device || !device->is_open()) return;
+    // 构造测试数据包
     static uint8_t cnt = 0;
-    uint8_t buf[GT64HeController::EP_CUSTOM_SIZE] = {0};
-    memset(buf, cnt++, GT64HeController::EP_CUSTOM_SIZE);
+    std::vector<uint8_t> buf(GT64HeDevice::EP_SIZE, 0);
+    memset(buf.data(), cnt++, GT64HeDevice::EP_SIZE);
     for (uint8_t i = 0; i < 8; i++) {
         buf[i] = 9;
-        buf[GT64HeController::EP_CUSTOM_SIZE-1-i] = 9;
+        buf[GT64HeDevice::EP_SIZE - 1 - i] = 9;
     }
-
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
-    if (intf != controller->interfaces.end()) {
-        intf->second->submit_write(GT64HeController::EP_CUSTOM_OUT, GT64HeController::EP_CUSTOM_SIZE, buf, std::bind(&GT64HeWidget::write_done, this, std::placeholders::_1), 0);
-    }
+    // 通过设备层写入
+    device->write_async(buf);
 }
 void GT64HeWidget::on_param_dbg_btn_usbRx_clicked() {
+    if (!device || !device->is_open()) return;
     Console::out() << "usb rx start" << std::endl;
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
-    if (intf != controller->interfaces.end()) {
-        intf->second->submit_read(GT64HeController::EP_CUSTOM_IN, GT64HeController::EP_CUSTOM_SIZE, std::bind(&GT64HeWidget::read_done, this, std::placeholders::_1), 0);
-    }
+    // 启动连续异步读取
+    device->start_read(GT64HeDevice::EP_SIZE,
+        [this](const std::vector<uint8_t>& data) {
+            on_read_done(data);
+        });
 }
 void GT64HeWidget::on_param_dbg_btn_usbRxStop_clicked() {
+    if (!device) return;
     Console::out() << "usb rx stop" << std::endl;
-    auto intf = controller->interfaces.find(GT64HeController::INTERFACE_KEYBOARD);
-    if (intf != controller->interfaces.end()) {
-        intf->second->cancel_read(GT64HeController::EP_CUSTOM_IN);
-    }
+    device->stop_read();
 }
 
 
@@ -264,7 +261,6 @@ void GT64HeWidget::on_param_property_slider_param5_userReleased(int value) {
 }
 
 void GT64HeWidget::on_param_property_spinBox_param0_valueChanged(double value) {
-    // qDebug() << "0 微调 " << value << value * 1000.0;
     ui->param->property->slider_param[0]->setSliderPosition(value * 1000.0);
     Console::out() << "TODO: 0 send usb message" << value << std::endl;
 }
