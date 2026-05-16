@@ -323,12 +323,12 @@ class UsbTestApp(ft.Column):
     def _build_ui(self):
         """构建主界面"""
         # 预创建状态栏文本控件（不能在容器内赋值）
-        self.device_count_text = ft.Text("0", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE)
-        self.hid_status_text = ft.Text("Closed", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.RED)
+        self.device_count_text = ft.Text("0", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE)
+        self.hid_status_text = ft.Text("Closed", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.RED)
 
         # 顶部应用栏
         self.appbar = ft.AppBar(
-            title=ft.Text("USB Controller Test", size=20, weight=ft.FontWeight.BOLD),
+            title=ft.Text("USB Controller Test", size=34, weight=ft.FontWeight.BOLD),
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH,
             actions=[
                 ft.IconButton(
@@ -348,11 +348,11 @@ class UsbTestApp(ft.Column):
         self.status_bar = ft.Container(
             content=ft.Row([
                 ft.Icon(ft.Icons.USB, color=ft.Colors.BLUE),
-                ft.Text("Devices:", size=12),
+                ft.Text("Devices:", size=28),
                 self.device_count_text,
                 ft.Container(width=20),
                 ft.Icon(ft.Icons.LOCK_OUTLINE, color=ft.Colors.RED),
-                ft.Text("HID:", size=12),
+                ft.Text("HID:", size=28),
                 self.hid_status_text,
             ], spacing=5),
             padding=ft.Padding(15, 8, 15, 8),
@@ -360,27 +360,34 @@ class UsbTestApp(ft.Column):
             border_radius=10,
         )
 
-        # 输出日志区域（expand=True 自适应窗口大小）
-        self.output_field = ft.TextField(
-            multiline=True,
-            min_lines=5,
-            read_only=True,
-            value="",
-            text_size=11,
-            text_style=ft.TextStyle(font_family="Consolas"),
-            hint_text="Output will appear here...",
-            border_color=ft.Colors.OUTLINE_VARIANT,
-            focused_border_color=ft.Colors.PRIMARY,
-            content_padding=12,
+        # 输出日志区域（ListView 智能滚动：底部时自动滚动，上翻时不滚动）
+        self._log_at_bottom = True  # 跟踪用户是否在底部
+        self.output_list = ft.ListView(
             expand=True,
+            spacing=2,
+            auto_scroll=True,
+            on_scroll=self._on_log_scroll,
+        )
+        self.output_container = ft.Container(
+            content=self.output_list,
+            expand=True,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOWEST,
+            border=ft.Border(
+                left=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),
+                top=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),
+                right=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),
+                bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),
+            ),
+            border_radius=6,
+            padding=8,
         )
 
         # 左侧导航栏（Tab 切换）
         self.navigation_rail = ft.NavigationRail(
             selected_index=0,
             label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
-            min_extended_width=150,
+            min_width=160,
+            min_extended_width=220,
             destinations=[
                 ft.NavigationRailDestination(icon=ft.Icons.USB, label="Device", selected_icon=ft.Icons.USB),
                 ft.NavigationRailDestination(icon=ft.Icons.LOCK_OUTLINE, label="HID", selected_icon=ft.Icons.LOCK_OPEN),
@@ -420,7 +427,7 @@ class UsbTestApp(ft.Column):
                             ft.Divider(height=1),
                             ft.Card(
                                 content=ft.Container(
-                                    content=self.output_field,
+                                    content=self.output_container,
                                     padding=8,
                                 ),
                                 elevation=1,
@@ -460,10 +467,10 @@ class UsbTestApp(ft.Column):
     def _build_device_tab(self):
         """构建设备枚举页"""
         # 设备索引输入框
-        self.dev_idx_field = ft.TextField(label="Device Index", width=120, value="0")
+        self.dev_idx_field = ft.TextField(label="Device Index", width=200, value="0")
         # VID/PID 输入框
-        self.vid_field = ft.TextField(label="VID", width=80, value="0x")
-        self.pid_field = ft.TextField(label="PID", width=80, value="0x")
+        self.vid_field = ft.TextField(label="VID", width=150, value="0x")
+        self.pid_field = ft.TextField(label="PID", width=150, value="0x")
 
         return ft.Column([
             # 刷新按钮行
@@ -485,7 +492,7 @@ class UsbTestApp(ft.Column):
             ft.Divider(),
 
             # 设备操作按钮组
-            ft.Text("Device Operations", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Device Operations", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([
                 ft.OutlinedButton("List Detail", icon=ft.Icons.INFO_OUTLINE, on_click=self._list_detail),
                 ft.OutlinedButton("Device Tree", icon=ft.Icons.ACCOUNT_TREE_OUTLINED, on_click=self._list_tree),
@@ -495,14 +502,14 @@ class UsbTestApp(ft.Column):
             ft.Divider(),
 
             # 单设备查询
-            ft.Text("Query Single Device", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Query Single Device", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([self.dev_idx_field], spacing=10),
             ft.FilledButton("Get Device Detail", icon=ft.Icons.SEARCH, on_click=self._device_detail),
 
             ft.Divider(),
 
             # VID/PID 查找
-            ft.Text("Find by VID:PID", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Find by VID:PID", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([self.vid_field, self.pid_field], spacing=10),
         ], spacing=8)
 
@@ -510,23 +517,23 @@ class UsbTestApp(ft.Column):
     def _build_hid_tab(self):
         """构建 HID 设备页"""
         # 打开索引输入框
-        self.hid_idx_field = ft.TextField(label="Index", width=100, value="0")
+        self.hid_idx_field = ft.TextField(label="Index", width=180, value="0")
         # VID/PID 输入框
-        self.hid_vid_field = ft.TextField(label="VID", width=80, value="0x")
-        self.hid_pid_field = ft.TextField(label="PID", width=80, value="0x")
+        self.hid_vid_field = ft.TextField(label="VID", width=150, value="0x")
+        self.hid_pid_field = ft.TextField(label="PID", width=150, value="0x")
 
         return ft.Column([
-            ft.Text("Open by Index", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Open by Index", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([self.hid_idx_field, ft.FilledButton("Open", icon=ft.Icons.DOOR_FRONT_DOOR, on_click=self._open_hid_idx)], spacing=10),
 
             ft.Divider(),
 
-            ft.Text("Open by VID:PID", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Open by VID:PID", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([self.hid_vid_field, self.hid_pid_field, ft.FilledButton("Open", icon=ft.Icons.DOOR_FRONT_DOOR, on_click=self._open_hid_vid_pid)], spacing=10),
 
             ft.Divider(),
 
-            ft.Text("HID Control", size=14, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("HID Control", size=32, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             ft.Row([
                 ft.OutlinedButton("HID Info", icon=ft.Icons.INFO_OUTLINE, on_click=self._hid_info),
                 ft.OutlinedButton("Close HID", icon=ft.Icons.DOOR_BACK_DOOR, on_click=self._close_hid, style=ft.ButtonStyle(color=ft.Colors.ERROR)),
@@ -537,22 +544,22 @@ class UsbTestApp(ft.Column):
     def _build_io_tab(self):
         """构建 HID I/O 页"""
         # 读取参数
-        self.read_len_field = ft.TextField(label="Read Length", width=100, value="64")
-        self.read_timeout_field = ft.TextField(label="Timeout (ms)", width=100, value="1000")
+        self.read_len_field = ft.TextField(label="Read Length", width=180, value="64")
+        self.read_timeout_field = ft.TextField(label="Timeout (ms)", width=180, value="1000")
         # 写入数据
         self.write_data_field = ft.TextField(label="Write Data (hex)", value="00010203")
         # 特性报告
-        self.report_id_field = ft.TextField(label="Report ID", width=60, value="0")
+        self.report_id_field = ft.TextField(label="Report ID", width=120, value="0")
         self.feature_data_field = ft.TextField(label="Feature Data (hex)", value="000102")
         # 批量传输
-        self.bulk_ep_field = ft.TextField(label="Endpoint (hex)", width=80, value="0x81")
+        self.bulk_ep_field = ft.TextField(label="Endpoint (hex)", width=150, value="0x81")
 
         return ft.Column([
             # 读取区域卡片
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.DOWNLOAD, color=ft.Colors.BLUE), ft.Text("Read Operations", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.DOWNLOAD, color=ft.Colors.BLUE), ft.Text("Read Operations", size=30, weight=ft.FontWeight.W_600)], spacing=8),
                         ft.Row([self.read_len_field, self.read_timeout_field], spacing=10),
                         ft.Row([
                             ft.FilledButton("HID Read", icon=ft.Icons.DOWNLOAD, on_click=self._hid_read),
@@ -568,7 +575,7 @@ class UsbTestApp(ft.Column):
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.UPLOAD, color=ft.Colors.GREEN), ft.Text("Write Operation", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.UPLOAD, color=ft.Colors.GREEN), ft.Text("Write Operation", size=30, weight=ft.FontWeight.W_600)], spacing=8),
                         self.write_data_field,
                         ft.FilledButton("HID Write", icon=ft.Icons.UPLOAD, on_click=self._hid_write),
                     ], spacing=8),
@@ -581,7 +588,7 @@ class UsbTestApp(ft.Column):
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.SETTINGS, color=ft.Colors.ORANGE), ft.Text("Feature Report", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.SETTINGS, color=ft.Colors.ORANGE), ft.Text("Feature Report", size=30, weight=ft.FontWeight.W_600)], spacing=8),
                         ft.Row([self.report_id_field], spacing=10),
                         ft.Row([
                             ft.FilledButton("Get Feature", icon=ft.Icons.DOWNLOAD, on_click=self._hid_get_feature),
@@ -598,7 +605,7 @@ class UsbTestApp(ft.Column):
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.STORAGE, color=ft.Colors.PURPLE), ft.Text("Bulk Transfer", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.STORAGE, color=ft.Colors.PURPLE), ft.Text("Bulk Transfer", size=30, weight=ft.FontWeight.W_600)], spacing=8),
                         ft.Row([self.bulk_ep_field], spacing=10),
                         ft.Row([
                             ft.FilledButton("Bulk Read", icon=ft.Icons.DOWNLOAD, on_click=self._bulk_read),
@@ -615,13 +622,13 @@ class UsbTestApp(ft.Column):
     def _build_async_tab(self):
         """构建异步传输页"""
         # 异步参数
-        self.async_len_field = ft.TextField(label="Read Length", width=100, value="64")
-        self.async_timeout_field = ft.TextField(label="Timeout (ms)", width=100, value="2000")
+        self.async_len_field = ft.TextField(label="Read Length", width=180, value="64")
+        self.async_timeout_field = ft.TextField(label="Timeout (ms)", width=180, value="2000")
 
         # 状态显示
-        self.async_status_text = ft.Text("Status: Idle", size=12, color=ft.Colors.GREY)
-        self.async_count_text = ft.Text("Reads: 0", size=12)
-        self.async_pending_text = ft.Text("Pending: 0", size=12)
+        self.async_status_text = ft.Text("Status: Idle", size=28, color=ft.Colors.GREY)
+        self.async_count_text = ft.Text("Reads: 0", size=28)
+        self.async_pending_text = ft.Text("Pending: 0", size=28)
 
         # 按钮
         self.btn_async_start = ft.FilledButton(
@@ -642,7 +649,7 @@ class UsbTestApp(ft.Column):
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.TIMELAPSE, color=ft.Colors.CYAN), ft.Text("Async Settings", size=13, weight=ft.FontWeight.W_600)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.TIMELAPSE, color=ft.Colors.CYAN), ft.Text("Async Settings", size=30, weight=ft.FontWeight.W_600)], spacing=8),
                         ft.Row([self.async_len_field, self.async_timeout_field], spacing=10),
                         ft.Row([self.btn_async_start, self.btn_async_stop], spacing=10),
                         ft.Divider(),
@@ -670,7 +677,7 @@ class UsbTestApp(ft.Column):
             max_lines=10,
             read_only=True,
             value="",
-            text_size=11,
+            text_size=26,
             text_style=ft.TextStyle(font_family="Consolas"),
             hint_text="Hotplug events...",
         )
@@ -689,13 +696,13 @@ class UsbTestApp(ft.Column):
         )
 
         # 状态文本
-        self.hotplug_status_text = ft.Text("Status: Idle", size=12, color=ft.Colors.GREY)
+        self.hotplug_status_text = ft.Text("Status: Idle", size=28, color=ft.Colors.GREY)
 
         return ft.Column([
             ft.Card(
                 content=ft.Container(
                     content=ft.Column([
-                        ft.Row([ft.Icon(ft.Icons.CABLE, color=support_color), ft.Text(support_text, size=13, weight=ft.FontWeight.W_600, color=support_color)], spacing=8),
+                        ft.Row([ft.Icon(ft.Icons.CABLE, color=support_color), ft.Text(support_text, size=30, weight=ft.FontWeight.W_600, color=support_color)], spacing=8),
                         ft.Divider(),
                         ft.Row([self.btn_hotplug_start, self.btn_hotplug_stop], spacing=10),
                         self.hotplug_status_text,
@@ -705,19 +712,33 @@ class UsbTestApp(ft.Column):
                 elevation=0,
             ),
             ft.Divider(),
-            ft.Text("Event Log:", size=13, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text("Event Log:", size=30, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE_VARIANT),
             self.hotplug_log,
         ], spacing=8)
 
     # ========================================================================
     # 输出辅助
     # ========================================================================
+    def _on_log_scroll(self, e):
+        """监听日志区域滚动，动态切换 auto_scroll"""
+        # 滚动位置接近底部（容差 50px）时开启自动滚动，否则关闭
+        at_bottom = e.pixels >= e.max_scroll_extent - 50
+        self.output_list.auto_scroll = at_bottom
+        self._log_at_bottom = at_bottom
+
     def _log(self, text):
-        """向输出区域追加文本"""
-        current = self.output_field.value or ""
+        """向输出区域追加文本（智能滚动：底部时自动滚动，上翻时不滚动）"""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        new_value = current + f"[{timestamp}] {text}\n"
-        self.output_field.value = new_value[-50000:]  # 限制最大长度，避免内存问题
+        line = ft.Text(
+            f"[{timestamp}] {text}",
+            size=26,
+            font_family="Consolas",
+            selectable=True,
+        )
+        self.output_list.controls.append(line)
+        # 限制最大行数，避免内存问题
+        if len(self.output_list.controls) > 2000:
+            self.output_list.controls = self.output_list.controls[-1500:]
         self.update()
 
     def _show_snack(self, msg):
@@ -1083,6 +1104,8 @@ def main(page: ft.Page):
     page.window.min_height = 700
     page.padding = 0
     page.bgcolor = ft.Colors.SURFACE
+    # 全局默认字体大小（按钮、输入框、菜单等未指定 size 的控件）
+    page.text_size = 26
     
     app = UsbTestApp()
     
