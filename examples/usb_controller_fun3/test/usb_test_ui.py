@@ -36,9 +36,9 @@ import platform
 # ============================================================================
 def find_lib():
     """查找共享库（跨平台，自动搜索所有构建类型目录）"""
-    # 根据平台确定库文件名
+    # 根据平台确定库文件名（与 CMakeLists.txt 中 PREFIX "lib" 一致）
     if platform.system() == "Windows":
-        lib_name = "usb_ctrl_capi.dll"
+        lib_name = "libusb_ctrl_capi.dll"  # CMake PREFIX "lib"
     elif platform.system() == "Darwin":
         lib_name = "libusb_ctrl_capi.dylib"
     else:
@@ -46,28 +46,26 @@ def find_lib():
 
     # 获取脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # 项目根目录
+    # 项目根目录（test/ -> usb_controller_fun3/ -> examples/ -> KRAY/）
     project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
     # 构建根目录
     build_root = os.path.join(project_root, "build")
 
-    # 所有可能的构建类型目录名
-    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"]
-    # 共享库可能的子目录
-    lib_subdirs = ["lib/dynamic", "lib/shared", "lib"]
-    # 构建目标子目录（main 或 usb）
+    # 构建类型目录名（单配置生成器如 MinGW）
+    cfg_dirs = ["Debug", "Release", "RelWithDebInfo", "MinSizeRel", ""]
+    # 共享库子目录（与 CMakeLists.txt 中 CMAKE_LIBRARY_OUTPUT_DIRECTORY 对应）
+    lib_subdirs = ["bin", "lib/dynamic", "lib/shared", "lib", ""]
+    # 构建目标子目录（build.bat usb 输出到 build/usb/）
     target_dirs = ["usb", "main", ""]
 
-    # 候选路径列表
+    # 候选路径：脚本同目录优先
     candidates = [os.path.join(script_dir, lib_name)]
 
-    # 遍历所有组合
+    # 遍历所有组合：build/{target}/{cfg}/{lib_sub}/lib_name
     for target in target_dirs:
         for cfg in cfg_dirs:
             for lib_sub in lib_subdirs:
                 candidates.append(os.path.join(build_root, target, cfg, lib_sub, lib_name))
-        for lib_sub in lib_subdirs:
-            candidates.append(os.path.join(build_root, target, lib_sub, lib_name))
 
     # 搜索存在的路径
     for path in candidates:
@@ -103,7 +101,8 @@ if platform.system() == "Windows":
                 try:
                     with open(cache_path, "r", encoding="utf-8", errors="ignore") as f:
                         for line in f:
-                            if "CMAKE_CXX_COMPILER:FILEPATH=" in line:
+                            # CMakeCache 格式: CMAKE_CXX_COMPILER:STRING= 或 :FILEPATH=
+                            if "CMAKE_CXX_COMPILER:" in line and "g++.exe" in line:
                                 compiler = line.split("=", 1)[1].strip()
                                 if compiler.endswith("g++.exe"):
                                     return os.path.dirname(compiler)
