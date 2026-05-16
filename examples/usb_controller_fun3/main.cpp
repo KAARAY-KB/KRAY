@@ -136,7 +136,7 @@ void print_menu() {
     std::cout << "| 17. HID read latest (drain buffer)   -  17.读取最新 HID 报告（排空缓冲区） |\n"; // 读取最新 HID 报告（排空缓冲区）
     std::cout << "| 18. Async read (manual start/stop)   -  18.连续异步读取（手动启停）        |\n"; // 连续异步读取（手动启停）
     std::cout << "| 19. Run all demos (auto)             -  19.自动运行所有演示                |\n"; // 自动运行所有演示
-    std::cout << "| 20. Hotplug monitor (async)          -  20.USB 热插拔监听（异步回调）     |\n"; // 热插拔监听
+    std::cout << "| 20. Hotplug monitor (async)          -  20.USB 热插拔监听（异步回调）      |\n"; // 热插拔监听
     std::cout << "|  0. Exit                             -   0.退出                            |\n"; // 退出
     std::cout << "+----------------------------------------------------------------------------+\n";
     std::cout << "Choice: "; // 提示用户输入

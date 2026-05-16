@@ -46,42 +46,43 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #   - Linux：通过 pkg-config 查找系统安装的 libusb
 # ============================================================================
 
-# libusb 头文件路径（所有平台通用）
-set(LIBUSB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/include)
+# # libusb 头文件路径（所有平台通用）
+# set(LIBUSB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/include)
 
-if(MSVC)
-    # ========================================================================
-    # MSVC (Visual Studio) 编译器配置
-    # ========================================================================
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/VS2022/MS64/static) # 64 位
-    else()
-        set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/VS2022/MS32/static) # 32 位
-    endif()
-    set(LIBUSB_LIB_NAME libusb-1.0.lib) # MSVC 静态库文件名
-    set(PLATFORM_LIBS setupapi)         # Windows 需要链接 setupapi
-elseif(MINGW)
-    # ========================================================================
-    # MinGW 编译器配置
-    # ========================================================================
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/MinGW64/static) # 64 位
-        set(LIBUSB_LIB_NAME libusb-1.0.a) # MinGW 64 位静态库
-    else()
-        set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/MinGW32/static) # 32 位
-        set(LIBUSB_LIB_NAME libusb-1.0.a) # MinGW 32 位静态库
-    endif()
-    set(PLATFORM_LIBS setupapi) # Windows 需要链接 setupapi
-else()
-    # ========================================================================
-    # Linux 配置（通过 pkg-config 查找 libusb）
-    # ========================================================================
-    find_package(PkgConfig REQUIRED)                    # 查找 pkg-config 工具
-    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)       # 查找 libusb-1.0 包
-    set(LIBUSB_LIB_NAME ${LIBUSB_LIBRARIES})            # 使用 pkg-config 返回的库
-    set(PLATFORM_LIBS "")                               # Linux 不需要额外平台库
-endif()
+# if(MSVC)
+#     # ========================================================================
+#     # MSVC (Visual Studio) 编译器配置
+#     # ========================================================================
+#     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+#         set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/VS2022/MS64/static) # 64 位
+#     else()
+#         set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/VS2022/MS32/static) # 32 位
+#     endif()
+#     set(LIBUSB_LIB_NAME libusb-1.0.lib) # MSVC 静态库文件名
+#     set(PLATFORM_LIBS setupapi)         # Windows 需要链接 setupapi
+# elseif(MINGW)
+#     # ========================================================================
+#     # MinGW 编译器配置
+#     # ========================================================================
+#     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+#         set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/MinGW64/static) # 64 位
+#         set(LIBUSB_LIB_NAME libusb-1.0.a) # MinGW 64 位静态库
+#     else()
+#         set(LIBUSB_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/library/libusb/MinGW32/static) # 32 位
+#         set(LIBUSB_LIB_NAME libusb-1.0.a) # MinGW 32 位静态库
+#     endif()
+#     set(PLATFORM_LIBS setupapi) # Windows 需要链接 setupapi
+# else()
+#     # ========================================================================
+#     # Linux 配置（通过 pkg-config 查找 libusb）
+#     # ========================================================================
+#     find_package(PkgConfig REQUIRED)                    # 查找 pkg-config 工具
+#     pkg_check_modules(LIBUSB REQUIRED libusb-1.0)       # 查找 libusb-1.0 包
+#     set(LIBUSB_LIB_NAME ${LIBUSB_LIBRARIES})            # 使用 pkg-config 返回的库
+#     set(PLATFORM_LIBS "")                               # Linux 不需要额外平台库
+# endif()
 
+add_subdirectory(library/libusb)
 add_subdirectory(src)
 
 # ============================================================================
@@ -93,26 +94,13 @@ add_executable(${LIB_NAME} main.cpp) # 可执行文件源文件
 if(MINGW OR MSVC)
     # Windows：直接使用静态库文件路径，避免 -l 查找失败
     target_link_libraries(${LIB_NAME} PRIVATE 
-        usb_controller_fun3_lib                  # USB 控制器静态库
-        ${LIBUSB_LIB_DIR}/${LIBUSB_LIB_NAME}     # libusb 静态库文件
-        ${PLATFORM_LIBS}                         # 平台相关库（Windows: setupapi）
+        libusb
+        usb_controller_fun3_lib                  # USB 控制器静态库                  # 平台相关库（Windows: setupapi）
     )
 else()
     # Linux：使用 pkg-config 返回的库名
     target_link_libraries(${LIB_NAME} PRIVATE 
+        libusb
         usb_controller_fun3_lib # USB 控制器静态库
-        ${LIBUSB_LIB_NAME}      # libusb 库
-        ${PLATFORM_LIBS}        # 平台相关库
     )
 endif()
-
-# 头文件搜索路径
-target_include_directories(${LIB_NAME} PRIVATE
-    ${LIBUSB_INCLUDE_DIR}   # libusb 头文件路径
-    ${LIBUSB_INCLUDE_DIRS}  # pkg-config 返回的额外头文件路径
-)
-
-# 库文件搜索路径
-target_link_directories(${LIB_NAME} PRIVATE
-    ${LIBUSB_LIB_DIR}       # libusb 库文件路径
-)

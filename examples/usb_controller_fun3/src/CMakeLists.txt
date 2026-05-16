@@ -61,6 +61,4 @@ target_link_libraries(usb_controller_fun3_lib PUBLIC libusb)
 # ============================================================================
 target_include_directories(usb_controller_fun3_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${LIBUSB_INCLUDE_DIR}
-    ${LIBUSB_INCLUDE_DIRS}
 )
