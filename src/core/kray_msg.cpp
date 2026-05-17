@@ -23,7 +23,7 @@ void Kray::get_system_info(void *p_context)
 
 #if defined(__linux__)
     str.append(QString("Linux"));
-#elif defined(__WIN32__)
+#elif defined(_WIN32)
     str.append(QString("Windows "));
     #if defined(Q_PROCESSOR_X86_64)
         str.append(QString("64-bit build (x64)"));

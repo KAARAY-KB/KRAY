@@ -38,7 +38,7 @@ static constexpr size_t g_known_devs_count = sizeof(g_known_devs) / sizeof(g_kno
 
 // 从 UsbDevice 创建 UsbDeviceInfo
 UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& dev) {
-    Console::out() << _dn << " from_usb_device: start extracting device info" << std::endl;
+    Console::out() << _dn << " from_usb_device: 开始提取设备信息" << std::endl;
     UsbDeviceInfo info;
     // 获取设备完整信息
     auto di = dev.get_info();
@@ -51,22 +51,26 @@ UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& de
     info.prod = di.product;           // 产品名称
     info.sn = di.serial_number;       // 序列号
     info.type = detect_type(info.vid, info.pid); // 检测设备类型
-    Console::out() << _dn << " from_usb_device: extracted -> " << info.to_string() << std::endl;
+    Console::out() << _dn << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
     return info;
 }
 
 // 根据 VID/PID 检测设备类型
 UsbDeviceInfo::DevType UsbDeviceInfo::detect_type(uint16_t vid, uint16_t pid) {
-    Console::out() << _dn << " detect_type: checking VID=0x"
-                   << std::hex << vid << " PID=0x" << pid << std::dec << std::endl;
+    Console::out() << _dn << " 检测类型: checking " << std::hex 
+                    << std::setfill('0') << std::setw(4)
+                    << "VID:0x" << vid 
+                    << " PID:0x" << pid 
+                    << std::dec << std::endl;
+    DevIdEntry entry = { "DEV_UNKNOWN", UsbDeviceInfo::DEV_UNKNOWN, 0x5741, 0x4E47 };
     for (size_t i = 0; i < g_known_devs_count; ++i) {
         if (g_known_devs[i].vid == vid && g_known_devs[i].pid == pid) {
-            Console::out() << _dn << " detect_type: matched known device -> " << g_known_devs[i].name << std::endl;
-            return g_known_devs[i].type; // 匹配到已知设备
+            entry = g_known_devs[i];
+            break;
         }
     }
-    Console::out() << _dn << " detect_type: no match found, type=UNKNOWN" << std::endl;
-    return DEV_UNKNOWN; // 未知设备
+    Console::out() << _dn << " 检测类型: matched known device -> " << entry.name << std::endl;
+    return entry.type;
 }
 
 // 格式化为可读字符串

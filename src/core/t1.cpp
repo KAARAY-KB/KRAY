@@ -3,7 +3,7 @@
 
 #include <QDebug>
 #include "console.h"
-#ifdef __WIN32__
+#ifdef _WIN32
 #include <Windows.h>
 #endif
 
@@ -78,7 +78,7 @@ void T1::show_top(void)
     {
         this->showNormal();
     }
-#ifdef __WIN32__
+#ifdef _WIN32
     SetWindowPos(HWND(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif

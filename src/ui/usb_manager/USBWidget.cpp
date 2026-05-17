@@ -18,8 +18,10 @@ USBWidget::USBWidget(QWidget *parent)
 
     // 遍历当前设备，添加到设备管理器
     auto& devs = m_ctrl.devices();
-    Console::out() << "USBWidget: found " << devs.size() << " devices" << std::endl;
+    Console::out() << "USBWidget: found " << devs.size() << " devices" << std::endl << std::endl;
+    size_t i = 0;
     for (auto& dev : devs) {
+        Console::out() << "#"<< i++ << ":" << std::endl;
         UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(dev);
         ui->usbDeviceManager->haveDevice(info);
     }
@@ -60,6 +62,7 @@ void USBWidget::dev_hotplug_init(void)
     // 启动热插拔监听，注册插入/拔出回调
     bool ok = m_ctrl.hotplug_start(
         [this](usb_ctrl::core::HotplugEvent event, usb_ctrl::core::UsbDevice& device) {
+            Console::out() << "USBWidget: 热插拔事件接收: " << (event == usb_ctrl::core::HotplugEvent::Arrived ? "插入" : "拔出") << std::endl;
             UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(device);
             if (event == usb_ctrl::core::HotplugEvent::Arrived) {
                 dev_insert(info);   // 设备插入

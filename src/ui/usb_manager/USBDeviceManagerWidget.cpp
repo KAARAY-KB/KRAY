@@ -1,7 +1,7 @@
 #include "USBDeviceManagerWidget.h"
 #include "console.h"
 
-#ifdef __WIN32__
+#ifdef _WIN32
 #include <Windows.h>
 #endif
 
@@ -27,7 +27,7 @@ USBDeviceSubWidget::USBDeviceSubWidget(UsbDeviceInfo &info, QWidget *parent)
 
     // 鼠标悬停显示详细提示信息
     QString tooltip = QString::fromStdString(m_info.to_string());
-    Console::out() << tooltip.toStdString() << std::endl;
+    // Console::out() << tooltip.toStdString() << std::endl;
     label->setToolTip(tooltip);
     
     btn_enter = new QPushButton("Enter");
@@ -143,7 +143,7 @@ void USBDeviceManagerWidget::show_top(void) {
     {
         this->showNormal();
     }
-#ifdef __WIN32__
+#ifdef _WIN32
     SetWindowPos(HWND(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif

@@ -3,7 +3,7 @@
 #include <QIcon>
 #include <QPixmap>
 #include <QPainter>
-#ifdef __WIN32__
+#ifdef _WIN32
 #include <windows.h>
 #endif
 
@@ -37,7 +37,7 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
 //    setAttribute(Qt::WA_QuitOnClose, false); // 关闭窗口时不退出应用
     setWindowTitle("Console");
     setWindowIcon(createConsoleIcon());
-    setFont(QFont("Maple Mono NF CN", 10));
+    setFont(QFont("Maple Mono NF CN", 12));
     resize(600, 460);
     move(0, 0);
 
@@ -72,7 +72,7 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
         "}"
     );
     
-#ifdef __WIN32__
+#ifdef _WIN32
     // 设置窗口背景色为暗黑色，避免边框显示白色
     HWND hwnd = HWND(this->winId());
     SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(RGB(50, 50, 50)));
@@ -94,7 +94,7 @@ void ConsoleWidget::show_top(void)
     {
         this->showNormal();
     }
-#ifdef __WIN32__
+#ifdef _WIN32
     SetWindowPos(HWND(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 #endif
