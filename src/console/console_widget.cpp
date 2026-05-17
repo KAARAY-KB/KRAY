@@ -38,7 +38,7 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
     setWindowTitle("Console");
     setWindowIcon(createConsoleIcon());
     setFont(QFont("Maple Mono NF CN", 12));
-    resize(600, 460);
+    resize(660, 460);
     move(0, 0);
 
     // 设置控制台外观

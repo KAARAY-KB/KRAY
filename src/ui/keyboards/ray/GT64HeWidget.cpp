@@ -53,13 +53,13 @@ GT64HeWidget::~GT64HeWidget() {
 }
 
 void GT64HeWidget::closeEvent(QCloseEvent *event) {
-    Console::out() << "GT64HeWidget::closeEvent()" << std::endl;
+    Console::out() << "GT64HeWidget: close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
 }
 void GT64HeWidget::closeWidget(void) {
-    Console::out() << "GT64HeWidget::closeWidget()" << std::endl;
+    Console::out() << "GT64HeWidget: close widget" << std::endl;
     emit exitWidget();
 }
 

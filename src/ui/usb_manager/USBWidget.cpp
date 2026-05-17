@@ -27,9 +27,9 @@ USBWidget::USBWidget(QWidget *parent)
     }
 
     connect(this, &USBWidget::exitWindow, this, [=]() {
-        Console::out() << " gt exitWindow" << std::endl;
         if (m_gt64heWidget)
         {
+            Console::out() << " gt exitWindow" << std::endl;
             delete m_gt64heWidget;
             m_gt64heWidget = nullptr;
         }
@@ -45,7 +45,7 @@ USBWidget::~USBWidget()
 
 void USBWidget::closeEvent(QCloseEvent *event)
 {
-    Console::out() << "widget close event" << std::endl;
+    Console::out() << "USBWidget: close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

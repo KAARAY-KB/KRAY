@@ -55,8 +55,8 @@ void Console::abort_msg() {
     std::lock_guard<std::mutex> lock(s_mutex);
     for (const auto& sink : s_sinks) {
         sink->write(_console_logo);
-        sink->write("控制台日志输出\n");
         sink->write("KRAY Console log output\n");
+        sink->write("控制台日志输出\n\n");
     }
 }
 

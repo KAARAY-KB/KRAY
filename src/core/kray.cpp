@@ -105,10 +105,12 @@ Kray::~Kray()
     if (_consoleWin != nullptr) {
         qDebug() << "Kray::~Kray() _consoleWin";
         Console::out() << "Kray::~Kray() _consoleWin";
+        qDebug() << "Kray::~Kray() _consoleWin unregister sink";
+        Console::out() << "Kray::~Kray() _consoleWin unregister sink" << std::endl;
+
         // 延迟10秒
        // QThread::msleep(10000);
         Console::unregisterSink(_consoleWin->sink());
-        qDebug() << "Kray::~Kray() _consoleWin unregister sink";
         delete _consoleWin;
         _consoleWin = nullptr;
     }

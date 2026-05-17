@@ -66,7 +66,7 @@ T1::~T1()
 
 void T1::closeEvent(QCloseEvent *event)
 {
-    Console::out() << "t1 widget close event" << std::endl;
+    Console::out() << "T1: close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

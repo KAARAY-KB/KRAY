@@ -156,7 +156,7 @@ void USBDeviceManagerWidget::resizeEvent(QResizeEvent *event) {
     reorganizeLayout();
 }
 void USBDeviceManagerWidget::closeEvent(QCloseEvent *event) {
-    Console::out() << "widget close event" << std::endl;
+    Console::out() << "USBDeviceManagerWidget: close event" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
