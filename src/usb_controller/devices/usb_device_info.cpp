@@ -11,8 +11,11 @@
 
 #include "usb_device_info.hpp"
 #include "usb_core/usb_device.hpp"
+#include "console.h"
 #include <sstream>
 #include <iomanip>
+
+static std::string _dn = "[DevInfo]";
 
 // 已知设备的 VID/PID 表
 struct DevIdEntry {
@@ -35,6 +38,7 @@ static constexpr size_t g_known_devs_count = sizeof(g_known_devs) / sizeof(g_kno
 
 // 从 UsbDevice 创建 UsbDeviceInfo
 UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& dev) {
+    Console::out() << _dn << " from_usb_device: start extracting device info" << std::endl;
     UsbDeviceInfo info;
     // 获取设备完整信息
     auto di = dev.get_info();
@@ -47,16 +51,21 @@ UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& de
     info.prod = di.product;           // 产品名称
     info.sn = di.serial_number;       // 序列号
     info.type = detect_type(info.vid, info.pid); // 检测设备类型
+    Console::out() << _dn << " from_usb_device: extracted -> " << info.to_string() << std::endl;
     return info;
 }
 
 // 根据 VID/PID 检测设备类型
 UsbDeviceInfo::DevType UsbDeviceInfo::detect_type(uint16_t vid, uint16_t pid) {
+    Console::out() << _dn << " detect_type: checking VID=0x"
+                   << std::hex << vid << " PID=0x" << pid << std::dec << std::endl;
     for (size_t i = 0; i < g_known_devs_count; ++i) {
         if (g_known_devs[i].vid == vid && g_known_devs[i].pid == pid) {
+            Console::out() << _dn << " detect_type: matched known device -> " << g_known_devs[i].name << std::endl;
             return g_known_devs[i].type; // 匹配到已知设备
         }
     }
+    Console::out() << _dn << " detect_type: no match found, type=UNKNOWN" << std::endl;
     return DEV_UNKNOWN; // 未知设备
 }
 
@@ -80,8 +89,12 @@ std::string UsbDeviceInfo::to_string() const {
 
 // 设备比较
 bool UsbDeviceInfo::operator==(const UsbDeviceInfo& other) const {
-    return vid == other.vid && pid == other.pid &&
-           bus == other.bus && port == other.port && addr == other.addr;
+    bool match = vid == other.vid && pid == other.pid &&
+                 bus == other.bus && port == other.port && addr == other.addr;
+    Console::out() << _dn << " operator==: " << (match ? "MATCH" : "MISMATCH")
+                   << " this=" << to_string()
+                   << " other=" << other.to_string() << std::endl;
+    return match;
 }
 
 // 获取设备类型名称
