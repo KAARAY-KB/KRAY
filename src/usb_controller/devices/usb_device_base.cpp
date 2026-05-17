@@ -37,11 +37,11 @@ bool UsbDeviceBase::open() {
     Console::out() << _dn << " open: device count=" << m_ctrl->device_count() << std::endl;
     // 按 VID/PID 打开 HID 设备
     Console::out() << _dn << " open: opening HID device VID=0x"
-                   << std::hex << m_info.vid << " PID=0x" << m_info.pid << std::dec << std::endl;
-    bool ok = m_ctrl->open_hid_device_by_vid_pid(m_info.vid, m_info.pid);
+                   << std::hex << m_info.di.vendor_id << " PID=0x" << m_info.di.product_id << std::dec << std::endl;
+    bool ok = m_ctrl->open_hid_device_by_vid_pid(m_info.di.vendor_id, m_info.di.product_id);
     if (!ok) {
         Console::out() << _dn << " open: FAILED, HID open failed, VID=0x"
-                       << std::hex << m_info.vid << " PID=0x" << m_info.pid << std::dec << std::endl;
+                       << std::hex << m_info.di.vendor_id << " PID=0x" << m_info.di.product_id << std::dec << std::endl;
         return false;
     }
     Console::out() << _dn << " open: HID device opened successfully" << std::endl;

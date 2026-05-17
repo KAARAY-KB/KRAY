@@ -20,8 +20,8 @@ USBDeviceSubWidget::USBDeviceSubWidget(UsbDeviceInfo &info, QWidget *parent)
     label->setAlignment(Qt::AlignCenter); // 居中对齐
 
     // 显示制造商和产品名称
-    QString mfr  = m_info.mfr.empty()  ? "NULL" : QString(m_info.mfr.c_str());
-    QString prod = m_info.prod.empty() ? "NULL" : QString(m_info.prod.c_str());
+    QString mfr  = m_info.di.manufacturer.empty()  ? "NULL" : QString(m_info.di.manufacturer.c_str());
+    QString prod = m_info.di.product.empty() ? "NULL" : QString(m_info.di.product.c_str());
     QString str = QString("%1-%2").arg(mfr).arg(prod);
     label->setText(str);
 

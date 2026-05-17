@@ -15,7 +15,7 @@ static std::string _dn = "";
 GT64HeDevice::GT64HeDevice(const UsbDeviceInfo& info)
     : UsbDeviceBase(info) // 调用基类构造函数
 {
-    _dn = "[" + info.prod + "]";
+    _dn = "[" + info.di.product + "]";
     Console::out() << _dn << " construct: device=" << info.to_string() << std::endl;
     Console::out() << _dn << " construct: VID=0x" << std::hex << VID
                    << " PID=0x" << PID << std::dec

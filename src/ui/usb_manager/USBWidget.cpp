@@ -77,6 +77,10 @@ void USBWidget::dev_hotplug_init(void)
 }
 
 void USBWidget::openUSBWidget(UsbDeviceInfo &info) {
+    if (!info.is_hid) {
+        Console::out() << "USBWidget: skip non-HID device: " << info.to_string() << std::endl;
+        return;
+    }
     gt64heWidget(info);
 }
 void USBWidget::closeUSBWidget(UsbDeviceInfo &info) {

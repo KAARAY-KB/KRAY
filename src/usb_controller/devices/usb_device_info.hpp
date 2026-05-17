@@ -3,30 +3,31 @@
 //
 // 功能说明：
 //   定义 UsbDeviceInfo 结构体，作为 Qt 上层识别和展示 USB 设备的信息载体。
-//   替代旧模块的 USBHelper::DevMsg_t，提供设备类型判断、信息格式化等功能。
+//   直接包含底层 DeviceInfo（含完整接口/端点树），只扩展 Qt 层需要的：
+//   - DevType：设备类型（决定打开哪个窗口）
+//   - is_hid：是否包含 HID 接口（便捷标志）
 //
-// 设计思路：
-//   - 从 usb_ctrl::core::UsbDevice 提取关键信息
-//   - 保留设备类型枚举（DevType），用于 Qt 层决定打开哪种设备窗口
-//   - 提供 VID/PID 到设备类型的自动检测
+//   HID 接口信息通过 di.configs[].interfaces[] 遍历获取，
+//   接口类 bclass==0x03 即为 HID，端点信息在 InterfaceInfo::endpoints 中。
 // ============================================================================
 
 #pragma once
 
+#include "usb_core/usb_device.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace usb_ctrl {
-namespace core {
-class UsbDevice; // 前向声明
-}
-}
-
 // ============================================================================
 // UsbDeviceInfo - USB 设备信息结构体
 //
-// 包含设备标识信息和可读描述信息，用于 Qt 上层展示和设备路由。
+// 直接包含 DeviceInfo，额外添加 Qt 层所需的扩展字段。
+// 访问底层设备信息通过 di 成员，如 info.di.vendor_id。
+// HID 接口信息通过 di.configs 遍历，如：
+//   for (auto& cfg : info.di.configs)
+//     for (auto& iface : cfg.interfaces)
+//       if (iface.bclass == 0x03) // HID 接口
+//         for (auto& ep : iface.endpoints) ...
 // ============================================================================
 struct UsbDeviceInfo {
     // 设备类型枚举
@@ -40,15 +41,12 @@ struct UsbDeviceInfo {
         DEV_UNKNOWN,        // 未知设备
     };
 
-    DevType type = DEV_UNKNOWN; // 设备类型
-    uint16_t vid = 0;           // 厂商 ID
-    uint16_t pid = 0;           // 产品 ID
-    uint8_t bus = 0;            // 总线编号
-    uint8_t port = 0;           // 端口号
-    uint8_t addr = 0;           // 设备地址
-    std::string mfr;            // 制造商
-    std::string prod;           // 产品名称
-    std::string sn;             // 序列号
+    // --- 底层设备信息（直接包含，含完整接口/端点树） ---
+    usb_ctrl::core::DeviceInfo di;  // 完整设备信息
+
+    // --- Qt 层扩展字段 ---
+    DevType type = DEV_UNKNOWN;     // 设备类型
+    bool is_hid = false;            // 是否包含 HID 接口
 
     // 从 UsbDevice 创建 UsbDeviceInfo
     static UsbDeviceInfo from_usb_device(const usb_ctrl::core::UsbDevice& dev);

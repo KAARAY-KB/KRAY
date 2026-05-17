@@ -10,7 +10,6 @@
 // ============================================================================
 
 #include "usb_device_info.hpp"
-#include "usb_core/usb_device.hpp"
 #include "console.h"
 #include <sstream>
 #include <iomanip>
@@ -40,17 +39,37 @@ static constexpr size_t g_known_devs_count = sizeof(g_known_devs) / sizeof(g_kno
 UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& dev) {
     Console::out() << _dn << " from_usb_device: 开始提取设备信息" << std::endl;
     UsbDeviceInfo info;
-    // 获取设备完整信息
-    auto di = dev.get_info();
-    info.vid = di.vendor_id;          // 厂商 ID
-    info.pid = di.product_id;         // 产品 ID
-    info.bus = di.bus_number;         // 总线编号
-    info.port = di.port_number;       // 端口号
-    info.addr = di.device_address;    // 设备地址
-    info.mfr = di.manufacturer;       // 制造商
-    info.prod = di.product;           // 产品名称
-    info.sn = di.serial_number;       // 序列号
-    info.type = detect_type(info.vid, info.pid); // 检测设备类型
+    // 直接获取底层 DeviceInfo（含完整接口/端点树）
+    info.di = dev.get_info();
+
+    // 检测设备类型
+    info.type = detect_type(info.di.vendor_id, info.di.product_id);
+
+    // 检测是否包含 HID 接口
+    info.is_hid = dev.has_hid_interface();
+    Console::out() << _dn << " from_usb_device: is_hid=" << info.is_hid << std::endl;
+
+    // 日志：列出所有 HID 接口及其端点
+    if (info.is_hid) {
+        int hid_count = 0;
+        for (const auto& cfg : info.di.configs) {
+            for (const auto& iface : cfg.interfaces) {
+                if (iface.bclass == 0x03) { // HID 接口
+                    hid_count++;
+                    Console::out() << _dn << " from_usb_device: HID iface="
+                                   << (int)iface.number;
+                    for (const auto& ep : iface.endpoints) {
+                        Console::out() << " EP=0x" << std::hex << (int)ep.address
+                                       << "(" << ep.max_packet_size << "B)"
+                                       << ep.direction_str();
+                    }
+                    Console::out() << std::dec << std::endl;
+                }
+            }
+        }
+        Console::out() << _dn << " from_usb_device: total HID interfaces=" << hid_count << std::endl;
+    }
+
     Console::out() << _dn << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
     return info;
 }
@@ -78,32 +97,45 @@ std::string UsbDeviceInfo::to_string() const {
     std::ostringstream oss;
     oss << type_name() << " ["          // 设备类型名
         << std::hex << std::setfill('0')
-        << "VID:" << std::setw(4) << vid << " " // 厂商 ID
-        << "PID:" << std::setw(4) << pid << " " // 产品 ID
+        << "VID:" << std::setw(4) << di.vendor_id << " " // 厂商 ID
+        << "PID:" << std::setw(4) << di.product_id << " " // 产品 ID
         << std::dec
-        << "Bus:" << (int)bus << " "    // 总线编号
-        << "Port:" << (int)port << " "  // 端口号
-        << "Addr:" << (int)addr << "] " // 设备地址
-        << mfr << " / " << prod;        // 制造商 / 产品名
-    if (!sn.empty()) {
-        oss << " SN:" << sn;            // 序列号
+        << "Bus:" << (int)di.bus_number << " "    // 总线编号
+        << "Port:" << (int)di.port_number << " "  // 端口号
+        << "Addr:" << (int)di.device_address << "] " // 设备地址
+        << di.speed_str << " "                    // 速度
+        << di.manufacturer << " / " << di.product;        // 制造商 / 产品名
+    if (!di.serial_number.empty()) {
+        oss << " SN:" << di.serial_number;            // 序列号
+    }
+    if (is_hid) {
+        // 统计 HID 接口数量
+        int hid_count = 0;
+        for (const auto& cfg : di.configs) {
+            for (const auto& iface : cfg.interfaces) {
+                if (iface.bclass == 0x03) hid_count++;
+            }
+        }
+        oss << " [HID x" << hid_count << "]";
     }
     return oss.str();
 }
 
 // 设备比较
 bool UsbDeviceInfo::operator==(const UsbDeviceInfo& other) const {
-    bool match = vid == other.vid && pid == other.pid &&
-                 bus == other.bus && port == other.port && addr == other.addr;
+    bool match = di.vendor_id == other.di.vendor_id &&
+                 di.product_id == other.di.product_id &&
+                 di.bus_number == other.di.bus_number &&
+                 di.port_number == other.di.port_number &&
+                 di.device_address == other.di.device_address;
     Console::out() << _dn << " operator==: " << (match ? "MATCH" : "MISMATCH")
                    << " this=" << to_string()
                    << " other=" << other.to_string() << std::endl;
     return match;
 }
 
-// 获取设备类型名称
+// 获取设备类型名称(已知设备列表)
 const char* UsbDeviceInfo::type_name() const {
-    // 在已知设备列表中查找名称
     for (size_t i = 0; i < g_known_devs_count; ++i) {
         if (g_known_devs[i].type == type) {
             return g_known_devs[i].name;
