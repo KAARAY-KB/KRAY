@@ -24,5 +24,7 @@ GT64HeDevice::GT64HeDevice(const UsbDeviceInfo& info)
 
 // 析构函数
 GT64HeDevice::~GT64HeDevice() {
+    Console::out() << _dn << " destruct: closing device..." << std::endl;
+    close();
     Console::out() << _dn << " destruct: device destroyed" << std::endl;
 }
