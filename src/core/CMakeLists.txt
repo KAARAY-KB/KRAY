@@ -30,12 +30,12 @@ add_library(${SUB_NAME} STATIC
 )
 # 链接库
 target_link_libraries(${SUB_NAME} PRIVATE 
+    qcustomplot
+    usb_manager
+    console
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
-    usb_manager
-    console
-    qcustomplot
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC

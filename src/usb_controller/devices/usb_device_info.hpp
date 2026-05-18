@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <QMetaType>
 
 // ============================================================================
 // UsbDeviceInfo - USB 设备信息结构体
@@ -63,3 +64,5 @@ struct UsbDeviceInfo {
     // 获取设备类型名称
     const char* type_name() const;
 };
+
+Q_DECLARE_METATYPE(UsbDeviceInfo)

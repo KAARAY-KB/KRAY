@@ -13,6 +13,7 @@
 #include "console.h"
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 static std::string _dn = "[DevInfo]";
 
@@ -39,22 +40,45 @@ static constexpr size_t g_known_devs_count = sizeof(g_known_devs) / sizeof(g_kno
 UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& dev) {
     Console::out() << _dn << " from_usb_device: 开始提取设备信息" << std::endl;
     UsbDeviceInfo info;
-    // 直接获取底层 DeviceInfo（含完整接口/端点树）
-    info.di = dev.get_info();
 
-    // 检测设备类型
+    if (dev.is_offline()) {
+        info.di = dev.get_info();
+        info.type = detect_type(info.di.vendor_id, info.di.product_id);
+        info.is_hid = false;
+        for (const auto& cfg : info.di.configs) {
+            for (const auto& iface : cfg.interfaces) {
+                if (iface.bclass == 0x03) {
+                    info.is_hid = true;
+                    break;
+                }
+            }
+            if (info.is_hid) break;
+        }
+        Console::out() << _dn << " from_usb_device: 离线设备 is_hid=" << info.is_hid << std::endl;
+        Console::out() << _dn << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
+        return info;
+    }
+
+    info.di = dev.get_info();
     info.type = detect_type(info.di.vendor_id, info.di.product_id);
 
-    // 检测是否包含 HID 接口
-    info.is_hid = dev.has_hid_interface();
+    info.is_hid = false;
+    for (const auto& cfg : info.di.configs) {
+        for (const auto& iface : cfg.interfaces) {
+            if (iface.bclass == 0x03) {
+                info.is_hid = true;
+                break;
+            }
+        }
+        if (info.is_hid) break;
+    }
     Console::out() << _dn << " from_usb_device: is_hid=" << info.is_hid << std::endl;
 
-    // 日志：列出所有 HID 接口及其端点
     if (info.is_hid) {
         int hid_count = 0;
         for (const auto& cfg : info.di.configs) {
             for (const auto& iface : cfg.interfaces) {
-                if (iface.bclass == 0x03) { // HID 接口
+                if (iface.bclass == 0x03) {
                     hid_count++;
                     Console::out() << _dn << " from_usb_device: HID iface="
                                    << (int)iface.number;
@@ -123,15 +147,22 @@ std::string UsbDeviceInfo::to_string() const {
 
 // 设备比较
 bool UsbDeviceInfo::operator==(const UsbDeviceInfo& other) const {
-    bool match = di.vendor_id == other.di.vendor_id &&
-                 di.product_id == other.di.product_id &&
-                 di.bus_number == other.di.bus_number &&
-                 di.port_number == other.di.port_number &&
-                 di.device_address == other.di.device_address;
-    Console::out() << _dn << " operator==: " << (match ? "MATCH" : "MISMATCH")
-                   << " this=" << to_string()
-                   << " other=" << other.to_string() << std::endl;
-    return match;
+    if (di.vendor_id != other.di.vendor_id || di.product_id != other.di.product_id)
+        return false;
+    if (!di.serial_number.empty() && !other.di.serial_number.empty()) {
+        bool sn_match = (di.serial_number == other.di.serial_number);
+        // 序列号不相等，尝试转换为小写比较
+        if (!sn_match) {
+            std::string sn1 = di.serial_number, sn2 = other.di.serial_number;
+            std::transform(sn1.begin(), sn1.end(), sn1.begin(), ::tolower);
+            std::transform(sn2.begin(), sn2.end(), sn2.begin(), ::tolower);
+            sn_match = (sn1 == sn2);
+        }
+        return sn_match;
+    }
+    return di.bus_number == other.di.bus_number &&
+           di.port_number == other.di.port_number &&
+           di.device_address == other.di.device_address;
 }
 
 // 获取设备类型名称(已知设备列表)

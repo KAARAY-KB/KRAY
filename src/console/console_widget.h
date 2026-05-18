@@ -4,6 +4,11 @@
 #include <QTextEdit>
 #include <QMutex>
 #include <QString>
+#include <QLabel>
+#include <QMenu>
+#include <QAction>
+#include <QTimer>
+#include <QElapsedTimer>
 #include "console_sink.h"
 
 /**
@@ -27,15 +32,7 @@ class ConsoleWidget : public QTextEdit {
     Q_OBJECT
 
 public:
-    /**
-     * @brief 构造函数
-     * @param parent Qt 父窗口指针
-     */
     explicit ConsoleWidget(QWidget* parent = nullptr);
-
-    /**
-     * @brief 析构函数
-     */
     ~ConsoleWidget() = default;
 
     /**
@@ -56,9 +53,7 @@ public:
      */
     void setMaxLines(int maxLines);
 
-    /**
-     * @brief 显示窗口并置顶
-     */
+    // 显示窗口并置顶
     void show_top(void);
 
 signals:
@@ -78,6 +73,30 @@ private slots:
     void appendText(const QString& text);
 
 private:
+    // 判断滚动条是否在底部
+    bool isAtBottom() const;
+
+    // 显示/隐藏新数据提示
+    void updateNewLogHint();
+
+    // 开始新日志高亮渐隐动画
+    void startNewLogHighlight();
+
+    // 更新高亮渐隐
+    void updateHighlightFade();
+
+    // 右键菜单事件
+    void contextMenuEvent(QContextMenuEvent* event) override;
+
+    // 滚动事件：用户手动滚到底部时隐藏提示
+    void scrollContentsBy(int dx, int dy) override;
+
+    // resize 事件：调整提示标签位置
+    void resizeEvent(QResizeEvent* event) override;
+
+    // 事件过滤器：处理提示标签点击
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
     /**
      * @brief 内部 Sink 实现类
      * 
@@ -97,14 +116,19 @@ private:
             // 信号槽机制会自动处理跨线程问题
             emit m_widget->textReady(QString::fromUtf8(text.c_str()));
         }
-
     private:
         ConsoleWidget* m_widget;  // 关联的窗口实例
     };
 
-    WidgetSink m_sink;        // 内部 Sink 实例
-    QMutex m_mutex;           // 线程安全锁
-    int m_maxLines;           // 最大行数限制
+    WidgetSink m_sink;              // 内部 Sink 实例
+    QMutex m_mutex;                 // 线程安全锁
+    int m_maxLines;                 // 最大行数限制
+    int m_newLogCount;              // 未读新日志计数
+    QLabel* m_newLogHint;           // 新数据提示标签
+    int m_highlightStartBlock;      // 新日志起始 block 编号
+    QTimer* m_fadeTimer;            // 高亮渐隐定时器
+    QElapsedTimer m_fadeElapsed;    // 高亮渐隐计时器
+    static const int FADE_DURATION = 2000; // 渐隐持续时间 ms
 };
 
 #endif // CONSOLE_WIDGET_H

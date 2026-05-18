@@ -259,26 +259,26 @@ std::vector<UsbHotplugWin::DevKey> UsbHotplugWin::_enum_devices() {
                 delete[] buffer;
             }
 
-            // 获取制造商
+            // 获取制造商（宽字符读取，转 UTF-8）
             size = 0;
-            SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_MFG, nullptr, nullptr, 0, &size);
+            SetupDiGetDeviceRegistryPropertyW(hDevInfo, &devInfoData, SPDRP_MFG, nullptr, nullptr, 0, &size);
             if (size > 0) {
-                auto* buffer = new BYTE[size];
-                if (SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_MFG, nullptr, buffer, size, nullptr)) {
-                    key.mfr = std::string(reinterpret_cast<const char*>(buffer), strnlen(reinterpret_cast<const char*>(buffer), size));
+                auto* wbuf = new WCHAR[size / sizeof(WCHAR) + 1];
+                if (SetupDiGetDeviceRegistryPropertyW(hDevInfo, &devInfoData, SPDRP_MFG, nullptr, reinterpret_cast<PBYTE>(wbuf), size, nullptr)) {
+                    key.mfr = _wstr_to_utf8(wbuf);
                 }
-                delete[] buffer;
+                delete[] wbuf;
             }
 
-            // 获取产品名
+            // 获取产品名（宽字符读取，转 UTF-8）
             size = 0;
-            SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_DEVICEDESC, nullptr, nullptr, 0, &size);
+            SetupDiGetDeviceRegistryPropertyW(hDevInfo, &devInfoData, SPDRP_DEVICEDESC, nullptr, nullptr, 0, &size);
             if (size > 0) {
-                auto* buffer = new BYTE[size];
-                if (SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_DEVICEDESC, nullptr, buffer, size, nullptr)) {
-                    key.prod = std::string(reinterpret_cast<const char*>(buffer), strnlen(reinterpret_cast<const char*>(buffer), size));
+                auto* wbuf = new WCHAR[size / sizeof(WCHAR) + 1];
+                if (SetupDiGetDeviceRegistryPropertyW(hDevInfo, &devInfoData, SPDRP_DEVICEDESC, nullptr, reinterpret_cast<PBYTE>(wbuf), size, nullptr)) {
+                    key.prod = _wstr_to_utf8(wbuf);
                 }
-                delete[] buffer;
+                delete[] wbuf;
             }
         }
 
@@ -370,6 +370,18 @@ std::pair<uint16_t, uint16_t> UsbHotplugWin::_parse_location_info(const std::str
 }
 
 // ============================================================================
+// _wstr_to_utf8 - 宽字符串转 UTF-8
+// ============================================================================
+std::string UsbHotplugWin::_wstr_to_utf8(const WCHAR* wstr) {
+    if (!wstr || !wstr[0]) return "";
+    int len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+    if (len <= 0) return "";
+    std::string utf8(len - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &utf8[0], len, nullptr, nullptr);
+    return utf8;
+}
+
+// ============================================================================
 // _match_filter - 检查设备是否匹配过滤条件
 // ============================================================================
 bool UsbHotplugWin::_match_filter(const DevKey& key) const {
@@ -413,6 +425,9 @@ UsbDevice UsbHotplugWin::_make_device(const DevKey& key) const {
     info.manufacturer = key.mfr;
     info.product = key.prod;
     info.serial_number = key.sn;
+    // SN 转大写，与 libusb 读取的格式一致
+    std::transform(info.serial_number.begin(), info.serial_number.end(),
+                   info.serial_number.begin(), ::toupper);
     return UsbDevice(info);
 }
 
@@ -428,51 +443,56 @@ void UsbHotplugWin::win_diff_devices() {
     // 枚举当前设备列表
     std::vector<DevKey> current = _enum_devices();
 
-    // 加锁对比
-    std::lock_guard<std::mutex> lock(_snapshot_mutex);
+    std::vector<DevKey> arrived;
+    std::vector<DevKey> left;
+
+    {
+        std::lock_guard<std::mutex> lock(_snapshot_mutex);
 
     // 查找新增设备（在 current 中但不在 snapshot 中）
-    for (const auto& cur : current) {
-        // 检查过滤条件
-        if (!_match_filter(cur)) continue;
-
-        bool found = false;
-        for (const auto& snap : _snapshot) {
-            if (snap.vid == cur.vid && snap.pid == cur.pid &&
-                snap.bus == cur.bus && snap.port == cur.port) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            // 设备插入
-            UsbDevice dev = _make_device(cur);
-            _callback(HotplugEvent::Arrived, dev);
-        }
-    }
-
-    // 查找移除设备（在 snapshot 中但不在 current 中）
-    for (const auto& snap : _snapshot) {
-        // 检查过滤条件
-        if (!_match_filter(snap)) continue;
-
-        bool found = false;
         for (const auto& cur : current) {
-            if (snap.vid == cur.vid && snap.pid == cur.pid &&
-                snap.bus == cur.bus && snap.port == cur.port) {
-                found = true;
-                break;
+        // 检查过滤条件
+            if (!_match_filter(cur)) continue;
+
+            bool found = false;
+            for (const auto& snap : _snapshot) {
+                if (snap.vid == cur.vid && snap.pid == cur.pid &&
+                    snap.bus == cur.bus && snap.port == cur.port) {
+                    found = true;
+                    break;
+                }
             }
+            if (!found) arrived.push_back(cur);
         }
-        if (!found) {
-            // 设备拔出
-            UsbDevice dev = _make_device(snap);
-            _callback(HotplugEvent::Left, dev);
+
+        // 查找移除设备（在 snapshot 中但不在 current 中）
+        for (const auto& snap : _snapshot) {
+        // 检查过滤条件
+            if (!_match_filter(snap)) continue;
+            bool found = false;
+            for (const auto& cur : current) {
+                if (snap.vid == cur.vid && snap.pid == cur.pid &&
+                    snap.bus == cur.bus && snap.port == cur.port) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) left.push_back(snap);
         }
+        _snapshot = current;
     }
 
-    // 更新快照
-    _snapshot = std::move(current);
+    // 触发新增设备回调
+    for (const auto& key : arrived) {
+        UsbDevice dev = _make_device(key);
+        _callback(HotplugEvent::Arrived, dev);
+    }
+
+    // 触发移除设备回调
+    for (const auto& key : left) {
+        UsbDevice dev = _make_device(key);
+        _callback(HotplugEvent::Left, dev);
+    }
 }
 
 } // namespace core

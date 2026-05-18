@@ -58,6 +58,8 @@ private slots:
 
 signals:
     void exitWindow();
+    void sig_dev_insert(UsbDeviceInfo info);
+    void sig_dev_remove(UsbDeviceInfo info);
 
 private:
     Ui::USBWidget *ui;

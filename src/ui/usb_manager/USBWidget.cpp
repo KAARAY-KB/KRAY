@@ -10,6 +10,10 @@ USBWidget::USBWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
+    qRegisterMetaType<UsbDeviceInfo>("UsbDeviceInfo");
+    connect(this, &USBWidget::sig_dev_insert, this, &USBWidget::dev_insert);
+    connect(this, &USBWidget::sig_dev_remove, this, &USBWidget::dev_remove);
+
     // 刷新设备列表
     m_ctrl.refresh_devices();
 
@@ -21,7 +25,7 @@ USBWidget::USBWidget(QWidget *parent)
     Console::out() << "USBWidget: found " << devs.size() << " devices" << std::endl << std::endl;
     size_t i = 0;
     for (auto& dev : devs) {
-        Console::out() << "#"<< i++ << ":" << std::endl;
+        Console::out() << std::endl << "#"<< i++ << ":" << std::endl;
         UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(dev);
         ui->usbDeviceManager->haveDevice(info);
     }
@@ -62,12 +66,12 @@ void USBWidget::dev_hotplug_init(void)
     // 启动热插拔监听，注册插入/拔出回调
     bool ok = m_ctrl.hotplug_start(
         [this](usb_ctrl::core::HotplugEvent event, usb_ctrl::core::UsbDevice& device) {
-            Console::out() << "USBWidget: 热插拔事件接收: " << (event == usb_ctrl::core::HotplugEvent::Arrived ? "插入" : "拔出") << std::endl;
+            Console::out() << std::endl << "USBWidget: 热插拔事件: " << (event == usb_ctrl::core::HotplugEvent::Arrived ? "插入" : "拔出") << std::endl;
             UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(device);
             if (event == usb_ctrl::core::HotplugEvent::Arrived) {
-                dev_insert(info);   // 设备插入
+                emit sig_dev_insert(info);
             } else {
-                dev_remove(info);   // 设备拔出
+                emit sig_dev_remove(info);
             }
         }
     );

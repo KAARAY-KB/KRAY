@@ -77,12 +77,14 @@ endif()
 
 # 链接Qt Widgets库到项目
 target_link_libraries(${PROJECT_NAME} PRIVATE 
+    # MinGW 的 ld 是单遍扫描链接器。
+    # 如果依赖 Qt 的静态库（如 qcustomplot 、 console ）排在 Qt 库前面，链接器扫描完 Qt 库后不会回头解析后续库中的符号引用。
+    core
+    resources
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::PrintSupport
-    core
-    resources
     # WIN32 # If you need a terminal for debug, please comment this statement 
 )
 

@@ -327,7 +327,9 @@ std::string UsbDevice::_format_hex(const unsigned char* data, size_t len, size_t
 // @return 填充完整的 DeviceInfo 结构体
 // ============================================================================
 DeviceInfo UsbDevice::get_info() const {
-    DeviceInfo info; // 创建空的设备信息结构体
+    if (!_dev) return _saved_info;
+
+    DeviceInfo info;
 
     // ---- 第 1 步：读取设备描述符 ----
     libusb_device_descriptor desc;

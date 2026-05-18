@@ -87,6 +87,9 @@ private:
     // 解析位置信息，提取 Hub/Port
     static std::pair<uint16_t, uint16_t> _parse_location_info(const std::string& info);
 
+    // 宽字符串转 UTF-8
+    static std::string _wstr_to_utf8(const WCHAR* wstr);
+
     // 检查设备是否匹配过滤条件
     bool _match_filter(const DevKey& key) const;
 
