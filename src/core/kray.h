@@ -27,6 +27,7 @@ private:
     T2 *t2 = nullptr;
     USBWidget *usb_widget = nullptr;
     MSystemTrayIcon *m_system_tray_icon = nullptr;
+    bool m_close_to_quit = false; // 是否关闭时退出程序
 
     void closeEvent(QCloseEvent *event) override;
     void get_system_info(void *p_context);
@@ -47,6 +48,8 @@ private slots:
     void on_font_available_triggered();
     void on_system_info_triggered();
     void on_all_widget_info_triggered();
+
+    void on_action_close_toggled(bool arg1);
 
 private:
     Ui::Kray *ui;

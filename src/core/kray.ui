@@ -161,6 +161,7 @@
     <property name="title">
      <string>KRAY</string>
     </property>
+    <addaction name="action_close"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -205,6 +206,20 @@
   <action name="all_widget_info">
    <property name="text">
     <string>all_widget_info</string>
+   </property>
+  </action>
+  <action name="action_close">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>退出时关闭程序</string>
+   </property>
+   <property name="toolTip">
+    <string>退出时关闭程序</string>
    </property>
   </action>
  </widget>

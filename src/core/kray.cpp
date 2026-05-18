@@ -74,6 +74,10 @@ void Kray::closeEvent(QCloseEvent *event)
         qDebug() << "Kray::closeEvent() _consoleWin not close";
         Console::out() << "Kray::closeEvent() _consoleWin not close" << std::endl;
     }
+    // 勾选"退出时关闭程序"则彻底退出应用
+    if (m_close_to_quit) {
+        qApp->quit();
+    }
 
     QMainWindow::closeEvent(event);
 }
@@ -207,7 +211,6 @@ void Kray::on_btn_close_clicked()
 {
     this->close();
 }
-
 void Kray::on_font_default_triggered()
 {
     // 获取并输出应用默认字体信息
@@ -224,5 +227,9 @@ void Kray::on_system_info_triggered()
 void Kray::on_all_widget_info_triggered()
 {
     get_all_widgets_info(nullptr);
+}
+void Kray::on_action_close_toggled(bool arg1)
+{
+    m_close_to_quit = arg1;
 }
 
