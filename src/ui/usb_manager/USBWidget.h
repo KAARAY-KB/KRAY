@@ -8,7 +8,7 @@
 #include <QPainter>
 
 #include "usb_controller.hpp"
-#include "devices/usb_device_info.hpp"
+#include "usb_device_info.hpp"
 #include "GT64HeWidget.h"
 
 QT_BEGIN_NAMESPACE

@@ -133,11 +133,7 @@ endif()
 option(KRY_BUILD_EXAMPLE "Build example" ON)
 
 if(KRY_BUILD_EXAMPLE)
-    add_subdirectory(examples/usb_controller_fun3)
-
-# CTest
-    enable_testing()
-    add_test(ex_usb_controller_fun3 examples/usb_controller_fun3/ex_usb_controller_fun3)
-    
+    # USB 控制器示例通过子目录选项 USB_CTRL_BUILD_EXAMPLE 控制
+    set(USB_CTRL_BUILD_EXAMPLE ON CACHE BOOL "" FORCE)
 endif()
 

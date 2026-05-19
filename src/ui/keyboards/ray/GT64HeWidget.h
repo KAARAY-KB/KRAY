@@ -8,8 +8,8 @@
 #include <QColorDialog>
 #include <QPainter>
 
-#include "devices/usb_device_info.hpp"
-#include "devices/gt64he_device.hpp"
+#include "usb_device_info.hpp"
+#include "gt64he_device.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class GT64HeWidget; }

@@ -12,7 +12,7 @@
 #include <QGridLayout>
 #include <QPushButton>
 #include <QCloseEvent>
-#include "devices/usb_device_info.hpp"
+#include "usb_device_info.hpp"
 
 class USBDeviceSubWidget : public QFrame {
     Q_OBJECT

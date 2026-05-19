@@ -1,50 +1,40 @@
 # ============================================================================
-# CMakeLists.txt - USB 控制器库构建文件
+# CMakeLists.txt - USB 控制器模块编排文件
 #
-# 构建静态库 usb_controller，包含新模块的所有源文件：
-#   usb_core/  - USB 核心模块（上下文、设备、设备管理器、事件线程、热插拔）
-#   usb_io/    - USB 数据传输模块（同步传输、HID 设备、异步传输）
-#   usb_controller.cpp - USB 控制器统一接口
+# 本文件是 usb_controller 模块的顶层入口，负责按需组合各子模块：
+#
+#   src/      - 核心库（必选）：USB 上下文、设备管理、数据传输、热插拔
+#   example/  - 示例程序（可选）：交互式演示和单元测试
+#   test/     - C API 测试（可选）：Python ctypes 共享库
+#
+# 构建选项：
+#   USB_CTRL_BUILD_EXAMPLE - 构建示例程序（默认 OFF）
+#   USB_CTRL_BUILD_TEST    - 构建 C API 测试（默认 OFF）
+#
+# 用法：
+#   最小构建（仅核心库，无 Qt 依赖）：
+#     cmake ...
+#   完整构建（核心 + 示例 + 测试）：
+#     cmake -DUSB_CTRL_BUILD_EXAMPLE=ON -DUSB_CTRL_BUILD_TEST=ON ...
 # ============================================================================
 
-set(SUB_NAME usb_controller)
+# 核心库（必选，仅依赖 libusb）
+add_subdirectory(src)
 
-# 核心源文件
-add_library(${SUB_NAME}
-    usb_core/usb_context.cpp
-    usb_core/usb_device.cpp
-    usb_core/usb_device_manager.cpp
-    usb_core/usb_event_thread.cpp
-    usb_core/usb_hotplug_base.cpp
-    usb_core/usb_hotplug_linux.cpp
-    usb_io/sync_transfer.cpp
-    usb_io/hid_device.cpp
-    usb_io/async_transfer.cpp
-    usb_controller.cpp
-    devices/usb_device_info.cpp
-    devices/usb_device_base.cpp
-    devices/gt64he_device.cpp
-)
+# ============================================================================
+# 示例程序（可选）
+# ============================================================================
+option(USB_CTRL_BUILD_EXAMPLE "Build USB controller examples" OFF)
 
-# 启用位置无关代码
-set_target_properties(${SUB_NAME} PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-)
-
-# Windows 平台添加热插拔回退源文件
-if(WIN32)
-    target_sources(${SUB_NAME} PRIVATE
-        usb_core/usb_hotplug_win.cpp
-    )
+if(USB_CTRL_BUILD_EXAMPLE)
+    add_subdirectory(example)
 endif()
 
-# 链接依赖
-target_link_libraries(${SUB_NAME} PUBLIC
-    libusb
-    console
-)
+# ============================================================================
+# C API 测试共享库（可选）
+# ============================================================================
+option(USB_CTRL_BUILD_TEST "Build USB controller C API test" OFF)
 
-# 头文件搜索路径
-target_include_directories(${SUB_NAME} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+if(USB_CTRL_BUILD_TEST)
+    add_subdirectory(test)
+endif()
