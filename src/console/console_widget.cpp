@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QTextBlock>
+#include <QWheelEvent>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -233,6 +234,22 @@ bool ConsoleWidget::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     return QTextEdit::eventFilter(watched, event);
+}
+
+// Ctrl+滚轮缩放字体
+void ConsoleWidget::wheelEvent(QWheelEvent* event) {
+    if (event->modifiers() & Qt::ControlModifier) {
+        int delta = event->angleDelta().y();
+        QFont f = font();
+        int newSize = f.pointSize() + (delta > 0 ? 1 : -1);
+        if (newSize >= 5 && newSize <= 50) { // 限制字体大小在 5-50 点之间
+            f.setPointSize(newSize);
+            setFont(f);
+        }
+        event->accept();
+    } else {
+        QTextEdit::wheelEvent(event);
+    }
 }
 
 // 右键菜单

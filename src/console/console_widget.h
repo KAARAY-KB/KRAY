@@ -97,6 +97,9 @@ private:
     // 事件过滤器：处理提示标签点击
     bool eventFilter(QObject* watched, QEvent* event) override;
 
+    // 滚轮事件：Ctrl+滚轮缩放字体
+    void wheelEvent(QWheelEvent* event) override;
+
     /**
      * @brief 内部 Sink 实现类
      * 
