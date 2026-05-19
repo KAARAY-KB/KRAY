@@ -114,8 +114,13 @@ void UsbHotplugLinux::_on_event(libusb_device* dev, libusb_hotplug_event event) 
                           ? HotplugEvent::Arrived
                           : HotplugEvent::Left;
 
+    // 立即读取设备信息并缓存，避免回调中设备引用失效或打开失败
     UsbDevice device(dev);
-    _callback(ev, device);
+    DeviceInfo saved_info = device.get_info();
+
+    // 用缓存信息创建新 UsbDevice，确保回调拿到完整数据
+    UsbDevice cached_dev(saved_info);
+    _callback(ev, cached_dev);
 }
 
 } // namespace core
