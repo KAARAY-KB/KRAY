@@ -19,12 +19,16 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon,  const QFon
     m_trayMenu->setFont(font);
     
     m_actionShow  = new QAction("显示", m_trayMenu);
+    m_actionCloseToQuit = new QAction("退出时关闭程序", m_trayMenu); // 可勾选项
     m_actionQuit  = new QAction("退出", m_trayMenu);
     m_actionShow->setFont(font);
+    m_actionCloseToQuit->setFont(font);
+    m_actionCloseToQuit->setCheckable(true); // 设置为可勾选
     m_actionQuit->setFont(font);
 
     m_trayMenu->addAction(m_actionShow);
     m_trayMenu->addSeparator();
+    m_trayMenu->addAction(m_actionCloseToQuit); // 添加勾选项
     m_trayMenu->addAction(m_actionQuit);
 
     m_trayIcon->setContextMenu(m_trayMenu);
@@ -34,6 +38,10 @@ MSystemTrayIcon::MSystemTrayIcon(QObject *parent, const QIcon &icon,  const QFon
     });
     connect(m_actionQuit, &QAction::triggered, this, [this]() {
         emit actionTriggered("exit");
+    });
+    // "退出时关闭程序"勾选状态变更时发射信号
+    connect(m_actionCloseToQuit, &QAction::toggled, this, [this](bool checked) {
+        emit closeToQuitToggled(checked);
     });
 
     connect(m_trayIcon, &QSystemTrayIcon::activated, [&](QSystemTrayIcon::ActivationReason reason) {

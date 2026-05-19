@@ -33,6 +33,10 @@ Kray::Kray(QWidget *parent)
             this->close();
         }
     });
+    // 连接托盘"退出时关闭程序"勾选信号
+    connect(m_system_tray_icon, &MSystemTrayIcon::closeToQuitToggled, this, [this](bool checked) {
+        m_close_to_quit = checked;
+    });
 
 }
 
