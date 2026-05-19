@@ -267,6 +267,13 @@ bool UsbController::is_hotplug_supported() {
 // 启动热插拔监听（无过滤，监听所有设备）
 bool UsbController::hotplug_start(HotplugCallback callback) {
     if (_hotplug) _hotplug->stop();
+    // Linux 下热插拔需要事件线程驱动 libusb_handle_events
+#ifndef _WIN32
+    if (!_event_thread) {
+        _event_thread = std::make_unique<UsbEventThread>(_ctx->handle());
+        _event_thread->start();
+    }
+#endif
     _hotplug = core::create_hotplug(_ctx->handle());
     _hotplug->set_callback(std::move(callback));
     return _hotplug->start();
@@ -275,6 +282,13 @@ bool UsbController::hotplug_start(HotplugCallback callback) {
 // 启动热插拔监听（带 VID/PID 过滤）
 bool UsbController::hotplug_start(uint16_t vid, uint16_t pid, HotplugCallback callback) {
     if (_hotplug) _hotplug->stop();
+    // Linux 下热插拔需要事件线程驱动 libusb_handle_events
+#ifndef _WIN32
+    if (!_event_thread) {
+        _event_thread = std::make_unique<UsbEventThread>(_ctx->handle());
+        _event_thread->start();
+    }
+#endif
     _hotplug = core::create_hotplug(_ctx->handle());
     _hotplug->set_vid_filter(vid);
     _hotplug->set_pid_filter(pid);
