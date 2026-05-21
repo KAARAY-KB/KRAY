@@ -39,6 +39,7 @@
 # *.pro.user*
 # *.qbs.user*
 .qtcreator/
+.cache/
 CMakeLists.txt.user*
 
 # # xemacs temporary files
