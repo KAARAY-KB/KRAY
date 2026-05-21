@@ -72,6 +72,13 @@ void Kray::closeEvent(QCloseEvent *event)
         delete usb_widget;
         usb_widget = nullptr;
     }
+    if (m_music_widget != nullptr) {
+        qDebug() << "Kray::closeEvent() m_music_widget";
+        Console::out() << "Kray::closeEvent() m_music_widget" << std::endl;
+        m_music_widget->close();
+        delete m_music_widget;
+        m_music_widget = nullptr;
+    }
     // 不关闭 console 窗口
     if (_consoleWin != nullptr)
     {
@@ -104,6 +111,11 @@ Kray::~Kray()
         qDebug() << "Kray::~Kray() usb_widget";
         Console::out() << "Kray::~Kray() usb_widget";
         delete usb_widget;
+    }
+    if (m_music_widget != nullptr) {
+        qDebug() << "Kray::~Kray() m_music_widget";
+        Console::out() << "Kray::~Kray() m_music_widget";
+        delete m_music_widget;
     }
     if (m_system_tray_icon != nullptr) {
         qDebug() << "Kray::~Kray() m_system_tray_icon";
@@ -209,6 +221,23 @@ void Kray::on_btn_t2_clicked()
     {
         t2->show_top();
     }   
+}
+
+void Kray::on_btn_music_clicked()
+{
+    if (m_music_widget == nullptr)
+    {
+        m_music_widget = new MusicRhythmWidget();
+        connect(m_music_widget, &MusicRhythmWidget::exitWindow, this, [=]() {
+            m_music_widget->close();
+            delete m_music_widget;
+            m_music_widget = nullptr;
+        });
+    }
+    if (m_music_widget != nullptr)
+    {
+        m_music_widget->show_top();
+    }
 }
 
 void Kray::on_btn_close_clicked()

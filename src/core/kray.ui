@@ -130,6 +130,19 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="btn_music">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>MUSIC</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="btn_close">
           <property name="minimumSize">
            <size>

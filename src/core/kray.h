@@ -7,6 +7,7 @@
 #include "t1.h"
 #include "t2.h"
 #include "USBWidget.h"
+#include "MusicRhythmWidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -26,6 +27,7 @@ private:
     T1 *t1 = nullptr;
     T2 *t2 = nullptr;
     USBWidget *usb_widget = nullptr;
+    MusicRhythmWidget *m_music_widget = nullptr;
     MSystemTrayIcon *m_system_tray_icon = nullptr;
     bool m_close_to_quit = false; // 是否关闭时退出程序
 
@@ -43,6 +45,7 @@ private slots:
     void on_btn_close_clicked();
     void on_btn_t1_clicked();
     void on_btn_t2_clicked();
+    void on_btn_music_clicked();
 
     void on_font_default_triggered();
     void on_font_available_triggered();
