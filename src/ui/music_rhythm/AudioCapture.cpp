@@ -256,6 +256,9 @@ void AudioCaptureThread::process_audio(const float *samples, UINT32 frame_count)
     int half_n = fft_n / 2;
     int bins_per_bar = half_n / bar_count;
 
+    // 先计算所有频段的最大幅度，用于动态归一化
+    float max_mag = 0.0f;
+    QVector<float> raw_mag(bar_count);
     for (int i = 0; i < bar_count; i++) {
         float mag_sum = 0.0f;
         for (int j = 0; j < bins_per_bar; j++) {
@@ -263,8 +266,17 @@ void AudioCaptureThread::process_audio(const float *samples, UINT32 frame_count)
             float mag = sqrtf(real[idx] * real[idx] + imag[idx] * imag[idx]);
             mag_sum += mag;
         }
-        // 平均幅度并归一化
-        spectrum[i] = mag_sum / bins_per_bar / (fft_n / 2);
+        raw_mag[i] = mag_sum / bins_per_bar;
+        if (raw_mag[i] > max_mag) {
+            max_mag = raw_mag[i];
+        }
+    }
+
+    // 动态归一化：以最大幅度为基准，放大到 0~1 范围
+    // 加最小门限防止除零，加增益系数提升视觉效果
+    float norm = max_mag > 0.001f ? max_mag : 0.001f;
+    for (int i = 0; i < bar_count; i++) {
+        spectrum[i] = raw_mag[i] / norm;
     }
 
     emit sig_spectrum(spectrum);

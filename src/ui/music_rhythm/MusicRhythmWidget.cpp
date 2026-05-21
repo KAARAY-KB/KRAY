@@ -238,11 +238,13 @@ void MusicRhythmWidget::draw_waveform(QPainter &painter, const QRect &rect)
     // 波形路径
     QPainterPath path;
     float step = (float)rect.width() / (n - 1);
+    // 增益系数：原始 PCM 值通常很小，放大以充满显示区域
+    float gain = 5.0f;
 
-    path.moveTo(rect.x(), mid_y - m_waveform[0] * rect.height() / 2.0f);
+    path.moveTo(rect.x(), mid_y - m_waveform[0] * gain * rect.height() / 2.0f);
     for (int i = 1; i < n; i++) {
         float x = rect.x() + i * step;
-        float y = mid_y - m_waveform[i] * rect.height() / 2.0f;
+        float y = mid_y - m_waveform[i] * gain * rect.height() / 2.0f;
         path.lineTo(x, y);
     }
 
