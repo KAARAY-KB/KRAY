@@ -13,7 +13,7 @@ add_library(${SUB_NAME}
 )
 # 链接库
 target_link_libraries(${SUB_NAME} PUBLIC 
-    ctrl_device
+    devices_ctrl
     console
     keyboards
 )

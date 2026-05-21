@@ -15,7 +15,7 @@ add_library(${SUB_NAME}
 target_link_libraries(${SUB_NAME} PUBLIC 
     elements
     usb_controller
-    ctrl_device
+    devices_ctrl
     protocol
 )
 # 添加目录

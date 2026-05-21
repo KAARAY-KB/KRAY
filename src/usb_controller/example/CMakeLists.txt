@@ -20,21 +20,15 @@ set(EXAMPLE_TESTS
     test_bulk
     test_hotplug
     test_auto_all
+    main
 )
 
 # 遍历并构建每个测试可执行文件
 foreach(test_name ${EXAMPLE_TESTS})
-    add_executable(${test_name} ${test_name}.cpp) # 构建可执行文件
+    add_executable(usb_controller_${test_name} ${test_name}.cpp) # 构建可执行文件
     # 链接 USB 控制器静态库
-    target_link_libraries(${test_name} PRIVATE
+    target_link_libraries(usb_controller_${test_name} PRIVATE
         usb_controller
         libusb
     )
 endforeach()
-
-# main.cpp 是独立的交互式演示程序
-add_executable(usb_demo main.cpp)
-target_link_libraries(usb_demo PRIVATE
-    usb_controller
-    libusb
-)
