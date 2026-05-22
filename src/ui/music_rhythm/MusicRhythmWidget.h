@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QSlider>
 #include <QLabel>
+#include <QComboBox>
 
 #include "AudioCapture.h"
 
@@ -45,6 +46,8 @@ private slots:
     void on_energy(float energy);
     // 刷新显示
     void on_refresh();
+    // 切换采集设备
+    void on_device_changed(int index);
 
 private:
     // 绘制事件
@@ -55,8 +58,10 @@ private:
     void draw_waveform(QPainter &painter, const QRect &rect);
     // 绘制能量指示器
     void draw_energy(QPainter &painter, const QRect &rect);
-    // 创建增益控制面板
-    void create_gain_panel();
+    // 创建控制面板
+    void create_ctrl_panel();
+    // 刷新设备列表
+    void refresh_devices();
 
     AudioCapture *m_capture;          // 音频采集器
     QTimer *m_timer;                  // 刷新定时器
@@ -65,6 +70,8 @@ private:
     float m_energy;                   // 当前能量值
     QVector<float> m_spectrum_peak;   // 频谱峰值（下落效果）
     QVector<float> m_spectrum_fall;   // 频谱下落速度
+    QComboBox *m_device_combo;        // 设备选择下拉框
+    QLabel *m_device_label;           // 设备标签
     QSlider *m_spec_gain_slider;      // 频谱增益滑块
     QLabel *m_spec_gain_label;        // 频谱增益标签
     float m_spec_gain;                // 频谱增益值

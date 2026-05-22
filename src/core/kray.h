@@ -46,6 +46,7 @@ private slots:
     void on_btn_t1_clicked();
     void on_btn_t2_clicked();
     void on_btn_music_clicked();
+    void on_btn_audio_clicked();
 
     void on_font_default_triggered();
     void on_font_available_triggered();
@@ -53,6 +54,7 @@ private slots:
     void on_all_widget_info_triggered();
 
     void on_action_close_toggled(bool arg1);
+
 
 private:
     Ui::Kray *ui;

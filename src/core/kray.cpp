@@ -240,6 +240,11 @@ void Kray::on_btn_music_clicked()
     }
 }
 
+void Kray::on_btn_audio_clicked()
+{
+
+}
+
 void Kray::on_btn_close_clicked()
 {
     this->close();
@@ -265,4 +270,6 @@ void Kray::on_action_close_toggled(bool arg1)
 {
     m_close_to_quit = arg1;
 }
+
+
 
