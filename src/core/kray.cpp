@@ -38,6 +38,9 @@ Kray::Kray(QWidget *parent)
         m_close_to_quit = checked;
     });
 
+    // 启动 USB TCP 服务
+    m_usb_server = new usb_srv::UsbServer();
+    m_usb_server->start("127.0.0.1", 9120);
 }
 
 void Kray::closeEvent(QCloseEvent *event)
@@ -78,6 +81,14 @@ void Kray::closeEvent(QCloseEvent *event)
         m_music_widget->close();
         delete m_music_widget;
         m_music_widget = nullptr;
+    }
+    // 停止 USB TCP 服务
+    if (m_usb_server != nullptr) {
+        qDebug() << "Kray::closeEvent() m_usb_server";
+        Console::out() << "Kray::closeEvent() m_usb_server" << std::endl;
+        m_usb_server->stop();
+        delete m_usb_server;
+        m_usb_server = nullptr;
     }
     // 不关闭 console 窗口
     if (_consoleWin != nullptr)

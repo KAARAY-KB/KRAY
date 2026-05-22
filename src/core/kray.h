@@ -8,6 +8,7 @@
 #include "t2.h"
 #include "USBWidget.h"
 #include "MusicRhythmWidget.h"
+#include "usb_server.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -29,6 +30,7 @@ private:
     USBWidget *usb_widget = nullptr;
     MusicRhythmWidget *m_music_widget = nullptr;
     MSystemTrayIcon *m_system_tray_icon = nullptr;
+    usb_srv::UsbServer *m_usb_server = nullptr;  // USB TCP 服务
     bool m_close_to_quit = false; // 是否关闭时退出程序
 
     void closeEvent(QCloseEvent *event) override;

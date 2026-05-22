@@ -15,6 +15,12 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Windows 平台：确保 winsock2.h 在 windows.h 之前包含
+if(WIN32)
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)
+    add_compile_definitions(_WIN32_WINNT=0x0600)
+endif()
+
 # ============================================================================
 # 输出目录设置（按构建类型分子目录）
 # 所有可执行文件输出到              ${CMAKE_BINARY_DIR}/$<CONFIG>/bin

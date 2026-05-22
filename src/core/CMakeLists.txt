@@ -32,6 +32,7 @@ add_library(${SUB_NAME} STATIC
 target_link_libraries(${SUB_NAME} PRIVATE 
     qcustomplot
     usb_manager
+    usb_server
     music_rhythm
     console
     Qt${QT_VERSION_MAJOR}::Widgets
