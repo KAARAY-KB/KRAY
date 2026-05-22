@@ -5,6 +5,8 @@
 #include <QCloseEvent>
 #include <QTimer>
 #include <QVector>
+#include <QSlider>
+#include <QLabel>
 
 #include "AudioCapture.h"
 
@@ -53,6 +55,8 @@ private:
     void draw_waveform(QPainter &painter, const QRect &rect);
     // 绘制能量指示器
     void draw_energy(QPainter &painter, const QRect &rect);
+    // 创建增益控制面板
+    void create_gain_panel();
 
     AudioCapture *m_capture;          // 音频采集器
     QTimer *m_timer;                  // 刷新定时器
@@ -61,6 +65,15 @@ private:
     float m_energy;                   // 当前能量值
     QVector<float> m_spectrum_peak;   // 频谱峰值（下落效果）
     QVector<float> m_spectrum_fall;   // 频谱下落速度
+    QSlider *m_spec_gain_slider;      // 频谱增益滑块
+    QLabel *m_spec_gain_label;        // 频谱增益标签
+    float m_spec_gain;                // 频谱增益值
+    QSlider *m_wave_gain_slider;      // 波形增益滑块
+    QLabel *m_wave_gain_label;        // 波形增益标签
+    float m_wave_gain;                // 波形增益值
+    QSlider *m_energy_gain_slider;    // 能量增益滑块
+    QLabel *m_energy_gain_label;      // 能量增益标签
+    float m_energy_gain;              // 能量增益值
 };
 
 #endif // MUSIC_RHYTHM_WIDGET_H

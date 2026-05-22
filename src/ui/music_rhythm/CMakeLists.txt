@@ -22,12 +22,12 @@ target_link_libraries(${SUB_NAME} PUBLIC
 # Windows 平台链接音频相关系统库
 if(WIN32)
     # 添加 mmdevapi 导入库搜索路径（部分 MinGW 版本缺少该库）
-    target_link_directories(${SUB_NAME} PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    )
+    # target_link_directories(${SUB_NAME} PUBLIC
+    #     ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    # )
     target_link_libraries(${SUB_NAME} PUBLIC
         ole32
-        mmdevapi
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/libmmdevapi.a
     )
 endif()
 

@@ -21,6 +21,15 @@ MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     , m_capture(nullptr)
     , m_timer(nullptr)
     , m_energy(0.0f)
+    , m_spec_gain_slider(nullptr)
+    , m_spec_gain_label(nullptr)
+    , m_spec_gain(20.0f)
+    , m_wave_gain_slider(nullptr)
+    , m_wave_gain_label(nullptr)
+    , m_wave_gain(20.0f)
+    , m_energy_gain_slider(nullptr)
+    , m_energy_gain_label(nullptr)
+    , m_energy_gain(10.0f)
 {
     // 窗口属性
     setAttribute(Qt::WA_QuitOnClose, false);
@@ -41,6 +50,9 @@ MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     m_spectrum_peak.fill(0.0f);
     m_spectrum_fall.resize(BAR_COUNT);
     m_spectrum_fall.fill(0.0f);
+
+    // 创建增益控制面板
+    create_gain_panel();
 
     // 创建音频采集器
     m_capture = new AudioCapture(this);
@@ -185,6 +197,15 @@ void MusicRhythmWidget::paintEvent(QPaintEvent *event)
     // 能量指示器区域
     QRect energy_rect(width() - margin - energy_bar_w, margin, energy_bar_w, main_h);
     draw_energy(painter, energy_rect);
+
+    // 定位增益控制面板到窗口底部
+    int ctrl_y = height() - margin - 30;
+    m_spec_gain_label->move(margin, ctrl_y);
+    m_spec_gain_slider->move(margin + m_spec_gain_label->width() + 5, ctrl_y + 2);
+    m_wave_gain_label->move(margin + 250, ctrl_y);
+    m_wave_gain_slider->move(margin + 250 + m_wave_gain_label->width() + 5, ctrl_y + 2);
+    m_energy_gain_label->move(margin + 500, ctrl_y);
+    m_energy_gain_slider->move(margin + 500 + m_energy_gain_label->width() + 5, ctrl_y + 2);
 }
 
 // 绘制频谱柱状图
@@ -198,7 +219,7 @@ void MusicRhythmWidget::draw_spectrum(QPainter &painter, const QRect &rect)
     float draw_w = bar_w - gap;
 
     for (int i = 0; i < n; i++) {
-        float val = m_spectrum[i];
+        float val = m_spectrum[i] * m_spec_gain;
         if (val < 0.0f) val = 0.0f;
         if (val > 1.0f) val = 1.0f;
 
@@ -217,7 +238,8 @@ void MusicRhythmWidget::draw_spectrum(QPainter &painter, const QRect &rect)
         painter.drawRoundedRect(QRectF(x, y, draw_w, bar_h), 1.0, 1.0);
 
         // 峰值指示条
-        float peak_val = m_spectrum_peak[i];
+        float peak_val = m_spectrum_peak[i] * m_spec_gain;
+        if (peak_val > 1.0f) peak_val = 1.0f;
         float peak_y = rect.y() + rect.height() - peak_val * rect.height();
         painter.setBrush(QColor(255, 255, 255, 200));
         painter.drawRect(QRectF(x, peak_y, draw_w, 2));
@@ -238,13 +260,11 @@ void MusicRhythmWidget::draw_waveform(QPainter &painter, const QRect &rect)
     // 波形路径
     QPainterPath path;
     float step = (float)rect.width() / (n - 1);
-    // 增益系数：原始 PCM 值通常很小，放大以充满显示区域
-    float gain = 5.0f;
 
-    path.moveTo(rect.x(), mid_y - m_waveform[0] * gain * rect.height() / 2.0f);
+    path.moveTo(rect.x(), mid_y - m_waveform[0] * m_wave_gain * rect.height() / 2.0f);
     for (int i = 1; i < n; i++) {
         float x = rect.x() + i * step;
-        float y = mid_y - m_waveform[i] * gain * rect.height() / 2.0f;
+        float y = mid_y - m_waveform[i] * m_wave_gain * rect.height() / 2.0f;
         path.lineTo(x, y);
     }
 
@@ -276,7 +296,7 @@ void MusicRhythmWidget::draw_waveform(QPainter &painter, const QRect &rect)
 // 绘制能量指示器
 void MusicRhythmWidget::draw_energy(QPainter &painter, const QRect &rect)
 {
-    float val = m_energy;
+    float val = m_energy * m_energy_gain;
     if (val < 0.0f) val = 0.0f;
     if (val > 1.0f) val = 1.0f;
 
@@ -308,4 +328,74 @@ void MusicRhythmWidget::draw_energy(QPainter &painter, const QRect &rect)
     painter.setPen(Qt::NoPen);
     painter.setBrush(grad);
     painter.drawRoundedRect(fill_rect, 2, 2);
+}
+
+// 创建增益控制面板
+void MusicRhythmWidget::create_gain_panel()
+{
+    // 通用滑块样式
+    QString slider_style =
+        "QSlider::groove:horizontal {"
+        "   background: #333344;"
+        "   height: 6px;"
+        "   border-radius: 3px;"
+        "}"
+        "QSlider::handle:horizontal {"
+        "   background: #00aaff;"
+        "   width: 14px;"
+        "   margin: -4px 0;"
+        "   border-radius: 7px;"
+        "}"
+        "QSlider::sub-page:horizontal {"
+        "   background: #0066cc;"
+        "   border-radius: 3px;"
+        "}";
+
+    // 通用标签样式
+    QString label_style =
+        "color: #cccccc;"
+        "font-size: 12px;"
+        "background: transparent;";
+
+    // ---- 频谱增益 ----
+    m_spec_gain_label = new QLabel(this);
+    m_spec_gain_label->setStyleSheet(label_style);
+    m_spec_gain_label->setText(QString("SPEC: %1").arg(m_spec_gain, 0, 'f', 0));
+    m_spec_gain_slider = new QSlider(Qt::Horizontal, this);
+    m_spec_gain_slider->setRange(1, 100);
+    m_spec_gain_slider->setValue((int)m_spec_gain);
+    m_spec_gain_slider->setFixedWidth(120);
+    m_spec_gain_slider->setStyleSheet(slider_style);
+    connect(m_spec_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+        m_spec_gain = (float)val;
+        m_spec_gain_label->setText(QString("SPEC: %1").arg(m_spec_gain, 0, 'f', 0));
+    });
+
+    // ---- 波形增益 ----
+    m_wave_gain_label = new QLabel(this);
+    m_wave_gain_label->setStyleSheet(label_style);
+    m_wave_gain_label->setText(QString("WAVE: %1").arg(m_wave_gain, 0, 'f', 0));
+    m_wave_gain_slider = new QSlider(Qt::Horizontal, this);
+    m_wave_gain_slider->setRange(1, 100);
+    m_wave_gain_slider->setValue((int)m_wave_gain);
+    m_wave_gain_slider->setFixedWidth(120);
+    m_wave_gain_slider->setStyleSheet(slider_style);
+    connect(m_wave_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+        m_wave_gain = (float)val;
+        m_wave_gain_label->setText(QString("WAVE: %1").arg(m_wave_gain, 0, 'f', 0));
+    });
+
+    // ---- 能量增益 ----
+    m_energy_gain_label = new QLabel(this);
+    m_energy_gain_label->setStyleSheet(label_style);
+    m_energy_gain_label->setText(QString("NRG: %1").arg(m_energy_gain, 0, 'f', 0));
+    m_energy_gain_slider = new QSlider(Qt::Horizontal, this);
+    m_energy_gain_slider->setRange(1, 100);
+    m_energy_gain_slider->setValue((int)m_energy_gain);
+    m_energy_gain_slider->setFixedWidth(120);
+    m_energy_gain_slider->setStyleSheet(slider_style);
+    connect(m_energy_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+        m_energy_gain = (float)val;
+        m_energy_gain_label->setText(QString("NRG: %1").arg(m_energy_gain, 0, 'f', 0));
+    });
 }
