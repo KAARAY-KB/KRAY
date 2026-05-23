@@ -10,7 +10,7 @@ public:
         TYPE_ANSI_104 = 0x00,
         TYPE_ANSI_104_BIG_ENTER,
         TYPE_ISO_105,
-        TYPE_DFT_60,
+        TYPE_DEFAULT_60,
         TYPE_LS_64,
         TYPE_ISO_60,
         TYPE_JD_40,
@@ -61,7 +61,7 @@ public:
     static constexpr float U2_25 = 2.25; // 2.25u
     static constexpr float U2_75 = 2.75; // 2.75u
     static constexpr float U6_25 = 6.25; // 6.25u
-    static constexpr float U0_05 = 0.05;
+    static constexpr float U0_5 = 0.5;
 
 private:
     typedef struct  {

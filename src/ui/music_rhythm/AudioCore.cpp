@@ -18,6 +18,8 @@ static const PROPERTYKEY _PKEY_Device_FriendlyName = {
 // 构造函数
 AudioCore::AudioCore()
     : m_running(false)
+    , m_waveform_points(512)
+    , m_bar_count(16)
     , m_fft_size(1024)
     , m_sample_rate(44100)
     , m_dev_dir(AUDIO_DEV_OUT)
@@ -28,6 +30,28 @@ AudioCore::AudioCore()
 AudioCore::~AudioCore()
 {
     stop();
+}
+
+// 获取波形数据点数
+int AudioCore::get_waveform_points() const
+{
+    return m_waveform_points;
+}
+// 设置波形数据点数
+void AudioCore::set_waveform_points(int points)
+{
+    if (points > 0) m_waveform_points = points;
+}
+
+// 获取频谱柱子数量
+int AudioCore::get_bar_count() const
+{
+    return m_bar_count;
+}
+// 设置频谱柱子数量
+void AudioCore::set_bar_count(int count)
+{
+    if (count > 0) m_bar_count = count;
 }
 
 // 枚举指定方向的音频设备
@@ -368,7 +392,7 @@ void AudioCore::convert_to_float(uint8_t *data, uint32_t frames,
 void AudioCore::process_audio(const float *samples, uint32_t frame_count)
 {
     // ---- 波形数据 ----
-    int wave_points = 256;
+    int wave_points = m_waveform_points;
     std::vector<float> waveform(wave_points);
     for (int i = 0; i < wave_points; i++) {
         int idx = static_cast<int>(static_cast<float>(i) / wave_points * frame_count);
@@ -390,19 +414,33 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
 
     fft(real, imag);
 
-    int bar_count = 64;
+    int bar_count = m_bar_count;
     std::vector<float> spectrum(bar_count);
     int half_n = fft_n / 2;
-    int bins_per_bar = half_n / bar_count;
 
+    // 对数分组：低频柱子覆盖窄频段，高频柱子覆盖宽频段
+    // 从 bin 2 开始（约 94Hz @48kHz），避免 DC 和极低频
+    float log_min = log2f(2.0f);
+    float log_max = log2f(static_cast<float>(half_n));
+    int prev_hi = 2;
     for (int i = 0; i < bar_count; i++) {
+        float lo = powf(2.0f, log_min + (log_max - log_min) * i / bar_count);
+        float hi = powf(2.0f, log_min + (log_max - log_min) * (i + 1) / bar_count);
+        int bin_lo = static_cast<int>(lo);
+        int bin_hi = static_cast<int>(hi);
+        // 确保不与前一柱重叠，每柱覆盖唯一 bin
+        if (bin_lo < prev_hi) bin_lo = prev_hi;
+        if (bin_hi <= bin_lo) bin_hi = bin_lo + 1;
+        if (bin_hi > half_n) bin_hi = half_n;
+        prev_hi = bin_hi;
+        int count = bin_hi - bin_lo;
+        if (count <= 0) count = 1;
         float mag_sum = 0.0f;
-        for (int j = 0; j < bins_per_bar; j++) {
-            int idx = i * bins_per_bar + j;
-            float mag = sqrtf(real[idx] * real[idx] + imag[idx] * imag[idx]);
+        for (int j = bin_lo; j < bin_hi; j++) {
+            float mag = sqrtf(real[j] * real[j] + imag[j] * imag[j]);
             mag_sum += mag;
         }
-        spectrum[i] = mag_sum / bins_per_bar / (fft_n / 2);
+        spectrum[i] = mag_sum / count / (fft_n / 2);
     }
     if (m_spectrum_cb) m_spectrum_cb(spectrum.data(), bar_count);
 

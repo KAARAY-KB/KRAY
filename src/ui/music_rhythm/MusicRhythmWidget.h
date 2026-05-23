@@ -81,6 +81,12 @@ private:
     QSlider *m_energy_gain_slider;    // 能量增益滑块
     QLabel *m_energy_gain_label;      // 能量增益标签
     float m_energy_gain;              // 能量增益值
+    QSlider *m_wave_pts_slider;       // 波形点数滑块
+    QLabel *m_wave_pts_label;         // 波形点数标签
+    int m_wave_pts;                   // 波形点数
+    QSlider *m_bar_cnt_slider;        // 频谱柱数滑块
+    QLabel *m_bar_cnt_label;          // 频谱柱数标签
+    int m_bar_cnt;                    // 频谱柱数
 };
 
 #endif // MUSIC_RHYTHM_WIDGET_H

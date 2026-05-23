@@ -19,11 +19,20 @@ public:
         CH_TY_DIR    = 0x01 << 5,
         CH_TY_PUNCTU = 0x01 << 6,
     } ch_type_t;
+    // 灯珠类型
+    typedef enum {
+        LIGHT_NONE = 0x00, // 无
+        LIGHT_ONLY = 0x01, // 单一颜色
+        LIGHT_RGB  = 0x02, // RGB颜色
+        LIGHT_RGBW = 0x03, // RGBW颜色
+    } light_type_t;
+    
     typedef struct {
         int seq;
         float w_unit;
         QString text;
         uint16_t ch_ty; /* ch_type_t */
+        light_type_t light_ty; /* light_type_t */
     } msg_t;
     explicit MKeyboardKey(msg_t &msg, int base_w = 20, int base_h = 20, QWidget *parent = nullptr);
     int getSeq() const { return m_msg.seq; }

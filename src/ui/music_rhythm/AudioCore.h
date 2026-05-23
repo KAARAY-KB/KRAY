@@ -65,6 +65,14 @@ public:
     void on_energy(EnergyCb cb);
     // 设置错误回调
     void on_error(ErrorCb cb);
+    // 获取波形数据点数
+    int get_waveform_points() const;
+    // 设置波形数据点数
+    void set_waveform_points(int points);
+    // 获取频谱柱子数量
+    int get_bar_count() const;
+    // 设置频谱柱子数量
+    void set_bar_count(int count);
 
 private:
     // 采集线程主循环
@@ -80,6 +88,8 @@ private:
 
     std::thread m_thread;           // 采集线程
     std::atomic<bool> m_running;    // 运行标志
+    int m_waveform_points;          // 波形数据点数
+    int m_bar_count;                // 频谱柱子数量
     int m_fft_size;                 // FFT 大小
     int m_sample_rate;              // 采样率
     std::string m_device_id;        // 指定设备 ID

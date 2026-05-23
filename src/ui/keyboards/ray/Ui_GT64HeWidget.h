@@ -95,7 +95,7 @@ public:
         m_widget->setObjectName(QString::fromUtf8(objHead.toUtf8()+"m_widget"));
         m_widget->setContentsMargins(20, 40, 0, 40); /* int aleft, int atop, int aright, int abottom */
         
-        layout = new MKeyboardLayout(MKeyboardPanel::TYPE_LS_64);
+        layout = new MKeyboardLayout(MKeyboardPanel::TYPE_DEFAULT_60);
         layout->setObjectName(QString::fromUtf8(objHead.toUtf8()+"layout"));
 
         m_widget->setLayout(layout->layout());

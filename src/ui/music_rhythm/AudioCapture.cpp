@@ -88,3 +88,25 @@ AudioDevDir AudioCapture::dev_dir() const
 {
     return m_dev_dir;
 }
+
+// 获取当前波形数据点数
+int AudioCapture::get_waveform_points() const
+{
+    return m_core.get_waveform_points();
+}
+// 设置波形数据点数
+void AudioCapture::set_waveform_points(int points)
+{
+    m_core.set_waveform_points(points);
+}
+
+// 获取当前频谱柱子数量
+int AudioCapture::get_bar_count() const
+{
+    return m_core.get_bar_count();
+}
+// 设置频谱柱子数量
+void AudioCapture::set_bar_count(int count)
+{
+    m_core.set_bar_count(count);
+}

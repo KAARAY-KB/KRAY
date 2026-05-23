@@ -33,6 +33,14 @@ public:
     QString device() const;
     // 获取当前设备方向
     AudioDevDir dev_dir() const;
+    // 设置获取波形数据点数
+    void set_waveform_points(int points);
+    // 获取当前获取波形数据点数
+    int get_waveform_points() const;
+    // 获取当前获取频谱柱子数量
+    int get_bar_count() const;
+    // 设置获取频谱柱子数量
+    void set_bar_count(int count);
 
 signals:
     // 频谱数据

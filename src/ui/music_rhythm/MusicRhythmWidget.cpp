@@ -14,7 +14,7 @@
 // 频谱柱数
 static const int BAR_COUNT = 64;
 // 刷新间隔（毫秒）
-static const int REFRESH_MS = 33;
+static const int REFRESH_MS = 1000 / 60; // 60 FPS
 
 // 构造函数
 MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
@@ -26,13 +26,19 @@ MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     , m_device_label(nullptr)
     , m_spec_gain_slider(nullptr)
     , m_spec_gain_label(nullptr)
-    , m_spec_gain(10.0f) // 初始频谱增益
+    , m_spec_gain(1.0f) // 初始频谱增益
     , m_wave_gain_slider(nullptr)
     , m_wave_gain_label(nullptr)
     , m_wave_gain(1.0f) // 初始波形增益
     , m_energy_gain_slider(nullptr)
     , m_energy_gain_label(nullptr)
     , m_energy_gain(1.0f) // 初始能量增益
+    , m_wave_pts_slider(nullptr)
+    , m_wave_pts_label(nullptr)
+    , m_wave_pts(512)
+    , m_bar_cnt_slider(nullptr)
+    , m_bar_cnt_label(nullptr)
+    , m_bar_cnt(16)
 {
     // 窗口属性
     setAttribute(Qt::WA_QuitOnClose, false);
@@ -54,11 +60,11 @@ MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     m_spectrum_fall.resize(BAR_COUNT);
     m_spectrum_fall.fill(0.0f);
 
-    // 创建控制面板
-    create_ctrl_panel();
-
     // 创建音频采集器
     m_capture = new AudioCapture(this);
+
+    // 创建控制面板
+    create_ctrl_panel();
 
     // 连接采集信号
     connect(m_capture, &AudioCapture::sig_spectrum,
@@ -249,6 +255,18 @@ void MusicRhythmWidget::paintEvent(QPaintEvent *event)
     m_energy_gain_label->move(x, ctrl_y + 3);
     x += m_energy_gain_label->width() + 3;
     m_energy_gain_slider->move(x, ctrl_y + 2);
+    x += m_energy_gain_slider->width() + 10;
+
+    // 波形点数
+    m_wave_pts_label->move(x, ctrl_y + 3);
+    x += m_wave_pts_label->width() + 3;
+    m_wave_pts_slider->move(x, ctrl_y + 2);
+    x += m_wave_pts_slider->width() + 10;
+
+    // 频谱柱数
+    m_bar_cnt_label->move(x, ctrl_y + 3);
+    x += m_bar_cnt_label->width() + 3;
+    m_bar_cnt_slider->move(x, ctrl_y + 2);
 }
 
 // 绘制频谱柱状图
@@ -474,6 +492,40 @@ void MusicRhythmWidget::create_ctrl_panel()
     connect(m_energy_gain_slider, &QSlider::valueChanged, this, [this](int val) {
         m_energy_gain = (float)val;
         m_energy_gain_label->setText(QString("NRG: %1").arg(m_energy_gain, 0, 'f', 0));
+    });
+
+    // ---- 波形点数 ----
+    m_wave_pts_label = new QLabel(this);
+    m_wave_pts_label->setStyleSheet(label_style);
+    m_wave_pts_label->setText(QString("WPTS: %1").arg(m_wave_pts));
+    m_wave_pts_slider = new QSlider(Qt::Horizontal, this);
+    m_wave_pts_slider->setRange(32, 512);
+    m_wave_pts_slider->setSingleStep(1);
+    m_wave_pts_slider->setPageStep(1);
+    m_wave_pts_slider->setValue(m_wave_pts);
+    m_wave_pts_slider->setFixedWidth(80);
+    m_wave_pts_slider->setStyleSheet(slider_style);
+    connect(m_wave_pts_slider, &QSlider::valueChanged, this, [this](int val) {
+        m_wave_pts = val;
+        m_wave_pts_label->setText(QString("WPTS: %1").arg(m_wave_pts));
+        if (m_capture) m_capture->set_waveform_points(m_wave_pts);
+    });
+
+    // ---- 频谱柱数 ----
+    m_bar_cnt_label = new QLabel(this);
+    m_bar_cnt_label->setStyleSheet(label_style);
+    m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));
+    m_bar_cnt_slider = new QSlider(Qt::Horizontal, this);
+    m_bar_cnt_slider->setRange(8, 128);
+    m_bar_cnt_slider->setSingleStep(1);
+    m_bar_cnt_slider->setPageStep(1);
+    m_bar_cnt_slider->setValue(m_bar_cnt);
+    m_bar_cnt_slider->setFixedWidth(80);
+    m_bar_cnt_slider->setStyleSheet(slider_style);
+    connect(m_bar_cnt_slider, &QSlider::valueChanged, this, [this](int val) {
+        m_bar_cnt = val;
+        m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));
+        if (m_capture) m_capture->set_bar_count(m_bar_cnt);
     });
 }
 

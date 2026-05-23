@@ -52,19 +52,19 @@ void MKeyboardPanel::setCheckedType(checked_type_t ty) {
 bool MKeyboardPanel::get_panel(panel_t &panel, type_t type) {
     bool ret = true;
     switch (type) {
-        case TYPE_ANSI_104:            ansi_104(panel);            break;
-        case TYPE_ANSI_104_BIG_ENTER:  ansi_104_big_enter(panel);  break;
-        case TYPE_ISO_105:             iso_105(panel);             break;
-        case TYPE_DFT_60:              default_60(panel);          break;
-        case TYPE_LS_64:               ls_64(panel);               break;
-        case TYPE_ISO_60:              iso_60(panel);              break;
-        case TYPE_JD_40:               jd_40(panel);               break;
-        case TYPE_ERGO_DOX:            ergo_dox(panel);            break;
-        case TYPE_ATREUS:              atreus(panel);              break;
-        case TYPE_PLANCK:              planck(panel);              break;
-        case TYPE_KINESIS_ADVANTAGE:   kinesis_advantage(panel);   break;
-        case TYPE_KEYCOOL_84:          keycool_84(panel);          break;
-        case TYPE_LEOPOLD_FC660M:      leopold_fc660m(panel);      break;
+        case TYPE_ANSI_104:             ansi_104(panel);            break;
+        case TYPE_ANSI_104_BIG_ENTER:   ansi_104_big_enter(panel);  break;
+        case TYPE_ISO_105:              iso_105(panel);             break;
+        case TYPE_DEFAULT_60:           default_60(panel);          break;
+        case TYPE_LS_64:                ls_64(panel);               break;
+        case TYPE_ISO_60:               iso_60(panel);              break;
+        case TYPE_JD_40:                jd_40(panel);               break;
+        case TYPE_ERGO_DOX:             ergo_dox(panel);            break;
+        case TYPE_ATREUS:               atreus(panel);              break;
+        case TYPE_PLANCK:               planck(panel);              break;
+        case TYPE_KINESIS_ADVANTAGE:    kinesis_advantage(panel);   break;
+        case TYPE_KEYCOOL_84:           keycool_84(panel);          break;
+        case TYPE_LEOPOLD_FC660M:       leopold_fc660m(panel);      break;
         default:                        ret = false;               break;
     }
     return ret;
@@ -74,7 +74,7 @@ void MKeyboardPanel::default_60(panel_t &panel) {
     MKeyboardRow::row_t row1 = {KEY_SPACING, {{0x0E, U1_50, "Tab", MKeyboardKey::CH_TY_OTHER},    {0x0F, U1_00, "Q", MKeyboardKey::CH_TY_LETTER},                          {0x10, U1_00, "W", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x11, U1_00, "E", MKeyboardKey::CH_TY_LETTER},                          {0x12, U1_00, "R", MKeyboardKey::CH_TY_LETTER},   {0x13, U1_00, "T", MKeyboardKey::CH_TY_LETTER}, {0x14, U1_00, "Y", MKeyboardKey::CH_TY_LETTER},   {0x15, U1_00, "U", MKeyboardKey::CH_TY_LETTER}, {0x16, U1_00, "I", MKeyboardKey::CH_TY_LETTER}, {0x17, U1_00, "O", MKeyboardKey::CH_TY_LETTER}, {0x18, U1_00, "P", MKeyboardKey::CH_TY_LETTER}, {0x19, U1_00, "[", MKeyboardKey::CH_TY_OTHER}, {0x1A, U1_00, "]", MKeyboardKey::CH_TY_OTHER}, {0x1B, U1_50, "\\", MKeyboardKey::CH_TY_OTHER}}};
     MKeyboardRow::row_t row2 = {KEY_SPACING, {{0x1C, U1_75, "Caps", MKeyboardKey::CH_TY_OTHER},   {0x1D, U1_00, "A", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x1E, U1_00, "S", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x1F, U1_00, "D", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x20, U1_00, "F", MKeyboardKey::CH_TY_LETTER},   {0x21, U1_00, "G", MKeyboardKey::CH_TY_LETTER}, {0x22, U1_00, "H", MKeyboardKey::CH_TY_LETTER},   {0x23, U1_00, "J", MKeyboardKey::CH_TY_LETTER}, {0x24, U1_00, "K", MKeyboardKey::CH_TY_LETTER}, {0x25, U1_00, "L", MKeyboardKey::CH_TY_LETTER}, {0x26, U1_00, ";", MKeyboardKey::CH_TY_OTHER},  {0x27, U1_00, "'", MKeyboardKey::CH_TY_OTHER}, {0x28, U2_25, "Enter", MKeyboardKey::CH_TY_OTHER}}};
     MKeyboardRow::row_t row3 = {KEY_SPACING, {{0x29, U2_25, "Shift", MKeyboardKey::CH_TY_MODIFY}, {0x2A, U1_00, "Z", MKeyboardKey::CH_TY_LETTER},                          {0x2B, U1_00, "X", MKeyboardKey::CH_TY_LETTER},                          {0x2C, U1_00, "C", MKeyboardKey::CH_TY_LETTER},                          {0x2D, U1_00, "V", MKeyboardKey::CH_TY_LETTER},   {0x2E, U1_00, "B", MKeyboardKey::CH_TY_LETTER}, {0x2F, U1_00, "N", MKeyboardKey::CH_TY_LETTER},   {0x30, U1_00, "M", MKeyboardKey::CH_TY_LETTER}, {0x31, U1_00, ",", MKeyboardKey::CH_TY_OTHER},  {0x32, U1_00, ".", MKeyboardKey::CH_TY_OTHER},  {0x33, U1_00, "/", MKeyboardKey::CH_TY_OTHER},  {0x34, U2_75, "Shift", MKeyboardKey::CH_TY_MODIFY}}};
-    MKeyboardRow::row_t row4 = {KEY_SPACING, {{0x35, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY},  {0x36, U1_25, "Win", MKeyboardKey::CH_TY_MODIFY},                        {0x37, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY},                        {0x38, U6_25, "Space", MKeyboardKey::CH_TY_OTHER},                       {0x39, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY}, {0x3A, U1_25, "Fn", MKeyboardKey::CH_TY_OTHER}, {0x3B, U1_25, "Menu", MKeyboardKey::CH_TY_OTHER}, {0x3C, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY}}};
+    MKeyboardRow::row_t row4 = {KEY_SPACING, {{0x35, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY},  {0x36, U1_25, "Win", MKeyboardKey::CH_TY_MODIFY},                        {0x37, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY},                        {0x38, U6_25+U0_5, "Space", MKeyboardKey::CH_TY_OTHER},                       {0x39, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY}, {0x3A, U1_25, "Fn", MKeyboardKey::CH_TY_OTHER}, {0x3B, U1_25, "Menu", MKeyboardKey::CH_TY_OTHER}, {0x3C, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY}}};
     panel.rows.clear();
     panel = {ROW_SPACING, {row0, row1, row2, row3, row4}};
 }
@@ -83,7 +83,7 @@ void MKeyboardPanel::ls_64(panel_t &panel) {
     MKeyboardRow::row_t row1 = {KEY_SPACING, {{0x0E, U1_50, "Tab", MKeyboardKey::CH_TY_OTHER},    {0x0F, U1_00, "Q", MKeyboardKey::CH_TY_LETTER},                          {0x10, U1_00, "W", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x11, U1_00, "E", MKeyboardKey::CH_TY_LETTER},                          {0x12, U1_00, "R", MKeyboardKey::CH_TY_LETTER},   {0x13, U1_00, "T", MKeyboardKey::CH_TY_LETTER}, {0x14, U1_00, "Y", MKeyboardKey::CH_TY_LETTER}, {0x15, U1_00, "U", MKeyboardKey::CH_TY_LETTER}, {0x16, U1_00, "I", MKeyboardKey::CH_TY_LETTER}, {0x17, U1_00, "O", MKeyboardKey::CH_TY_LETTER}, {0x18, U1_00, "P", MKeyboardKey::CH_TY_LETTER}, {0x19, U1_00, "[", MKeyboardKey::CH_TY_OTHER},      {0x1A, U1_00, "]", MKeyboardKey::CH_TY_OTHER}, {0x1B, U1_50, "\\", MKeyboardKey::CH_TY_OTHER}}};
     MKeyboardRow::row_t row2 = {KEY_SPACING, {{0x1C, U1_75, "Caps", MKeyboardKey::CH_TY_OTHER},   {0x1D, U1_00, "A", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x1E, U1_00, "S", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x1F, U1_00, "D", MKeyboardKey::CH_TY_LETTER|MKeyboardKey::CH_TY_GAME}, {0x20, U1_00, "F", MKeyboardKey::CH_TY_LETTER},   {0x21, U1_00, "G", MKeyboardKey::CH_TY_LETTER}, {0x22, U1_00, "H", MKeyboardKey::CH_TY_LETTER}, {0x23, U1_00, "J", MKeyboardKey::CH_TY_LETTER}, {0x24, U1_00, "K", MKeyboardKey::CH_TY_LETTER}, {0x25, U1_00, "L", MKeyboardKey::CH_TY_LETTER}, {0x26, U1_00, ";", MKeyboardKey::CH_TY_OTHER},  {0x27, U1_00, "'", MKeyboardKey::CH_TY_OTHER},      {0x28, U2_25, "Enter", MKeyboardKey::CH_TY_OTHER}}};
     MKeyboardRow::row_t row3 = {KEY_SPACING, {{0x29, U2_00, "Shift", MKeyboardKey::CH_TY_MODIFY}, {0x2A, U1_00, "Z", MKeyboardKey::CH_TY_LETTER},                          {0x2B, U1_00, "X", MKeyboardKey::CH_TY_LETTER},                          {0x2C, U1_00, "C", MKeyboardKey::CH_TY_LETTER},                          {0x2D, U1_00, "V", MKeyboardKey::CH_TY_LETTER},   {0x2E, U1_00, "B", MKeyboardKey::CH_TY_LETTER}, {0x2F, U1_00, "N", MKeyboardKey::CH_TY_LETTER}, {0x30, U1_00, "M", MKeyboardKey::CH_TY_LETTER}, {0x31, U1_00, ",", MKeyboardKey::CH_TY_OTHER},  {0x32, U1_00, ".", MKeyboardKey::CH_TY_OTHER},  {0x33, U1_00, "/", MKeyboardKey::CH_TY_OTHER},  {0x34, U1_00, "Shift", MKeyboardKey::CH_TY_MODIFY}, {0x35, U1_00, "↑", MKeyboardKey::CH_TY_DIR},   {0x36, U1_00, "Del", MKeyboardKey::CH_TY_OTHER}}};
-    MKeyboardRow::row_t row4 = {KEY_SPACING, {{0x37, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY},  {0x38, U1_25, "Win", MKeyboardKey::CH_TY_MODIFY},                        {0x39, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY},                        {0x3A, U6_25+0.5, "Space", MKeyboardKey::CH_TY_OTHER},                       {0x3B, U1_00, "Alt", MKeyboardKey::CH_TY_MODIFY}, {0x3C, U1_00, "Fn", MKeyboardKey::CH_TY_OTHER}, {0x3D, U1_00, "←", MKeyboardKey::CH_TY_DIR},    {0x3E, U1_00, "↓", MKeyboardKey::CH_TY_DIR},    {0x3F, U1_00, "→", MKeyboardKey::CH_TY_DIR}}};
+    MKeyboardRow::row_t row4 = {KEY_SPACING, {{0x37, U1_25, "Ctrl", MKeyboardKey::CH_TY_MODIFY},  {0x38, U1_25, "Win", MKeyboardKey::CH_TY_MODIFY},                        {0x39, U1_25, "Alt", MKeyboardKey::CH_TY_MODIFY},                        {0x3A, U6_25+U0_5, "Space", MKeyboardKey::CH_TY_OTHER},                       {0x3B, U1_00, "Alt", MKeyboardKey::CH_TY_MODIFY}, {0x3C, U1_00, "Fn", MKeyboardKey::CH_TY_OTHER}, {0x3D, U1_00, "←", MKeyboardKey::CH_TY_DIR},    {0x3E, U1_00, "↓", MKeyboardKey::CH_TY_DIR},    {0x3F, U1_00, "→", MKeyboardKey::CH_TY_DIR}}};
     panel.rows.clear();
     panel = {ROW_SPACING, {row0, row1, row2, row3, row4}};
 }
