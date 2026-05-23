@@ -50,22 +50,21 @@ void GT64HeWidget::on_param_dbg_btn_setColor_clicked() {
         if (ui->param->dbg->panel->isChecked()) {
             ui->keyboard->layout->m_panel->setStyleSheet("background-color: " + colorStr + ";");
         }
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    if (ui->param->dbg->dft_border->isChecked())            kbKey->set_dft_border_color(color);
-                    if (ui->param->dbg->dft_font->isChecked())              kbKey->set_dft_font_color(color);
-                    if (ui->param->dbg->hover_font->isChecked())            kbKey->set_hover_font_color(color);
-                    if (ui->param->dbg->dft_background->isChecked())        kbKey->set_dft_background_color(color);
-                    if (ui->param->dbg->hover_background->isChecked())      kbKey->set_hover_background_color(color);
-                    if (ui->param->dbg->checked_background->isChecked())    kbKey->set_checked_background_color(color);
-                    if (ui->param->dbg->checked0_background->isChecked())   kbKey->set_checked0_background_color(color);
-                    if (ui->param->dbg->checked1_background->isChecked())   kbKey->set_checked1_background_color(color);
-                    kbKey->updateStyle();
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+                if (key->isChecked()) {
+                    GT64HeWidget *widget = (GT64HeWidget *)user;
+                    if (widget->ui->param->dbg->dft_border->isChecked())            key->set_dft_border_color(color);
+                    if (widget->ui->param->dbg->dft_font->isChecked())              key->set_dft_font_color(color);
+                    if (widget->ui->param->dbg->hover_font->isChecked())            key->set_hover_font_color(color);
+                    if (widget->ui->param->dbg->dft_background->isChecked())        key->set_dft_background_color(color);
+                    if (widget->ui->param->dbg->hover_background->isChecked())      key->set_hover_background_color(color);
+                    if (widget->ui->param->dbg->checked_background->isChecked())    key->set_checked_background_color(color);
+                    if (widget->ui->param->dbg->checked0_background->isChecked())   key->set_checked0_background_color(color);
+                    if (widget->ui->param->dbg->checked1_background->isChecked())   key->set_checked1_background_color(color);
+                    key->updateStyle();
                 }
-            }
-        }
+            },
+            this);
     }
 }
 
@@ -82,15 +81,13 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_border_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_dft_border->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_dft_border_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_dft_border_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_dft_font_clicked() {
@@ -98,15 +95,13 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_font_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_dft_font->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_dft_font_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_dft_font_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_hover_font_clicked() {
@@ -114,15 +109,13 @@ void GT64HeWidget::on_param_dbg_btn_color_hover_font_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_hover_font->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_hover_font_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_hover_font_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_dft_background_clicked() {
@@ -130,15 +123,13 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_background_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_dft_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_dft_background_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_dft_background_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_hover_background_clicked() {
@@ -146,15 +137,13 @@ void GT64HeWidget::on_param_dbg_btn_color_hover_background_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_hover_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_hover_background_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_hover_background_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_checked_background_clicked() {
@@ -162,15 +151,13 @@ void GT64HeWidget::on_param_dbg_btn_color_checked_background_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_checked_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_checked_background_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_checked_background_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_checked0_background_clicked() {
@@ -178,15 +165,13 @@ void GT64HeWidget::on_param_dbg_btn_color_checked0_background_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_checked0_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_checked0_background_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_checked0_background_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_param_dbg_btn_color_checked1_background_clicked() {
@@ -194,15 +179,13 @@ void GT64HeWidget::on_param_dbg_btn_color_checked1_background_clicked() {
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
         ui->param->dbg->btn_color_checked1_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
-        for (int row = 0; row < ui->keyboard->layout->m_panel->getRowNum(); ++row) {
-            for (int key = 0; key < ui->keyboard->layout->m_panel->getKeyNum(row); ++key) {
-                MKeyboardKey *kbKey = ui->keyboard->layout->m_panel->getKey(row, key);
-                if (kbKey->isChecked()) {
-                    kbKey->set_checked1_background_color(color);
-                    kbKey->updateStyle();
-                }
+        ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
+            if (key->isChecked()) {
+                key->set_checked1_background_color(color);
+                key->updateStyle();
             }
-        }
+        }, 
+        nullptr);
     }
 }
 void GT64HeWidget::on_statebar_btn_exitWidget_clicked() {
@@ -263,6 +246,13 @@ void GT64HeWidget::on_param_property_slider_param5_userReleased(int value) {
 void GT64HeWidget::on_param_property_spinBox_param0_valueChanged(double value) {
     ui->param->property->slider_param[0]->setSliderPosition(value * 1000.0);
     Console::out() << "TODO: 0 send usb message" << value << std::endl;
+
+    ui->keyboard->layout->m_panel->getAllKeyNum([value](MKeyboardKey *key, void *user) -> void {
+        MKeyboardKey::dist_dir_t dir = ((key->getDistCur() - value) > 0.0) ? MKeyboardKey::DIR_D2U : MKeyboardKey::DIR_U2D;
+        key->updateDistCur(value, dir);
+    },
+    nullptr);
+
 }
 void GT64HeWidget::on_param_property_spinBox_param1_valueChanged(double value) {
     ui->param->property->slider_param[1]->setSliderPosition(value * 1000.0);

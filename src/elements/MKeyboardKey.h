@@ -6,6 +6,12 @@
 #include <QString>
 #include <QPushButton>
 
+#include <QPainterPath>
+#include <QPainter>
+#include <QPaintEvent>
+#include <QRegularExpression>
+#include <QDebug>
+
 
 class MKeyboardKey : public QPushButton {
     Q_OBJECT
@@ -27,6 +33,10 @@ public:
         LIGHT_RGBW = 0x03, // RGBW颜色
     } light_type_t;
     
+    typedef enum {
+        DIR_D2U = 0,
+        DIR_U2D = 1,
+    } dist_dir_t;
     typedef struct {
         int seq;
         float w_unit;
@@ -42,10 +52,28 @@ public:
     void updateStyle() {
         setStyleSheet(getStyle().toUtf8());
     }
+
+    float getDistMax() const { return m_distMax; }
+    void setDistMax(float dist) { m_distMax = dist; }
+    void updateDistCur(float dist, dist_dir_t dir = DIR_D2U) {
+        setDistCur(dist, dir); 
+        update(); // 重绘
+    }
+    float getDistCur() const { return m_distCur; }
+    void setDistCur(float dist, dist_dir_t dir = DIR_D2U) { m_distCur = dist; m_dist_dir = dir; }
+    void updateDistMax(float dist) {
+        setDistMax(dist); 
+        update(); // 重绘
+    }
 private:
     int m_base_w;
     int m_base_h;
     msg_t m_msg;
+
+    float m_distMax;
+    float m_distCur;
+    dist_dir_t m_dist_dir; //0:D2U, 1:U2D
+
     QString dft_border_color = "rgba(200, 200, 200, 0.5)";
     QString dft_font_color = "#353535";
     QString hover_font_color = "#555555";
@@ -56,6 +84,9 @@ private:
     QString checked1_background_color = "#cfe1d6";
     QString colorToStr(QColor color) { return QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue()); }
 
+    // 从样式表中解析边框宽度
+    int parseBorderWidthFromStyleSheet();
+    int parseBorderRadiusFromStyleSheet();
 public slots:
     void set_dft_border_color(QColor color)          { dft_border_color = colorToStr(color);}
     void set_dft_font_color(QColor color)            { dft_font_color = colorToStr(color);}
@@ -66,12 +97,7 @@ public slots:
     void set_checked0_background_color(QColor color) { checked0_background_color = colorToStr(color);}
     void set_checked1_background_color(QColor color) { checked1_background_color = colorToStr(color);}
 protected:
-    // void paintEvent(QPaintEvent *) {
-    //     QStyleOption opt;
-    //     opt.init(this);
-    //     QPainter p(this);
-    //     style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
-    // }
+    void paintEvent(QPaintEvent *event) override;
 signals:
     // void stateChanged(int idx, bool checked);
     void clicked(int idx, bool checked);

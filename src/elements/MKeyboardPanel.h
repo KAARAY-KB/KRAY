@@ -2,6 +2,7 @@
 #define MKEYBOARDPANEL_H
 
 #include "MKeyboardRow.h"
+#include <functional>
 
 class MKeyboardPanel : public QWidget {
     Q_OBJECT
@@ -40,6 +41,14 @@ public:
     
     int getRowNum() const { return m_rows.size(); }
     int getKeyNum(int row) const { return m_rows[row]->getKeyNum(); }
+    void getAllKeyNum(std::function<void(MKeyboardKey *key_data, void *user)> cb, void *context_data) {
+         for (int row = 0; row < getRowNum(); ++row) {
+             for (int cnt = 0; cnt < getKeyNum(row); ++cnt) {
+                MKeyboardKey *key = getKey(row, cnt);
+                cb(key, context_data);
+             }
+         }
+    }
 
     MKeyboardRow *getRow(int rowIdx) { return m_rows[rowIdx]; }
     MKeyboardKey *getKey(int rowIdx, int keyIdx) { return getRow(rowIdx)->getKey(keyIdx); }
