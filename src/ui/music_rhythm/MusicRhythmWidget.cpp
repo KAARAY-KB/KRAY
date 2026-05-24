@@ -6,39 +6,30 @@
 #include <QIcon>
 #include <QDebug>
 #include <QHBoxLayout>
+#include <cmath>
 
 #ifdef _WIN32
 #include <Windows.h>
 #endif
 
+#define FFS 30
 // 频谱柱数
 static const int BAR_COUNT = 64;
 // 刷新间隔（毫秒）
-static const int REFRESH_MS = 1000 / 60; // 60 FPS
+static const int REFRESH_MS = 1000 / FFS;
 
 // 构造函数
 MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     : QWidget(parent)
-    , m_capture(nullptr)
-    , m_timer(nullptr)
-    , m_energy(0.0f)
-    , m_device_combo(nullptr)
-    , m_device_label(nullptr)
-    , m_spec_gain_slider(nullptr)
-    , m_spec_gain_label(nullptr)
+    , m_energy(0.0f) // 初始能量值
+    , m_wave_pts(512) // 初始波形点数
+    , m_bar_cnt(16) // 初始频谱柱数
+    , m_user_bar_cnt(16) // 初始用户自定义柱数
+    , m_led_mode(LED_MODE_LAYERS) // 初始LED灯效模式
     , m_spec_gain(1.0f) // 初始频谱增益
-    , m_wave_gain_slider(nullptr)
-    , m_wave_gain_label(nullptr)
     , m_wave_gain(1.0f) // 初始波形增益
-    , m_energy_gain_slider(nullptr)
-    , m_energy_gain_label(nullptr)
     , m_energy_gain(1.0f) // 初始能量增益
-    , m_wave_pts_slider(nullptr)
-    , m_wave_pts_label(nullptr)
-    , m_wave_pts(512)
-    , m_bar_cnt_slider(nullptr)
-    , m_bar_cnt_label(nullptr)
-    , m_bar_cnt(16)
+    , m_auto_gain(10.0f) // 初始自动增益值
 {
     // 窗口属性
     setAttribute(Qt::WA_QuitOnClose, false);
@@ -59,6 +50,12 @@ MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     m_spectrum_peak.fill(0.0f);
     m_spectrum_fall.resize(BAR_COUNT);
     m_spectrum_fall.fill(0.0f);
+
+    // 初始化LED网格数据
+    m_led_grid.resize(80);
+    m_led_grid.fill(0.0f);
+    m_led_grid_prev.resize(80);
+    m_led_grid_prev.fill(0.0f);
 
     // 创建音频采集器
     m_capture = new AudioCapture(this);
@@ -103,6 +100,156 @@ MusicRhythmWidget::~MusicRhythmWidget()
     }
     if (m_timer) {
         m_timer->stop();
+    }
+}
+
+// 切换LED灯效模式
+void MusicRhythmWidget::on_led_mode_changed(int index)
+{
+    m_led_mode = (LedMode)index;
+
+    if (m_capture) {
+        if (m_led_mode == LED_MODE_BANDS) {
+            // 80频段模式需要80根柱子
+            m_capture->set_bar_count(80);
+        } else {
+            // 其他模式恢复用户设置的柱数
+            m_capture->set_bar_count(m_user_bar_cnt);
+        }
+    }
+}
+
+// 映射LED网格数据（16列×5行=80个值）
+void MusicRhythmWidget::map_led_grid()
+{
+    m_led_grid.resize(80);
+
+    int cols = 16;
+    int rows = 5;
+
+#if 0
+    // 综合增益 = 用户增益 × 自动增益
+    float gain = m_spec_gain * m_auto_gain;
+#else
+    // 综合增益 = 自动增益
+    float gain = m_auto_gain;
+#endif
+
+    // 节拍脉冲：能量突变时增强LED亮度
+    static float prev_energy = 0.0f;
+    float beat_pulse = 1.0f;
+    float energy_delta = m_energy - prev_energy;
+    if (energy_delta > 0.05f) {
+        beat_pulse = 1.0f + qMin(energy_delta * 8.0f, 1.5f);
+    }
+    prev_energy = m_energy;
+
+    // 计算目标LED值
+    QVector<float> target(80, 0.0f);
+
+    switch (m_led_mode) {
+    case LED_MODE_LAYERS: {
+        // 强度分层：每列5级强度，底部先亮，渐变亮度
+        for (int c = 0; c < cols && c < m_spectrum.size(); c++) {
+            float val = m_spectrum[c] * gain * beat_pulse;
+            // 适度压缩，保留动态范围（0.8比0.7更保留对比度）
+            val = powf(qBound(0.0f, val, 1.0f), 0.8f);
+            float level = val * rows;
+            for (int r = 0; r < rows; r++) {
+                int dist_from_bottom = rows - 1 - r;
+                float cell_val = level - dist_from_bottom;
+                if (cell_val > 1.0f) cell_val = 1.0f;
+                if (cell_val < 0.0f) cell_val = 0.0f;
+                target[r * cols + c] = cell_val;
+            }
+        }
+        break;
+    }
+    case LED_MODE_BANDS: {
+        // 80频段：每个格子对应独立频段
+        for (int i = 0; i < 80 && i < m_spectrum.size(); i++) {
+            float val = m_spectrum[i] * gain * beat_pulse;
+            val = qBound(0.0f, val, 1.0f);
+            // 适度压缩，保留强弱对比
+            val = powf(val, 0.7f);
+            target[i] = val;
+        }
+        break;
+    }
+    case LED_MODE_MIRROR: {
+        // 镜像波形：用频谱数据做对称，中间行最亮
+        for (int c = 0; c < cols && c < m_spectrum.size(); c++) {
+            float val = m_spectrum[c] * gain * beat_pulse;
+            val = powf(qBound(0.0f, val, 1.0f), 0.8f);
+            int center = rows / 2;
+            float level = val * (center + 1);
+            target[center * cols + c] = val;
+            for (int l = 1; l <= center; l++) {
+                float cell_val = level - l;
+                if (cell_val > 1.0f) cell_val = 1.0f;
+                if (cell_val < 0.0f) cell_val = 0.0f;
+                if (center - l >= 0) target[(center - l) * cols + c] = cell_val;
+                if (center + l < rows) target[(center + l) * cols + c] = cell_val;
+            }
+        }
+        break;
+    }
+    }
+
+    // 余辉衰减：快速上升，快速衰减——让节拍"打"出来
+    for (int i = 0; i < 80; i++) {
+        if (target[i] >= m_led_grid_prev[i]) {
+            // 新值更大：瞬间亮起
+            m_led_grid[i] = target[i];
+        } else {
+            // 旧值更大：快速衰减，让灯迅速暗下去
+            m_led_grid[i] = m_led_grid_prev[i] * 0.65f;
+            if (m_led_grid[i] < target[i]) m_led_grid[i] = target[i];
+        }
+    }
+
+    // 保存当前帧（0~1范围）用于下一帧衰减
+    m_led_grid_prev = m_led_grid;
+
+    // 将0~1映射到0~100亮度值
+    for (int i = 0; i < 80; i++) {
+        m_led_grid[i] = qBound(0.0f, m_led_grid[i] * 100.0f, 100.0f);
+    }
+
+    emit sig_led_grid(m_led_grid);
+}
+
+// 绘制LED网格预览
+void MusicRhythmWidget::draw_led_grid(QPainter &painter, const QRect &rect)
+{
+    int cols = 16;
+    int rows = 5;
+    float cell_w = (float)rect.width() / cols;
+    float cell_h = (float)rect.height() / rows;
+    float gap = 2.0f;
+
+    // 区域标题
+    painter.setPen(QColor(120, 120, 140));
+    painter.setFont(QFont("Consolas", 8));
+    painter.drawText(rect.x(), rect.y() - 2, "LED GRID");
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            float val = m_led_grid[r * cols + c];
+            float x = rect.x() + c * cell_w + gap / 2;
+            float y = rect.y() + r * cell_h + gap / 2;
+            float w = cell_w - gap;
+            float h = cell_h - gap;
+
+            // 亮度映射：0~100 → 灰度
+            int brightness = qBound(0, (int)val, 100);
+            int gray = brightness * 255 / 100;
+            QColor color(gray, gray, gray);
+
+            painter.setBrush(color);
+            painter.setPen(Qt::NoPen);
+            painter.drawRoundedRect(QRectF(x, y, w, h), 2.0, 2.0);
+        }
     }
 }
 
@@ -180,11 +327,19 @@ void MusicRhythmWidget::on_device_changed(int index)
     m_capture->start();
 }
 
-// 定时刷新：更新峰值下落 + 重绘
+// 定时刷新：更新峰值下落 + 映射LED + 重绘
 void MusicRhythmWidget::on_refresh()
 {
+    // 动态调整峰值数组大小
+    if (m_spectrum.size() != m_spectrum_peak.size()) {
+        m_spectrum_peak.resize(m_spectrum.size());
+        m_spectrum_peak.fill(0.0f);
+        m_spectrum_fall.resize(m_spectrum.size());
+        m_spectrum_fall.fill(0.0f);
+    }
+
     // 更新频谱峰值下落效果
-    for (int i = 0; i < BAR_COUNT && i < m_spectrum.size(); i++) {
+    for (int i = 0; i < m_spectrum.size(); i++) {
         if (m_spectrum[i] >= m_spectrum_peak[i]) {
             m_spectrum_peak[i] = m_spectrum[i];
             m_spectrum_fall[i] = 0.0f;
@@ -196,6 +351,24 @@ void MusicRhythmWidget::on_refresh()
             }
         }
     }
+
+    // 自动增益：跟踪频谱峰值，确保LED有足够亮度
+    float peak = 0.001f;
+    for (int i = 0; i < m_spectrum.size(); i++) {
+        if (m_spectrum[i] > peak) peak = m_spectrum[i];
+    }
+    // 快速上升，较快下降——安静时增益快速回落，避免背景噪音点亮LED
+    float target_gain = 1.0f / peak;
+    if (target_gain > m_auto_gain) {
+        m_auto_gain += (target_gain - m_auto_gain) * 0.5f;
+    } else {
+        m_auto_gain += (target_gain - m_auto_gain) * 0.15f;
+    }
+    m_auto_gain = qBound(1.0f, m_auto_gain, 200.0f);
+
+    // 映射LED网格数据
+    map_led_grid();
+
     update();
 }
 
@@ -210,19 +383,25 @@ void MusicRhythmWidget::paintEvent(QPaintEvent *event)
     // 背景
     painter.fillRect(rect(), QColor(15, 15, 25));
 
-    // 布局：上半部分频谱，下半部分波形，右侧能量条
+    // 布局：上频谱，中LED网格预览，下波形，右侧能量条
     int margin = 10;
     int energy_bar_w = 30;
     int main_w = width() - margin * 2 - energy_bar_w - margin;
-    int main_h = height() - margin * 2 - 40; // 底部留空给控制面板
-    int half_h = main_h / 2 - margin / 2;
+    int main_h = height() - margin * 2 - 40;
+    int spec_h = main_h * 2 / 5;
+    int led_h = main_h / 5;
+    int wave_h = main_h - spec_h - led_h - margin * 2;
 
     // 频谱区域
-    QRect spec_rect(margin, margin, main_w, half_h);
+    QRect spec_rect(margin, margin, main_w, spec_h);
     draw_spectrum(painter, spec_rect);
 
+    // LED网格预览区域
+    QRect led_rect(margin, margin + spec_h + margin, main_w, led_h);
+    draw_led_grid(painter, led_rect);
+
     // 波形区域
-    QRect wave_rect(margin, margin + half_h + margin, main_w, half_h);
+    QRect wave_rect(margin, margin + spec_h + margin + led_h + margin, main_w, wave_h);
     draw_waveform(painter, wave_rect);
 
     // 能量指示器区域
@@ -267,6 +446,12 @@ void MusicRhythmWidget::paintEvent(QPaintEvent *event)
     m_bar_cnt_label->move(x, ctrl_y + 3);
     x += m_bar_cnt_label->width() + 3;
     m_bar_cnt_slider->move(x, ctrl_y + 2);
+    x += m_bar_cnt_slider->width() + 10;
+
+    // LED模式
+    m_led_mode_label->move(x, ctrl_y + 3);
+    x += m_led_mode_label->width() + 3;
+    m_led_mode_combo->move(x, ctrl_y);
 }
 
 // 绘制频谱柱状图
@@ -279,8 +464,15 @@ void MusicRhythmWidget::draw_spectrum(QPainter &painter, const QRect &rect)
     float gap = qMax(1.0f, bar_w * 0.15f);
     float draw_w = bar_w - gap;
 
+#if 0
+    // 频谱自动增益（复用LED的自动增益）
+    float gain = m_spec_gain * m_auto_gain;
+#else
+    float gain = m_auto_gain;
+#endif
+
     for (int i = 0; i < n; i++) {
-        float val = m_spectrum[i] * m_spec_gain;
+        float val = m_spectrum[i] * gain;
         if (val < 0.0f) val = 0.0f;
         if (val > 1.0f) val = 1.0f;
 
@@ -298,7 +490,7 @@ void MusicRhythmWidget::draw_spectrum(QPainter &painter, const QRect &rect)
         painter.drawRoundedRect(QRectF(x, y, draw_w, bar_h), 1.0, 1.0);
 
         // 峰值指示条
-        float peak_val = m_spectrum_peak[i] * m_spec_gain;
+        float peak_val = m_spectrum_peak[i] * gain;
         if (peak_val > 1.0f) peak_val = 1.0f;
         float peak_y = rect.y() + rect.height() - peak_val * rect.height();
         painter.setBrush(QColor(255, 255, 255, 200));
@@ -524,9 +716,24 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_bar_cnt_slider->setStyleSheet(slider_style);
     connect(m_bar_cnt_slider, &QSlider::valueChanged, this, [this](int val) {
         m_bar_cnt = val;
+        m_user_bar_cnt = val;
         m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));
-        if (m_capture) m_capture->set_bar_count(m_bar_cnt);
+        if (m_capture && m_led_mode != LED_MODE_BANDS) m_capture->set_bar_count(m_bar_cnt);
     });
+
+    // ---- LED模式选择 ----
+    m_led_mode_label = new QLabel(this);
+    m_led_mode_label->setStyleSheet(label_style);
+    m_led_mode_label->setText("LED:");
+
+    m_led_mode_combo = new QComboBox(this);
+    m_led_mode_combo->setFixedWidth(100);
+    m_led_mode_combo->setStyleSheet(combo_style);
+    m_led_mode_combo->addItem("强度分层", LED_MODE_LAYERS);
+    m_led_mode_combo->addItem("80频段", LED_MODE_BANDS);
+    m_led_mode_combo->addItem("镜像波形", LED_MODE_MIRROR);
+    connect(m_led_mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MusicRhythmWidget::on_led_mode_changed);
 }
 
 // 刷新设备列表
