@@ -22,13 +22,13 @@ static const int REFRESH_MS = 1000 / FFS;
 MusicRhythmWidget::MusicRhythmWidget(QWidget *parent)
     : QWidget(parent)
     , m_energy(0.0f) // 初始能量值
-    , m_wave_pts(512) // 初始波形点数
+    , m_wave_pts(1024) // 初始波形点数
     , m_bar_cnt(16) // 初始频谱柱数
     , m_user_bar_cnt(16) // 初始用户自定义柱数
     , m_led_mode(LED_MODE_LAYERS) // 初始LED灯效模式
     , m_spec_gain(1.0f) // 初始频谱增益
-    , m_wave_gain(1.0f) // 初始波形增益
-    , m_energy_gain(1.0f) // 初始能量增益
+    , m_wave_gain(5.0f) // 初始波形增益
+    , m_energy_gain(5.0f) // 初始能量增益
     , m_auto_gain(10.0f) // 初始自动增益值
 {
     // 窗口属性
@@ -649,7 +649,7 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_spec_gain_slider->setValue((int)m_spec_gain);
     m_spec_gain_slider->setFixedWidth(80);
     m_spec_gain_slider->setStyleSheet(slider_style);
-    connect(m_spec_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+    connect(m_spec_gain_slider, &QSlider::valueChanged, this, [this](uint32_t val) {
         m_spec_gain = (float)val;
         m_spec_gain_label->setText(QString("SPEC: %1").arg(m_spec_gain, 0, 'f', 0));
     });
@@ -665,7 +665,7 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_wave_gain_slider->setValue((int)m_wave_gain);
     m_wave_gain_slider->setFixedWidth(80);
     m_wave_gain_slider->setStyleSheet(slider_style);
-    connect(m_wave_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+    connect(m_wave_gain_slider, &QSlider::valueChanged, this, [this](uint32_t val) {
         m_wave_gain = (float)val;
         m_wave_gain_label->setText(QString("WAVE: %1").arg(m_wave_gain, 0, 'f', 0));
     });
@@ -681,7 +681,7 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_energy_gain_slider->setValue((int)m_energy_gain);
     m_energy_gain_slider->setFixedWidth(80);
     m_energy_gain_slider->setStyleSheet(slider_style);
-    connect(m_energy_gain_slider, &QSlider::valueChanged, this, [this](int val) {
+    connect(m_energy_gain_slider, &QSlider::valueChanged, this, [this](uint32_t val) {
         m_energy_gain = (float)val;
         m_energy_gain_label->setText(QString("NRG: %1").arg(m_energy_gain, 0, 'f', 0));
     });
@@ -691,13 +691,13 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_wave_pts_label->setStyleSheet(label_style);
     m_wave_pts_label->setText(QString("WPTS: %1").arg(m_wave_pts));
     m_wave_pts_slider = new QSlider(Qt::Horizontal, this);
-    m_wave_pts_slider->setRange(32, 512);
+    m_wave_pts_slider->setRange(1024, 44100);
     m_wave_pts_slider->setSingleStep(1);
     m_wave_pts_slider->setPageStep(1);
     m_wave_pts_slider->setValue(m_wave_pts);
     m_wave_pts_slider->setFixedWidth(80);
     m_wave_pts_slider->setStyleSheet(slider_style);
-    connect(m_wave_pts_slider, &QSlider::valueChanged, this, [this](int val) {
+    connect(m_wave_pts_slider, &QSlider::valueChanged, this, [this](uint32_t val) {
         m_wave_pts = val;
         m_wave_pts_label->setText(QString("WPTS: %1").arg(m_wave_pts));
         if (m_capture) m_capture->set_waveform_points(m_wave_pts);
@@ -708,13 +708,13 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_bar_cnt_label->setStyleSheet(label_style);
     m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));
     m_bar_cnt_slider = new QSlider(Qt::Horizontal, this);
-    m_bar_cnt_slider->setRange(8, 128);
+    m_bar_cnt_slider->setRange(16, 512);
     m_bar_cnt_slider->setSingleStep(1);
     m_bar_cnt_slider->setPageStep(1);
     m_bar_cnt_slider->setValue(m_bar_cnt);
     m_bar_cnt_slider->setFixedWidth(80);
     m_bar_cnt_slider->setStyleSheet(slider_style);
-    connect(m_bar_cnt_slider, &QSlider::valueChanged, this, [this](int val) {
+    connect(m_bar_cnt_slider, &QSlider::valueChanged, this, [this](uint32_t val) {
         m_bar_cnt = val;
         m_user_bar_cnt = val;
         m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));

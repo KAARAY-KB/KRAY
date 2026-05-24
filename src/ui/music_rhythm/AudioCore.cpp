@@ -33,25 +33,25 @@ AudioCore::~AudioCore()
 }
 
 // 获取波形数据点数
-int AudioCore::get_waveform_points() const
+uint32_t AudioCore::get_waveform_points() const
 {
     return m_waveform_points;
 }
 // 设置波形数据点数
-void AudioCore::set_waveform_points(int points)
+void AudioCore::set_waveform_points(uint32_t points)
 {
-    if (points > 0) m_waveform_points = points;
+    m_waveform_points = points;
 }
 
 // 获取频谱柱子数量
-int AudioCore::get_bar_count() const
+uint32_t AudioCore::get_bar_count() const
 {
     return m_bar_count;
 }
 // 设置频谱柱子数量
-void AudioCore::set_bar_count(int count)
+void AudioCore::set_bar_count(uint32_t count)
 {
-    if (count > 0) m_bar_count = count;
+    m_bar_count = count;
 }
 
 // 枚举指定方向的音频设备
@@ -392,42 +392,42 @@ void AudioCore::convert_to_float(uint8_t *data, uint32_t frames,
 void AudioCore::process_audio(const float *samples, uint32_t frame_count)
 {
     // ---- 波形数据 ----
-    int wave_points = m_waveform_points;
+    uint32_t wave_points = m_waveform_points;
     std::vector<float> waveform(wave_points);
-    for (int i = 0; i < wave_points; i++) {
-        int idx = static_cast<int>(static_cast<float>(i) / wave_points * frame_count);
-        if (idx >= static_cast<int>(frame_count)) idx = frame_count - 1;
+    for (uint32_t i = 0; i < wave_points; i++) {
+        uint32_t idx = static_cast<uint32_t>(static_cast<float>(i) / wave_points * frame_count);
+        if (idx >= frame_count) idx = frame_count - 1;
         waveform[i] = samples[idx];
     }
     if (m_waveform_cb) m_waveform_cb(waveform.data(), wave_points);
 
     // ---- FFT 频谱数据 ----
-    int fft_n = m_fft_size;
+    uint32_t fft_n = m_fft_size;
     std::vector<float> real(fft_n, 0.0f);
     std::vector<float> imag(fft_n, 0.0f);
 
-    int copy_len = static_cast<int>(frame_count) < fft_n ? static_cast<int>(frame_count) : fft_n;
-    for (int i = 0; i < copy_len; i++) {
+    uint32_t copy_len = frame_count < fft_n ? frame_count : fft_n;
+    for (uint32_t i = 0; i < copy_len; i++) {
         float window = 0.5f * (1.0f - cosf(2.0f * static_cast<float>(M_PI) * i / (copy_len - 1)));
         real[i] = samples[i] * window;
     }
 
     fft(real, imag);
 
-    int bar_count = m_bar_count;
+    uint32_t bar_count = m_bar_count;
     std::vector<float> spectrum(bar_count);
-    int half_n = fft_n / 2;
+    uint32_t half_n = fft_n / 2;
 
     // 对数分组：低频柱子覆盖窄频段，高频柱子覆盖宽频段
     // 从 bin 2 开始（约 94Hz @48kHz），避免 DC 和极低频
     float log_min = log2f(2.0f);
     float log_max = log2f(static_cast<float>(half_n));
-    int prev_hi = 2;
-    for (int i = 0; i < bar_count; i++) {
+    uint32_t prev_hi = 2;
+    for (uint32_t i = 0; i < bar_count; i++) {
         float lo = powf(2.0f, log_min + (log_max - log_min) * i / bar_count);
         float hi = powf(2.0f, log_min + (log_max - log_min) * (i + 1) / bar_count);
-        int bin_lo = static_cast<int>(lo);
-        int bin_hi = static_cast<int>(hi);
+        uint32_t bin_lo = static_cast<uint32_t>(lo);
+        uint32_t bin_hi = static_cast<uint32_t>(hi);
         // 确保不与前一柱重叠，每柱覆盖唯一 bin
         if (bin_lo < prev_hi) bin_lo = prev_hi;
         if (bin_hi <= bin_lo) bin_hi = bin_lo + 1;
@@ -436,7 +436,7 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
         int count = bin_hi - bin_lo;
         if (count <= 0) count = 1;
         float mag_sum = 0.0f;
-        for (int j = bin_lo; j < bin_hi; j++) {
+        for (uint32_t j = bin_lo; j < bin_hi; j++) {
             float mag = sqrtf(real[j] * real[j] + imag[j] * imag[j]);
             mag_sum += mag;
         }
@@ -457,7 +457,7 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
 // 基2 Cooley-Tukey FFT
 void AudioCore::fft(std::vector<float> &real, std::vector<float> &imag)
 {
-    int n = static_cast<int>(real.size());
+    uint32_t n = static_cast<uint32_t>(real.size());
 
     // 位反转排列
     for (int i = 1, j = 0; i < n; i++) {
@@ -474,18 +474,18 @@ void AudioCore::fft(std::vector<float> &real, std::vector<float> &imag)
     }
 
     // 蝶形运算
-    for (int len = 2; len <= n; len <<= 1) {
+    for (uint32_t len = 2; len <= n; len <<= 1) {
         float angle = -2.0f * static_cast<float>(M_PI) / len;
         float w_real = cosf(angle);
         float w_imag = sinf(angle);
 
-        for (int i = 0; i < n; i += len) {
+        for (uint32_t i = 0; i < n; i += len) {
             float cur_real = 1.0f;
             float cur_imag = 0.0f;
 
-            for (int j = 0; j < len / 2; j++) {
-                int even = i + j;
-                int odd = i + j + len / 2;
+            for (uint32_t j = 0; j < len / 2; j++) {
+                uint32_t even = i + j;
+                uint32_t odd = i + j + len / 2;
 
                 float t_real = cur_real * real[odd] - cur_imag * imag[odd];
                 float t_imag = cur_real * imag[odd] + cur_imag * real[odd];
