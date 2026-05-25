@@ -107,6 +107,7 @@ private:
     bool m_rhythm_on;               // 律动是否开启
     MusicRhythmWidget *m_music_ref; // 音乐律动窗口引用
     QVector<QColor> m_key_base_color;  // 按键原始背景色
+    QVector<QColor> m_key_prev_color;  // 按键上一帧律动色（用于跳过无变化更新）
     QColor m_key_rhythm_color;          // 律动颜色
 
     // 根据亮度在按键原始底色和律动颜色之间插值

@@ -163,6 +163,12 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
     int rows = 5;
     int key_idx = 0;
 
+    // 首帧初始化 prev 缓存
+    if (m_key_prev_color.size() != m_key_base_color.size()) {
+        m_key_prev_color.resize(m_key_base_color.size());
+        m_key_prev_color.fill(QColor(-1, -1, -1));
+    }
+
     ui->keyboard->layout->m_panel->getAllKeyNum([this, &data, cols, rows, &key_idx](MKeyboardKey *key, void *user) {
         GT64HeWidget *self = (GT64HeWidget *)user;
 
@@ -181,9 +187,14 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
 
         // 按键原始底色→律动颜色插值
         QColor color = self->blend_color(self->m_key_base_color[key_idx], self->m_key_rhythm_color, brightness);
-        key->set_dft_background_color(color);
-        key->updateStyle();
-        
+
+        // 只在颜色变化时才更新样式（避免每帧1830次setStyleSheet）
+        if (color != self->m_key_prev_color[key_idx]) {
+            self->m_key_prev_color[key_idx] = color;
+            key->set_dft_background_color(color);
+            key->updateStyle();
+        }
+
         key_idx++;
     }, this);
 }

@@ -12,7 +12,7 @@
 #include <Windows.h>
 #endif
 
-#define FFS 30
+#define FFS 60
 // 频谱柱数
 static const int BAR_COUNT = 64;
 // 刷新间隔（毫秒）
