@@ -17,6 +17,7 @@ target_link_libraries(${SUB_NAME} PUBLIC
     usb_controller
     devices_ctrl
     protocol
+    music_rhythm
 )
 # 添加目录
 target_include_directories(${SUB_NAME} PUBLIC

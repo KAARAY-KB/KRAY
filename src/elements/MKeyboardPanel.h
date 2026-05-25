@@ -37,6 +37,7 @@ public:
         CHECKED_TYPE_ALL,
         CHECKED_TYPE_CANCEL,
     } checked_type_t;
+
     explicit MKeyboardPanel(type_t type, int base_w = KEY_W_BASE, int base_h = KEY_H_BASE, QWidget *parent = nullptr);
     
     int getRowNum() const { return m_rows.size(); }
@@ -77,6 +78,7 @@ private:
         int row_spacing;
         QVector<MKeyboardRow::row_t> rows;
     } panel_t;
+    
     panel_t m_panelMsg;
     QVector<MKeyboardRow *>m_rows;
     QString panel_color;

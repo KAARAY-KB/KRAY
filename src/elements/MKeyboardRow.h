@@ -15,9 +15,13 @@ public:
         int key_spacing;
         QVector<MKeyboardKey::msg_t> keys;
     } row_t;
+
+    
     explicit MKeyboardRow(row_t &row, int base_w = 20, int base_h = 20, QWidget *parent = nullptr);
     MKeyboardKey *getKey(int keyIdx) { return m_keys[keyIdx]; }
     int getKeyNum() const { return m_keys.size(); }
+
+
 private:
     row_t m_rowMsg;
     QVector<MKeyboardKey *>m_keys;

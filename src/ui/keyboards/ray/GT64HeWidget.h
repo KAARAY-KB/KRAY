@@ -10,6 +10,7 @@
 
 #include "usb_device_info.hpp"
 #include "gt64he_device.hpp"
+#include "MusicRhythmWidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class GT64HeWidget; }
@@ -93,6 +94,8 @@ private slots:
 
     void slot_keyboard_key_clicked(int idx, bool checked);
     void slot_activeWindowChanged(bool active);
+    void on_rhythm_btn_clicked();
+    void on_led_grid(const QVector<float> &data);
 
 signals:
     void exitWindow();
@@ -100,6 +103,14 @@ signals:
     void activeWindowChanged(bool active);
 private:
     Ui::GT64HeWidget *ui;
+    QPushButton *m_rhythm_btn;      // 律动开关按钮
+    bool m_rhythm_on;               // 律动是否开启
+    MusicRhythmWidget *m_music_ref; // 音乐律动窗口引用
+    QVector<QColor> m_key_base_color;  // 按键原始背景色
+    QColor m_key_rhythm_color;          // 律动颜色
+
+    // 根据亮度在按键原始底色和律动颜色之间插值
+    QColor blend_color(const QColor base_color, const QColor rhythm_color, float brightness);
 };
 
 #endif // GT64HEWIDGET_H

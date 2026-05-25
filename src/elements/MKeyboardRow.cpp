@@ -18,7 +18,7 @@ MKeyboardRow::MKeyboardRow(row_t &row, int base_w, int base_h, QWidget *parent)
     m_keys.clear();
     for (int i = 0; i < key_num; ++i) {
         m_keys.append(new MKeyboardKey(m_rowMsg.keys[i], base_w, base_h));
-        m_keys[i]->setObjectName(QString("m_key%1").arg(m_keys[i]->getSeq()).toUtf8());
+        m_keys[i]->setObjectName(QString("m_key%1").arg(m_keys[i]->getId()).toUtf8());
         m_hlayout->addWidget(m_keys[i]);
         if (i != (key_num - 1)) { //每个控件之间都添加伸缩
             m_hlayout->addStretch();
