@@ -3,8 +3,7 @@ alwaysApply: true
 scene: git_message
 ---
 
-1. Please always reply to me in Chinese.
-2. 按照以下格式生成提交信息：
+1. 按照以下格式生成提交信息：
    eg:
    - feat: 新增......
       - 新增...功能
