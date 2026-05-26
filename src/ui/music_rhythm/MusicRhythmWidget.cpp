@@ -278,6 +278,11 @@ void MusicRhythmWidget::show_top(void)
                  SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     SetWindowPos(HWND(this->winId()), HWND_NOTOPMOST, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+#elif defined(__linux__)
+    // Linux: Qt 窗口标志方式置顶
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    show();
+    setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
 #endif
     this->show();
     this->activateWindow();

@@ -29,6 +29,19 @@ if(WIN32)
         ole32
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/libmmdevapi.a
     )
+elseif(UNIX AND NOT APPLE)
+    # Linux 平台链接 PulseAudio
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(PULSE REQUIRED libpulse)
+    target_include_directories(${SUB_NAME} PUBLIC ${PULSE_INCLUDE_DIRS})
+    target_link_libraries(${SUB_NAME} PUBLIC ${PULSE_LIBRARIES})
+elseif(APPLE)
+    # macOS 平台链接 CoreAudio
+    target_link_libraries(${SUB_NAME} PUBLIC
+        "-framework CoreAudio"
+        "-framework AudioUnit"
+        "-framework CoreFoundation"
+    )
 endif()
 
 # 添加目录

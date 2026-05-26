@@ -11,6 +11,11 @@
 #include <windows.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#elif defined(__linux__)
+#include <pulse/pulseaudio.h>
+#elif defined(__APPLE__)
+#include <CoreAudio/CoreAudio.h>
+#include <AudioUnit/AudioUnit.h>
 #endif
 
 // 音频设备方向
@@ -36,7 +41,9 @@ using EnergyCb = std::function<void(float)>;
 using ErrorCb = std::function<void(const char*)>;
 
 // 纯 C++ 音频采集核心，不依赖 Qt
-// 支持输出设备（WASAPI loopback）和输入设备（WASAPI capture）
+// Windows: WASAPI loopback/capture
+// Linux:   PulseAudio 监听/采集
+// macOS:   CoreAudio AUHAL 采集
 // 通过回调函数输出频谱、波形、能量数据
 class AudioCore
 {
@@ -99,6 +106,26 @@ private:
     WaveformCb m_waveform_cb;       // 波形回调
     EnergyCb m_energy_cb;           // 能量回调
     ErrorCb m_error_cb;             // 错误回调
+
+#ifdef __linux__
+    // PulseAudio 上下文和流
+    pa_mainloop *m_pa_loop;         // PulseAudio 主循环
+    pa_context *m_pa_ctx;           // PulseAudio 上下文
+    pa_stream *m_pa_stream;         // PulseAudio 流
+    std::vector<float> m_pa_buf;    // PulseAudio 采集缓冲
+#endif
+
+#ifdef __APPLE__
+    // macOS AudioUnit
+    AudioUnit m_au;                 // 音频单元
+    std::vector<float> m_au_buf;    // AudioUnit 采集缓冲
+    static OSStatus au_callback(void *inRefCon,
+                                AudioUnitRenderActionFlags *ioActionFlags,
+                                const AudioTimeStamp *inTimeStamp,
+                                UInt32 inBusNumber,
+                                UInt32 inNumberFrames,
+                                AudioBufferList *ioData);
+#endif
 };
 
 #endif // AUDIO_CORE_H
