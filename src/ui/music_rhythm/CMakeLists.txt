@@ -19,24 +19,22 @@ target_link_libraries(${SUB_NAME} PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
 )
 
-# Windows 平台链接音频相关系统库
+# miniaudio 跨平台音频库，各平台需要链接的系统库
 if(WIN32)
-    # 添加 mmdevapi 导入库搜索路径（部分 MinGW 版本缺少该库）
-    # target_link_directories(${SUB_NAME} PUBLIC
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    # )
     target_link_libraries(${SUB_NAME} PUBLIC
         ole32
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/libmmdevapi.a
+        winmm
+        ksuser
     )
 elseif(UNIX AND NOT APPLE)
-    # Linux 平台链接 PulseAudio
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(PULSE REQUIRED libpulse)
-    target_include_directories(${SUB_NAME} PUBLIC ${PULSE_INCLUDE_DIRS})
-    target_link_libraries(${SUB_NAME} PUBLIC ${PULSE_LIBRARIES})
+    # Linux: miniaudio 使用 ALSA/PulseAudio 后端
+    target_link_libraries(${SUB_NAME} PUBLIC
+        dl
+        pthread
+        m
+    )
 elseif(APPLE)
-    # macOS 平台链接 CoreAudio
+    # macOS: miniaudio 使用 CoreAudio 后端
     target_link_libraries(${SUB_NAME} PUBLIC
         "-framework CoreAudio"
         "-framework AudioUnit"

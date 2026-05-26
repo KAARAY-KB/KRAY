@@ -1,3 +1,4 @@
+#define MINIAUDIO_IMPLEMENTATION
 #include "AudioCore.h"
 #include <cmath>
 #include <algorithm>
@@ -7,36 +8,21 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// ==================== Windows: WASAPI PKEY 补充定义 ====================
-#ifdef _WIN32
-#ifndef _PKEY_Device_FriendlyName
-static const PROPERTYKEY _PKEY_Device_FriendlyName = {
-    {0xa45c254e, 0xdf1c, 0x4efd, {0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0}},
-    14
-};
-#define PKEY_Device_FriendlyName _PKEY_Device_FriendlyName
-#endif
-#endif
-
 // ==================== 构造/析构 ====================
 
 // 构造函数
 AudioCore::AudioCore()
-    : m_running(false)
+    : m_ma_ctx_init(false)
+    , m_ma_dev_init(false)
+    , m_running(false)
     , m_waveform_points(512)
     , m_bar_count(16)
     , m_fft_size(1024)
     , m_sample_rate(44100)
     , m_dev_dir(AUDIO_DEV_OUT)
-#ifdef __linux__
-    , m_pa_loop(nullptr)
-    , m_pa_ctx(nullptr)
-    , m_pa_stream(nullptr)
-#endif
-#ifdef __APPLE__
-    , m_au(nullptr)
-#endif
 {
+    std::memset(&m_ma_ctx, 0, sizeof(m_ma_ctx));
+    std::memset(&m_ma_dev, 0, sizeof(m_ma_dev));
 }
 
 // 析构函数
@@ -76,205 +62,41 @@ std::vector<AudioDevInfo> AudioCore::enum_devices(AudioDevDir dir)
 {
     std::vector<AudioDevInfo> devices;
 
-#ifdef _WIN32
-    // Windows: WASAPI 枚举
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    bool need_uninit = (hr == S_OK);
-
-    IMMDeviceEnumerator *p_enumerator = nullptr;
-    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
-                          CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
-                          (void **)&p_enumerator);
-    if (FAILED(hr)) {
-        if (need_uninit) CoUninitialize();
+    ma_context ctx;
+    if (ma_context_init(nullptr, 0, nullptr, &ctx) != MA_SUCCESS) {
         return devices;
     }
 
-    EDataFlow data_flow = (dir == AUDIO_DEV_OUT) ? eRender : eCapture;
-    IMMDeviceCollection *p_collection = nullptr;
-    hr = p_enumerator->EnumAudioEndpoints(data_flow, DEVICE_STATE_ACTIVE, &p_collection);
-    p_enumerator->Release();
-    if (FAILED(hr)) {
-        if (need_uninit) CoUninitialize();
-        return devices;
-    }
+    ma_device_info *p_infos = nullptr;
+    ma_uint32 count = 0;
 
-    UINT count = 0;
-    p_collection->GetCount(&count);
-
-    for (UINT i = 0; i < count; i++) {
-        IMMDevice *p_device = nullptr;
-        hr = p_collection->Item(i, &p_device);
-        if (FAILED(hr)) continue;
-
-        LPWSTR p_id = nullptr;
-        hr = p_device->GetId(&p_id);
-        if (FAILED(hr)) {
-            p_device->Release();
-            continue;
-        }
-
-        AudioDevInfo info;
-        info.dir = dir;
-        int len = WideCharToMultiByte(CP_UTF8, 0, p_id, -1, nullptr, 0, nullptr, nullptr);
-        if (len > 0) {
-            info.id.resize(len - 1);
-            WideCharToMultiByte(CP_UTF8, 0, p_id, -1, &info.id[0], len, nullptr, nullptr);
-        }
-        CoTaskMemFree(p_id);
-
-        IPropertyStore *p_props = nullptr;
-        hr = p_device->OpenPropertyStore(STGM_READ, &p_props);
-        if (SUCCEEDED(hr)) {
-            PROPVARIANT prop;
-            PropVariantInit(&prop);
-            hr = p_props->GetValue(PKEY_Device_FriendlyName, &prop);
-            if (SUCCEEDED(hr) && prop.pwszVal != nullptr) {
-                int name_len = WideCharToMultiByte(CP_UTF8, 0, prop.pwszVal, -1, nullptr, 0, nullptr, nullptr);
-                if (name_len > 0) {
-                    info.name.resize(name_len - 1);
-                    WideCharToMultiByte(CP_UTF8, 0, prop.pwszVal, -1, &info.name[0], name_len, nullptr, nullptr);
-                }
-            }
-            PropVariantClear(&prop);
-            p_props->Release();
-        }
-
-        p_device->Release();
-        devices.push_back(info);
-    }
-
-    p_collection->Release();
-    if (need_uninit) CoUninitialize();
-
-#elif defined(__linux__)
-    // Linux: PulseAudio 枚举
-    pa_mainloop *loop = pa_mainloop_new();
-    pa_context *ctx = pa_context_new(pa_mainloop_get_api(loop), "KRAY_enum");
-
-    pa_context_connect(ctx, nullptr, PA_CONTEXT_NOFLAGS, nullptr);
-
-    // 等待连接就绪
-    while (pa_context_get_state(ctx) < PA_CONTEXT_READY) {
-        pa_mainloop_iterate(loop, 1, nullptr);
-    }
-    if (pa_context_get_state(ctx) != PA_CONTEXT_READY) {
-        pa_context_unref(ctx);
-        pa_mainloop_free(loop);
-        return devices;
-    }
-
-    // 获取服务器信息以确定默认采样率
-    pa_server_info *server_info = nullptr;
-    pa_operation *op = pa_context_get_server_info(ctx,
-        [](pa_context *c, const pa_server_info *i, void *userdata) {
-            *static_cast<pa_server_info **>(userdata) = const_cast<pa_server_info *>(i);
-        }, &server_info);
-    while (pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
-        pa_mainloop_iterate(loop, 1, nullptr);
-    }
-    pa_operation_unref(op);
-
-    // 枚举设备
-    auto enum_cb = [](pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
-        if (eol || !i) return;
-        auto *devs = static_cast<std::vector<AudioDevInfo> *>(userdata);
-        AudioDevInfo info;
-        info.id = i->name;
-        info.name = i->description;
-        info.dir = AUDIO_DEV_OUT;
-        devs->push_back(info);
-    };
-    auto enum_src_cb = [](pa_context *c, const pa_source_info *i, int eol, void *userdata) {
-        if (eol || !i) return;
-        auto *devs = static_cast<std::vector<AudioDevInfo> *>(userdata);
-        AudioDevInfo info;
-        info.id = i->name;
-        info.name = i->description;
-        info.dir = AUDIO_DEV_IN;
-        devs->push_back(info);
-    };
-
+    ma_result result;
     if (dir == AUDIO_DEV_OUT) {
-        op = pa_context_get_sink_info_list(ctx, enum_cb, &devices);
+        // 输出设备（loopback 模式需要枚举 playback 设备）
+        result = ma_context_get_devices(&ctx, &p_infos, &count, nullptr, nullptr);
     } else {
-        op = pa_context_get_source_info_list(ctx, enum_src_cb, &devices);
+        // 输入设备
+        result = ma_context_get_devices(&ctx, nullptr, nullptr, &p_infos, &count);
     }
-    while (pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
-        pa_mainloop_iterate(loop, 1, nullptr);
-    }
-    pa_operation_unref(op);
 
-    pa_context_disconnect(ctx);
-    pa_context_unref(ctx);
-    pa_mainloop_free(loop);
-
-#elif defined(__APPLE__)
-    // macOS: CoreAudio 枚举
-    UInt32 prop_size = 0;
-    AudioObjectPropertyAddress prop_addr = {
-        kAudioHardwarePropertyDevices,
-        kAudioObjectPropertyScopeGlobal,
-        kAudioObjectPropertyElementMaster
-    };
-
-    AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &prop_addr, 0, nullptr, &prop_size);
-    int device_count = prop_size / sizeof(AudioDeviceID);
-    if (device_count <= 0) return devices;
-
-    std::vector<AudioDeviceID> dev_ids(device_count);
-    AudioObjectGetPropertyData(kAudioObjectSystemObject, &prop_addr, 0, nullptr, &prop_size, dev_ids.data());
-
-    for (int i = 0; i < device_count; i++) {
-        AudioDeviceID dev_id = dev_ids[i];
-
-        // 获取设备方向
-        prop_addr.mSelector = kAudioDevicePropertyStreamConfiguration;
-        prop_addr.mScope = (dir == AUDIO_DEV_OUT) ? kAudioDevicePropertyScopeOutput : kAudioDevicePropertyScopeInput;
-        prop_addr.mElement = kAudioObjectPropertyElementMaster;
-
-        prop_size = 0;
-        OSStatus err = AudioObjectGetPropertyDataSize(dev_id, &prop_addr, 0, nullptr, &prop_size);
-        if (err != noErr || prop_size == 0) continue;
-
-        AudioBufferList *buf_list = (AudioBufferList *)malloc(prop_size);
-        err = AudioObjectGetPropertyData(dev_id, &prop_addr, 0, nullptr, &prop_size, buf_list);
-        bool has_channels = false;
-        if (err == noErr) {
-            for (UInt32 b = 0; b < buf_list->mNumberBuffers; b++) {
-                if (buf_list->mBuffers[b].mNumberChannels > 0) {
-                    has_channels = true;
-                    break;
-                }
+    if (result == MA_SUCCESS && p_infos != nullptr) {
+        for (ma_uint32 i = 0; i < count; i++) {
+            AudioDevInfo info;
+            // 将 ma_device_id 序列化为字符串作为设备 ID
+            // sizeof(ma_device_id) 在不同平台不同，统一用十六进制编码
+            const uint8_t *raw = reinterpret_cast<const uint8_t *>(&p_infos[i].id);
+            char buf[sizeof(ma_device_id) * 2 + 1] = {0};
+            for (size_t b = 0; b < sizeof(ma_device_id); b++) {
+                sprintf(buf + b * 2, "%02x", raw[b]);
             }
+            info.id = buf;
+            info.name = p_infos[i].name;
+            info.dir = dir;
+            devices.push_back(info);
         }
-        free(buf_list);
-        if (!has_channels) continue;
-
-        // 获取设备名称
-        prop_addr.mSelector = kAudioDevicePropertyDeviceNameCFString;
-        prop_addr.mScope = kAudioObjectPropertyScopeGlobal;
-        prop_addr.mElement = kAudioObjectPropertyElementMaster;
-        CFStringRef cf_name = nullptr;
-        prop_size = sizeof(cf_name);
-        err = AudioObjectGetPropertyData(dev_id, &prop_addr, 0, nullptr, &prop_size, &cf_name);
-
-        AudioDevInfo info;
-        info.dir = dir;
-        info.id = std::to_string(dev_id);
-        if (err == noErr && cf_name) {
-            char name_buf[256] = {0};
-            CFStringGetCString(cf_name, name_buf, sizeof(name_buf), kCFStringEncodingUTF8);
-            info.name = name_buf;
-            CFRelease(cf_name);
-        } else {
-            info.name = "Audio Device " + std::to_string(dev_id);
-        }
-
-        devices.push_back(info);
     }
-#endif
 
+    ma_context_uninit(&ctx);
     return devices;
 }
 
@@ -294,8 +116,82 @@ bool AudioCore::start()
 {
     if (m_running) return true;
 
+    // 初始化 miniaudio 上下文
+    if (!m_ma_ctx_init) {
+        if (ma_context_init(nullptr, 0, nullptr, &m_ma_ctx) != MA_SUCCESS) {
+            if (m_error_cb) m_error_cb("miniaudio context init failed");
+            return false;
+        }
+        m_ma_ctx_init = true;
+    }
+
+    // 配置设备
+    ma_device_type dev_type;
+    if (m_dev_dir == AUDIO_DEV_OUT) {
+        // 输出设备：用 loopback 模式录制扬声器
+        dev_type = ma_device_type_loopback;
+    } else {
+        // 输入设备：用 capture 模式录制麦克风
+        dev_type = ma_device_type_capture;
+    }
+
+    ma_device_config config = ma_device_config_init(dev_type);
+    config.capture.format = ma_format_f32;
+    config.capture.channels = 1;
+    config.sampleRate = m_sample_rate;
+    config.dataCallback = ma_data_callback;
+    config.pUserData = this;
+
+    // 设置指定设备 ID
+    if (!m_device_id.empty()) {
+        // 从序列化字符串反序列化 ma_device_id
+        ma_device_info *p_infos = nullptr;
+        ma_uint32 count = 0;
+        ma_result result;
+
+        if (m_dev_dir == AUDIO_DEV_OUT) {
+            result = ma_context_get_devices(&m_ma_ctx, &p_infos, &count, nullptr, nullptr);
+        } else {
+            result = ma_context_get_devices(&m_ma_ctx, nullptr, nullptr, &p_infos, &count);
+        }
+
+        if (result == MA_SUCCESS && p_infos != nullptr) {
+            bool found = false;
+            for (ma_uint32 i = 0; i < count; i++) {
+                const uint8_t *raw = reinterpret_cast<const uint8_t *>(&p_infos[i].id);
+                char buf[sizeof(ma_device_id) * 2 + 1] = {0};
+                for (size_t b = 0; b < sizeof(ma_device_id); b++) {
+                    sprintf(buf + b * 2, "%02x", raw[b]);
+                }
+                if (m_device_id == buf) {
+                    config.capture.pDeviceID = &p_infos[i].id;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // 未找到指定设备，使用默认设备
+                if (m_error_cb) m_error_cb("Device not found, using default");
+            }
+        }
+    }
+
+    // 初始化设备
+    if (ma_device_init(&m_ma_ctx, &config, &m_ma_dev) != MA_SUCCESS) {
+        if (m_error_cb) m_error_cb("miniaudio device init failed");
+        return false;
+    }
+    m_ma_dev_init = true;
+
+    // 启动设备
+    if (ma_device_start(&m_ma_dev) != MA_SUCCESS) {
+        if (m_error_cb) m_error_cb("miniaudio device start failed");
+        ma_device_uninit(&m_ma_dev);
+        m_ma_dev_init = false;
+        return false;
+    }
+
     m_running = true;
-    m_thread = std::thread(&AudioCore::capture_loop, this);
     return true;
 }
 
@@ -303,8 +199,18 @@ bool AudioCore::start()
 void AudioCore::stop()
 {
     m_running = false;
-    if (m_thread.joinable()) {
-        m_thread.join();
+
+    if (m_ma_dev_init) {
+        ma_device_stop(&m_ma_dev);
+        ma_device_uninit(&m_ma_dev);
+        m_ma_dev_init = false;
+        std::memset(&m_ma_dev, 0, sizeof(m_ma_dev));
+    }
+
+    if (m_ma_ctx_init) {
+        ma_context_uninit(&m_ma_ctx);
+        m_ma_ctx_init = false;
+        std::memset(&m_ma_ctx, 0, sizeof(m_ma_ctx));
     }
 }
 
@@ -319,475 +225,51 @@ bool AudioCore::is_running() const
 // 设置频谱回调
 void AudioCore::on_spectrum(SpectrumCb cb)
 {
+    std::lock_guard<std::mutex> lock(m_cb_mutex);
     m_spectrum_cb = cb;
 }
 
 // 设置波形回调
 void AudioCore::on_waveform(WaveformCb cb)
 {
+    std::lock_guard<std::mutex> lock(m_cb_mutex);
     m_waveform_cb = cb;
 }
 
 // 设置能量回调
 void AudioCore::on_energy(EnergyCb cb)
 {
+    std::lock_guard<std::mutex> lock(m_cb_mutex);
     m_energy_cb = cb;
 }
 
 // 设置错误回调
 void AudioCore::on_error(ErrorCb cb)
 {
+    std::lock_guard<std::mutex> lock(m_cb_mutex);
     m_error_cb = cb;
 }
 
-// ==================== 采集线程 ====================
+// ==================== miniaudio 回调 ====================
 
-// 采集线程主循环
-void AudioCore::capture_loop()
+// miniaudio 数据回调（静态，转发到成员方法）
+void AudioCore::ma_data_callback(ma_device *pDevice, void *pOutput,
+                                  const void *pInput, ma_uint32 frameCount)
 {
-#ifdef _WIN32
-    // ==================== Windows WASAPI ====================
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-    if (FAILED(hr)) {
-        if (m_error_cb) m_error_cb("COM init failed");
-        m_running = false;
-        return;
-    }
+    (void)pOutput;
+    auto *self = static_cast<AudioCore *>(pDevice->pUserData);
+    if (!self->m_running) return;
 
-    IMMDeviceEnumerator *p_enumerator = nullptr;
-    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
-                          CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
-                          (void **)&p_enumerator);
-    if (FAILED(hr)) {
-        if (m_error_cb) m_error_cb("Cannot create device enumerator");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
+    const float *samples = static_cast<const float *>(pInput);
+    if (samples == nullptr) return;
 
-    EDataFlow data_flow = (m_dev_dir == AUDIO_DEV_OUT) ? eRender : eCapture;
-    ERole role = eConsole;
-
-    IMMDevice *p_device = nullptr;
-    if (!m_device_id.empty()) {
-        int wlen = MultiByteToWideChar(CP_UTF8, 0, m_device_id.c_str(), -1, nullptr, 0);
-        if (wlen > 0) {
-            std::vector<wchar_t> wbuf(wlen);
-            MultiByteToWideChar(CP_UTF8, 0, m_device_id.c_str(), -1, wbuf.data(), wlen);
-            hr = p_enumerator->GetDevice(wbuf.data(), &p_device);
-        }
-        if (FAILED(hr) || p_device == nullptr) {
-            p_enumerator->GetDefaultAudioEndpoint(data_flow, role, &p_device);
-        }
-    }
-    if (p_device == nullptr) {
-        hr = p_enumerator->GetDefaultAudioEndpoint(data_flow, role, &p_device);
-    }
-    p_enumerator->Release();
-    if (FAILED(hr) || p_device == nullptr) {
-        if (m_error_cb) m_error_cb("Cannot get audio device");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    IAudioClient *p_audio_client = nullptr;
-    hr = p_device->Activate(__uuidof(IAudioClient), CLSCTX_ALL,
-                            nullptr, (void **)&p_audio_client);
-    p_device->Release();
-    if (FAILED(hr)) {
-        if (m_error_cb) m_error_cb("Cannot activate audio client");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    WAVEFORMATEX *p_format = nullptr;
-    hr = p_audio_client->GetMixFormat(&p_format);
-    if (FAILED(hr)) {
-        p_audio_client->Release();
-        if (m_error_cb) m_error_cb("Cannot get audio format");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    m_sample_rate = p_format->nSamplesPerSec;
-    UINT32 channels = p_format->nChannels;
-    UINT32 bits_per_sample = p_format->wBitsPerSample;
-
-    DWORD stream_flags = AUDCLNT_SHAREMODE_SHARED;
-    if (m_dev_dir == AUDIO_DEV_OUT) {
-        stream_flags |= AUDCLNT_STREAMFLAGS_LOOPBACK;
-    }
-
-    REFERENCE_TIME hns_duration = 10000000;
-    hr = p_audio_client->Initialize(
-        AUDCLNT_SHAREMODE_SHARED,
-        stream_flags,
-        hns_duration, 0, p_format, nullptr);
-    if (FAILED(hr)) {
-        CoTaskMemFree(p_format);
-        p_audio_client->Release();
-        if (m_error_cb) m_error_cb("Audio client init failed");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    IAudioCaptureClient *p_capture = nullptr;
-    hr = p_audio_client->GetService(__uuidof(IAudioCaptureClient),
-                                    (void **)&p_capture);
-    if (FAILED(hr)) {
-        CoTaskMemFree(p_format);
-        p_audio_client->Release();
-        if (m_error_cb) m_error_cb("Cannot get capture client");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    hr = p_audio_client->Start();
-    if (FAILED(hr)) {
-        p_capture->Release();
-        CoTaskMemFree(p_format);
-        p_audio_client->Release();
-        if (m_error_cb) m_error_cb("Cannot start capture");
-        CoUninitialize();
-        m_running = false;
-        return;
-    }
-
-    UINT32 packet_len = 0;
-    UINT32 buffer_frames = 0;
-    BYTE *p_data = nullptr;
-    DWORD flags = 0;
-
-    while (m_running) {
-        hr = p_capture->GetNextPacketSize(&packet_len);
-        if (FAILED(hr)) break;
-
-        if (packet_len == 0) {
-            Sleep(1);
-            continue;
-        }
-
-        hr = p_capture->GetBuffer(&p_data, &buffer_frames, &flags, nullptr, nullptr);
-        if (FAILED(hr)) break;
-
-        if (!(flags & AUDCLNT_BUFFERFLAGS_SILENT) && p_data != nullptr) {
-            std::vector<float> samples;
-            convert_to_float(p_data, buffer_frames, channels, bits_per_sample, samples);
-            if (!samples.empty()) {
-                process_audio(samples.data(), buffer_frames);
-            }
-        }
-
-        p_capture->ReleaseBuffer(buffer_frames);
-    }
-
-    p_audio_client->Stop();
-    p_capture->Release();
-    CoTaskMemFree(p_format);
-    p_audio_client->Release();
-    CoUninitialize();
-
-#elif defined(__linux__)
-    // ==================== Linux PulseAudio ====================
-    m_pa_loop = pa_mainloop_new();
-    pa_mainloop_api *api = pa_mainloop_get_api(m_pa_loop);
-    m_pa_ctx = pa_context_new(api, "KRAY_capture");
-
-    // 连接 PulseAudio 服务器
-    if (pa_context_connect(m_pa_ctx, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0) {
-        if (m_error_cb) m_error_cb("PulseAudio connect failed");
-        pa_context_unref(m_pa_ctx);
-        pa_mainloop_free(m_pa_loop);
-        m_pa_loop = nullptr;
-        m_pa_ctx = nullptr;
-        m_running = false;
-        return;
-    }
-
-    // 等待连接就绪
-    while (pa_context_get_state(m_pa_ctx) < PA_CONTEXT_READY) {
-        pa_mainloop_iterate(m_pa_loop, 1, nullptr);
-    }
-    if (pa_context_get_state(m_pa_ctx) != PA_CONTEXT_READY) {
-        if (m_error_cb) m_error_cb("PulseAudio context not ready");
-        pa_context_disconnect(m_pa_ctx);
-        pa_context_unref(m_pa_ctx);
-        pa_mainloop_free(m_pa_loop);
-        m_pa_loop = nullptr;
-        m_pa_ctx = nullptr;
-        m_running = false;
-        return;
-    }
-
-    // 创建流采样规格
-    pa_sample_spec ss;
-    ss.format = PA_SAMPLE_FLOAT32LE;
-    ss.rate = m_sample_rate;
-    ss.channels = 1;
-
-    m_pa_stream = pa_stream_new(m_pa_ctx, "KRAY_capture", &ss, nullptr);
-    if (!m_pa_stream) {
-        if (m_error_cb) m_error_cb("PulseAudio stream create failed");
-        pa_context_disconnect(m_pa_ctx);
-        pa_context_unref(m_pa_ctx);
-        pa_mainloop_free(m_pa_loop);
-        m_pa_loop = nullptr;
-        m_pa_ctx = nullptr;
-        m_running = false;
-        return;
-    }
-
-    // 流数据回调
-    pa_stream_set_read_callback(m_pa_stream,
-        [](pa_stream *s, size_t length, void *userdata) {
-            auto *self = static_cast<AudioCore *>(userdata);
-            const void *data = nullptr;
-            if (pa_stream_peek(s, &data, &length) < 0 || !data) {
-                pa_stream_drop(s);
-                return;
-            }
-            size_t frames = length / sizeof(float);
-            const float *samples = static_cast<const float *>(data);
-            self->process_audio(samples, static_cast<uint32_t>(frames));
-            pa_stream_drop(s);
-        }, this);
-
-    // 连接流到源
-    pa_buffer_attr buf_attr;
-    buf_attr.maxlength = (uint32_t)-1;
-    buf_attr.tlength = (uint32_t)-1;
-    buf_attr.prebuf = (uint32_t)-1;
-    buf_attr.minreq = (uint32_t)-1;
-    buf_attr.fragsize = 1024 * sizeof(float);
-
-    // 输出设备用 monitor 源（loopback），输入设备用普通源
-    std::string source_name = m_device_id;
-    if (m_dev_dir == AUDIO_DEV_OUT && !source_name.empty()) {
-        // PulseAudio sink 的 monitor 源名 = sink 名 + ".monitor"
-        if (source_name.find(".monitor") == std::string::npos) {
-            source_name += ".monitor";
-        }
-    }
-
-    pa_stream_flags_t flags = PA_STREAM_NOFLAGS;
-    int ret;
-    if (!source_name.empty()) {
-        ret = pa_stream_connect_record(m_pa_stream, source_name.c_str(), &buf_attr, flags);
-    } else {
-        // 不指定设备：输出模式用默认 monitor，输入模式用默认源
-        if (m_dev_dir == AUDIO_DEV_OUT) {
-            ret = pa_stream_connect_record(m_pa_stream, nullptr, &buf_attr, flags);
-        } else {
-            ret = pa_stream_connect_record(m_pa_stream, nullptr, &buf_attr, flags);
-        }
-    }
-
-    if (ret < 0) {
-        if (m_error_cb) m_error_cb("PulseAudio stream connect failed");
-        pa_stream_unref(m_pa_stream);
-        pa_context_disconnect(m_pa_ctx);
-        pa_context_unref(m_pa_ctx);
-        pa_mainloop_free(m_pa_loop);
-        m_pa_stream = nullptr;
-        m_pa_ctx = nullptr;
-        m_pa_loop = nullptr;
-        m_running = false;
-        return;
-    }
-
-    // 运行 PulseAudio 主循环
-    while (m_running) {
-        int ret_val = pa_mainloop_iterate(m_pa_loop, 1, nullptr);
-        if (ret_val < 0) break;
-    }
-
-    // 清理
-    if (m_pa_stream) {
-        pa_stream_disconnect(m_pa_stream);
-        pa_stream_unref(m_pa_stream);
-        m_pa_stream = nullptr;
-    }
-    if (m_pa_ctx) {
-        pa_context_disconnect(m_pa_ctx);
-        pa_context_unref(m_pa_ctx);
-        m_pa_ctx = nullptr;
-    }
-    if (m_pa_loop) {
-        pa_mainloop_free(m_pa_loop);
-        m_pa_loop = nullptr;
-    }
-
-#elif defined(__APPLE__)
-    // ==================== macOS CoreAudio ====================
-    AudioComponentDescription desc;
-    desc.componentType = kAudioUnitType_Output;
-    desc.componentSubType = kAudioUnitSubType_HALOutput;
-    desc.componentManufacturer = kAudioUnitManufacturer_Apple;
-    desc.componentFlags = 0;
-    desc.componentFlagsMask = 0;
-
-    AudioComponent comp = AudioComponentFindNext(nullptr, &desc);
-    OSStatus err = AudioComponentInstanceNew(comp, &m_au);
-    if (err != noErr) {
-        if (m_error_cb) m_error_cb("Cannot create AudioUnit");
-        m_running = false;
-        return;
-    }
-
-    // 输出设备用启用输入侧 + loopback（通过 kAudioOutputUnitProperty_EnableOutput）
-    if (m_dev_dir == AUDIO_DEV_OUT) {
-        // 禁用输出，启用输入（用于 loopback）
-        UInt32 disable = 0;
-        AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_EnableOutput,
-                             kAudioUnitScope_Output, 0, &disable, sizeof(disable));
-        UInt32 enable = 1;
-        AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_EnableInput,
-                             kAudioUnitScope_Input, 1, &enable, sizeof(enable));
-    } else {
-        // 输入设备：启用输入
-        UInt32 enable = 1;
-        AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_EnableInput,
-                             kAudioUnitScope_Input, 1, &enable, sizeof(enable));
-        UInt32 disable = 0;
-        AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_EnableOutput,
-                             kAudioUnitScope_Output, 0, &disable, sizeof(disable));
-    }
-
-    // 设置设备
-    if (!m_device_id.empty()) {
-        AudioDeviceID dev_id = (AudioDeviceID)std::stoi(m_device_id);
-        UInt32 prop_size = sizeof(dev_id);
-        AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_CurrentDevice,
-                             kAudioUnitScope_Global, 0, &dev_id, prop_size);
-    }
-
-    // 设置流格式
-    AudioStreamBasicDescription fmt;
-    UInt32 fmt_size = sizeof(fmt);
-    err = AudioUnitGetProperty(m_au, kAudioUnitProperty_StreamFormat,
-                               kAudioUnitScope_Input, 1, &fmt, &fmt_size);
-    if (err != noErr) {
-        if (m_error_cb) m_error_cb("Cannot get audio format");
-        AudioComponentInstanceDispose(m_au);
-        m_au = nullptr;
-        m_running = false;
-        return;
-    }
-
-    m_sample_rate = (uint32_t)fmt.mSampleRate;
-
-    // 设置回调
-    AURenderCallbackStruct cb_struct;
-    cb_struct.inputProc = au_callback;
-    cb_struct.inputProcRefCon = this;
-    AudioUnitSetProperty(m_au, kAudioOutputUnitProperty_SetInputCallback,
-                         kAudioUnitScope_Global, 0, &cb_struct, sizeof(cb_struct));
-
-    // 初始化并启动
-    err = AudioUnitInitialize(m_au);
-    if (err != noErr) {
-        if (m_error_cb) m_error_cb("AudioUnit init failed");
-        AudioComponentInstanceDispose(m_au);
-        m_au = nullptr;
-        m_running = false;
-        return;
-    }
-
-    err = AudioOutputUnitStart(m_au);
-    if (err != noErr) {
-        if (m_error_cb) m_error_cb("AudioUnit start failed");
-        AudioUnitUninitialize(m_au);
-        AudioComponentInstanceDispose(m_au);
-        m_au = nullptr;
-        m_running = false;
-        return;
-    }
-
-    // 等待停止
-    while (m_running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    // 清理
-    AudioOutputUnitStop(m_au);
-    AudioUnitUninitialize(m_au);
-    AudioComponentInstanceDispose(m_au);
-    m_au = nullptr;
-
-#else
-    // ==================== 无平台支持 ====================
-    if (m_error_cb) m_error_cb("Audio capture not supported on this platform");
-    m_running = false;
-#endif
-
-    m_running = false;
+    self->on_ma_data(samples, frameCount);
 }
 
-// ==================== macOS AudioUnit 回调 ====================
-#ifdef __APPLE__
-OSStatus AudioCore::au_callback(void *inRefCon,
-                                AudioUnitRenderActionFlags *ioActionFlags,
-                                const AudioTimeStamp *inTimeStamp,
-                                UInt32 inBusNumber,
-                                UInt32 inNumberFrames,
-                                AudioBufferList *ioData)
+// miniaudio 数据回调处理
+void AudioCore::on_ma_data(const float *samples, ma_uint32 frame_count)
 {
-    auto *self = static_cast<AudioCore *>(inRefCon);
-    if (!self->m_running) return noErr;
-
-    AudioBufferList buf_list;
-    buf_list.mNumberBuffers = 1;
-    buf_list.mBuffers[0].mNumberChannels = 1;
-    buf_list.mBuffers[0].mDataByteSize = inNumberFrames * sizeof(float);
-    buf_list.mBuffers[0].mData = malloc(inNumberFrames * sizeof(float));
-
-    OSStatus err = AudioUnitRender(self->m_au, ioActionFlags, inTimeStamp,
-                                   inBusNumber, inNumberFrames, &buf_list);
-    if (err == noErr) {
-        float *data = static_cast<float *>(buf_list.mBuffers[0].mData);
-        self->process_audio(data, inNumberFrames);
-    }
-
-    free(buf_list.mBuffers[0].mData);
-    return noErr;
-}
-#endif
-
-// ==================== 数据转换 ====================
-
-// 将采集数据转为 float 格式（取左声道）
-void AudioCore::convert_to_float(uint8_t *data, uint32_t frames,
-                                  uint32_t channels, uint32_t bits,
-                                  std::vector<float> &out)
-{
-    out.resize(frames);
-
-    if (bits == 16) {
-        int16_t *p = reinterpret_cast<int16_t *>(data);
-        for (uint32_t i = 0; i < frames; i++) {
-            out[i] = static_cast<float>(p[i * channels]) / 32768.0f;
-        }
-    } else if (bits == 32) {
-        float *p = reinterpret_cast<float *>(data);
-        for (uint32_t i = 0; i < frames; i++) {
-            out[i] = p[i * channels];
-        }
-    } else if (bits == 24) {
-        for (uint32_t i = 0; i < frames; i++) {
-            uint32_t offset = i * channels * 3;
-            int32_t val = static_cast<int32_t>(data[offset])
-                        | (static_cast<int32_t>(data[offset + 1]) << 8)
-                        | (static_cast<int32_t>(static_cast<int8_t>(data[offset + 2])) << 16);
-            out[i] = static_cast<float>(val) / 8388608.0f;
-        }
-    } else {
-        std::fill(out.begin(), out.end(), 0.0f);
-    }
+    process_audio(samples, frame_count);
 }
 
 // ==================== 音频处理 ====================
@@ -803,7 +285,11 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
         if (idx >= frame_count) idx = frame_count - 1;
         waveform[i] = samples[idx];
     }
-    if (m_waveform_cb) m_waveform_cb(waveform.data(), wave_points);
+
+    {
+        std::lock_guard<std::mutex> lock(m_cb_mutex);
+        if (m_waveform_cb) m_waveform_cb(waveform.data(), wave_points);
+    }
 
     // ---- FFT 频谱数据 ----
     uint32_t fft_n = m_fft_size;
@@ -843,7 +329,11 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
         }
         spectrum[i] = mag_sum / count / (fft_n / 2);
     }
-    if (m_spectrum_cb) m_spectrum_cb(spectrum.data(), bar_count);
+
+    {
+        std::lock_guard<std::mutex> lock(m_cb_mutex);
+        if (m_spectrum_cb) m_spectrum_cb(spectrum.data(), bar_count);
+    }
 
     // ---- 总能量 ----
     float energy = 0.0f;
@@ -852,7 +342,11 @@ void AudioCore::process_audio(const float *samples, uint32_t frame_count)
     }
     energy = sqrtf(energy / frame_count);
     if (energy > 1.0f) energy = 1.0f;
-    if (m_energy_cb) m_energy_cb(energy);
+
+    {
+        std::lock_guard<std::mutex> lock(m_cb_mutex);
+        if (m_energy_cb) m_energy_cb(energy);
+    }
 }
 
 // ==================== FFT ====================
