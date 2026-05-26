@@ -137,8 +137,6 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
 
     // 定义填充区域（从顶部向下填充）
     QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fillHeight);
-    // QRect fillRect(0, 0, width, fillHeight); //底开始填充
-    // QRect fillRect(0, height - fillHeight, width, fillHeight); //顶开始填充
 
     // 定义圆角矩形路径
     QPainterPath roundedRectPath;
