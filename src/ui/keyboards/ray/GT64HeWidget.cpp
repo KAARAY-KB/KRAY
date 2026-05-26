@@ -67,7 +67,7 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     m_key_base_color.clear();
     ui->keyboard->layout->m_panel->getAllKeyNum([this](MKeyboardKey *key, void *user) {
         GT64HeWidget *self = (GT64HeWidget *)user;
-        QColor bg = key->get_dft_background_color();
+        QColor bg = key->get_background_color();
         self->m_key_base_color.append(bg);
     }, this);
     // 初始化灯效
@@ -156,7 +156,7 @@ void GT64HeWidget::on_rhythm_btn_clicked()
         ui->keyboard->layout->m_panel->getAllKeyNum([this, &idx](MKeyboardKey *key, void *user) {
             GT64HeWidget *self = (GT64HeWidget *)user;
             if (idx < self->m_key_base_color.size()) {
-                key->set_dft_background_color(self->m_key_base_color[idx]);
+                key->set_background_color(self->m_key_base_color[idx]);
                 key->updateStyle();
             }
             idx++;
@@ -216,7 +216,7 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
             // 只在颜色变化时才更新样式
             if (color != self->m_key_prev_color[key_idx]) {
                 self->m_key_prev_color[key_idx] = color;
-                key->set_dft_background_color(color);
+                key->set_background_color(color);
                 key->updateStyle();
             }
         }

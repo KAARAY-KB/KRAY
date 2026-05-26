@@ -50,10 +50,10 @@ public:
 
     // 从成员变量生成样式表
     QString getStyle();
-    // 刷新样式到控件，并同步更新 m_qss
+    // 刷新样式到控件，并同步更新 m_style
     void updateStyle() {
-        m_qss = getStyle();
-        setStyleSheet(m_qss.toUtf8());
+        m_style = getStyle();
+        setStyleSheet(m_style.toUtf8());
     }
 
     // 距离相关
@@ -71,14 +71,14 @@ public:
     }
 
     // --- 颜色 getter（从样式表解析） ---
-    QColor get_dft_border_color();
-    QColor get_dft_font_color();
+    QColor get_border_color();
+    QColor get_font_color();
     QColor get_hover_font_color();
-    QColor get_dft_background_color();
+    QColor get_background_color();
     QColor get_hover_background_color();
     QColor get_checked_background_color();
-    QColor get_checked0_background_color();
-    QColor get_checked1_background_color();
+    QColor get_pressed_not_checked_background_color();
+    QColor get_pressed_checked_background_color();
 
     // --- 布局 getter（从样式表解析） ---
     int get_border_width();
@@ -88,75 +88,65 @@ public:
     int get_padding();
     QString get_font_family();
 
+// public slots:
+    // --- 颜色 setter ---
+    QString set_border_color(QColor color);
+    QString set_font_color(QColor color);
+    QString set_hover_font_color(QColor color);
+    QString set_background_color(QColor color);
+    QString set_hover_background_color(QColor color);
+    QString set_checked_background_color(QColor color);
+    QString set_pressed_not_checked_background_color(QColor color);
+    QString set_pressed_checked_background_color(QColor color);
+    // --- 布局 setter ---
+    QString set_border_width(int w);
+    QString set_border_radius(int r);
+    QString set_font_size(int s);
+    QString set_hover_font_size(int s);
+    QString set_padding(int p);
+    QString set_font_family(const QString &f);
+
 private:
     int m_base_w;
     int m_base_h;
     msg_t m_msg;
-    QString m_qss;
+    QString m_style;
 
     float m_distMax;
     float m_distCur;
-    dist_dir_t m_dist_dir; //0:D2U, 1:U2D
+    dist_dir_t m_dist_dir;
 
-    QString dft_border_color = "rgba(200, 200, 200, 0.5)";
-    QString dft_font_color = "#353535";
-    QString hover_font_color = "#555555";
-    QString dft_background_color = "#f0ece8";
-    QString hover_background_color = "#efcfca";
-    QString checked_background_color = "#c6ded0";
-    QString checked0_background_color = "#f0d6d2";
-    QString checked1_background_color = "#cfe1d6";
+    QColor m_border_color;
+    QColor m_font_color;
+    QColor m_hover_font_color;
+    QColor m_background_color;
+    QColor m_hover_background_color;
+    QColor m_checked_background_color;
+    QColor m_pressed_not_checked_background_color;
+    QColor m_pressed_checked_background_color;
+
+    int m_border_width;
+    int m_border_radius;
+    int m_font_size;
+    int m_hover_font_size;
+    int m_padding;
+    QString m_font_family;
 
 
-    // 从样式表字符串解析颜色
-    QColor parseStyleColor(const QString &qss, const QString &selector, const QString &prop);
-    // 从样式表字符串解析整数
-    int parseStyleInt(const QString &qss, const QString &selector, const QString &prop);
-    // 从样式表字符串解析字符串
-    QString parseStyleString(const QString &qss, const QString &selector, const QString &prop);
+    // 从样式表字符串中提取指定选择器内的属性值
+    // 返回属性值字符串，未找到返回空
+    QString extractStyleAttr(const QString &style, const QString &selector, const QString &prop);
+    // 从样式表字符串解析整数、颜色、字符串
+    int styleToInt(const QString &selector, const QString &prop);
+    // int styleToInt(const QString &style);
+    QString styleToStr(const QString &selector, const QString &prop);
+    // QString styleToStr(const QString &style);
+    QColor styleToColor(const QString &selector, const QString &prop);
+    // QColor styleToColor(const QString &style);
     // QColor → 样式表字符串
     QString colorToStr(QColor color);
+    QColor strToColor(const QString &str);
     
-    // 从样式表中解析边框宽度
-    int parseBorderWidthFromStyleSheet();
-    int parseBorderRadiusFromStyleSheet();
-public slots:
-    void set_dft_border_color(QColor color)          { dft_border_color = colorToStr(color);}
-    void set_dft_font_color(QColor color)            { dft_font_color = colorToStr(color);}
-    void set_hover_font_color(QColor color)          { hover_font_color = colorToStr(color);}
-    void set_dft_background_color(QColor color)      { dft_background_color = colorToStr(color);}
-    void set_hover_background_color(QColor color)    { hover_background_color = colorToStr(color);}
-    void set_checked_background_color(QColor color)  { checked_background_color = colorToStr(color);}
-    void set_checked0_background_color(QColor color) { checked0_background_color = colorToStr(color);}
-    void set_checked1_background_color(QColor color) { checked1_background_color = colorToStr(color);}
-
-    // --- 颜色 setter ---
-    QString set_dft_border_color(QString qss, QColor color);
-    QString set_dft_font_color(QString qss, QColor color);
-    QString set_hover_font_color(QString qss, QColor color);
-    QString set_dft_background_color(QString qss, QColor color);
-    QString set_hover_background_color(QString qss, QColor color);
-    QString set_checked_background_color(QString qss, QColor color);
-    QString set_checked0_background_color(QString qss, QColor color);
-    QString set_checked1_background_color(QString qss, QColor color);
-    // QString set_dft_border_color(QColor color) { return set_dft_border_color(m_qss, color); }
-    // QString set_dft_font_color(QColor color) { return set_dft_font_color(m_qss, color); }
-    // QString set_hover_font_color(QColor color) { return set_hover_font_color(m_qss, color); }
-    // QString set_dft_background_color(QColor color) { return set_dft_background_color(m_qss, color); }
-    // QString set_hover_background_color(QColor color) { return set_hover_background_color(m_qss, color); }
-    // QString set_checked_background_color(QColor color) { return set_checked_background_color(m_qss, color); }
-    // QString set_checked0_background_color(QColor color) { return set_checked0_background_color(m_qss, color); }
-    // QString set_checked1_background_color(QColor color) { return set_checked1_background_color(m_qss, color); }
-    
-
-    // --- 布局 setter ---
-    QString set_border_width(QString qss, int w);
-    QString set_border_radius(QString qss, int r);
-    QString set_font_size(QString qss, int s);
-    QString set_hover_font_size(QString qss, int s);
-    QString set_padding(QString qss, int p);
-    QString set_font_family(QString qss, const QString &f);
-
 protected:
     void paintEvent(QPaintEvent *event) override;
 signals:

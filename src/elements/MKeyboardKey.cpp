@@ -1,6 +1,7 @@
 #include "MKeyboardKey.h"
 #include "console.h"
 
+
 MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     : QPushButton(parent)
     , m_msg(msg)
@@ -22,31 +23,42 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
         emit clicked(m_msg.id, checked);
     });
 
-    // 加载 qss 样式表文件到成员变量 m_qss
+    // 加载 style 样式表文件到成员变量 m_style
     QString qss_path(":/styles/kb_key.qss");
     QFile qss_file(qss_path);
     if (qss_file.open(QFile::ReadOnly)) {
-        m_qss = QLatin1String(qss_file.readAll());
+        m_style = QLatin1String(qss_file.readAll());
         qss_file.close();
+        // 移除 QSS 中的 /* ... */ 注释
+        // 避免正则替换颜色时匹配到注释中的同名属性
+        QRegularExpression commentRe(R"(/\*.*?\*/)");
+        commentRe.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
+        m_style.remove(commentRe);
     }
     else {
         Console::out() << "error opening the file: " << qss_path.toStdString() << std::endl;
     }
-    setStyleSheet(m_qss);
-    // Console::out() << m_qss.toStdString() << std::endl;
+    setStyleSheet(m_style);
+    // Console::out() << m_style.toStdString() << std::endl;
 
 
+    // 从 QSS 文件内容初始化颜色成员变量，保持与 QSS 文件同步
+    // 这样后续 getStyle() 用成员变量替换 m_style 中的颜色时，初始值一致
+    m_border_color = styleToColor("QPushButton", "border-color");
+    m_font_color = styleToColor("QPushButton", "color");
+    m_background_color = styleToColor("QPushButton", "background-color");
+    m_hover_font_color = styleToColor("QPushButton:hover", "color");
+    m_hover_background_color = styleToColor("QPushButton:hover", "background-color");
+    m_checked_background_color = styleToColor("QPushButton:checked", "background-color");
+    m_pressed_not_checked_background_color = styleToColor("QPushButton:pressed:checked", "background-color");
+    m_pressed_checked_background_color = styleToColor("QPushButton:pressed:!checked", "background-color");
 
-    // dft_border_color = get_dft_border_color();
-    // dft_font_color = get_dft_font_color();
-    // hover_font_color = get_hover_font_color();
-    // dft_background_color = get_dft_background_color();
-    // hover_background_color = get_hover_background_color();
-    // checked_background_color = get_checked_background_color();
-    // checked0_background_color = get_checked0_background_color();
-    // checked1_background_color = get_checked1_background_color();
-
-
+    m_border_width = styleToInt("QPushButton", "border-width");
+    m_border_radius = styleToInt("QPushButton", "border-radius");
+    m_font_size = styleToInt("QPushButton", "font-size");
+    m_hover_font_size = styleToInt("QPushButton:hover", "font-size");
+    m_padding = styleToInt("QPushButton", "padding");
+    m_font_family = styleToStr("QPushButton", "font-family");
 
     // updateStyle();
 }
@@ -70,23 +82,32 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
  * 
  */
 QString MKeyboardKey::getStyle() {
-#if 0
-    // QString qss = m_qss; // 生成样式表（从当前 styleSheet 重新生成，保持一致性）
+#if 1
+    // 以 m_qss（QSS 文件内容）为基准，只替换颜色属性
+    // 避免硬编码整个样式表，保证 QSS 文件中的其他属性不被覆盖
+    // set_border_color(m_border_color);
+    // set_font_color(m_font_color);
+    // set_background_color(m_background_color);
+    // set_hover_font_color(m_hover_font_color);
+    // set_hover_background_color(m_hover_background_color);
+    // set_checked_background_color(m_checked_background_color);
+    // set_pressed_not_checked_background_color(m_pressed_not_checked_background_color);
+    // set_pressed_checked_background_color(m_pressed_checked_background_color);
 
-    m_qss = set_dft_border_color(m_qss, dft_border_color);
-    m_qss = set_dft_background_color(m_qss, dft_background_color);
-    m_qss = set_hover_font_color(m_qss, hover_font_color);
-    m_qss = set_hover_background_color(m_qss, hover_background_color);
-    m_qss = set_checked_background_color(m_qss, checked_background_color);
-    m_qss = set_checked0_background_color(m_qss, checked0_background_color);
-    m_qss = set_checked1_background_color(m_qss, checked1_background_color);
-
-    Console::out() << m_qss.toStdString() << std::endl;
-    return m_qss;
+    // set_border_width(m_border_width);
+    // set_border_radius(m_border_radius);
+    // set_font_size(m_font_size);
+    // set_hover_font_size(m_hover_font_size);
+    // set_padding(m_padding);
+    // set_font_family(m_font_family);
+    
+    if (getId() == 0)
+        Console::out() << m_style.toStdString() << std::endl;
+    return m_style;
 #else
     QString res = QString(
         "QPushButton {"
-            "color: #353535;"
+            "color: "+m_font_color+";"
             "font-family: Consolas;"
             "font-size: 14px;"
             "font-weight: normal;"
@@ -94,23 +115,23 @@ QString MKeyboardKey::getStyle() {
             "border-width:  2px;"
             "border-radius: 8px;"
             "border-style:  outset;"
-            "border-color:"+dft_border_color+";"
-            "background-color:"+dft_background_color+";"
+            "border-color:"+m_border_color+";"
+            "background-color:"+m_background_color+";"
         "}"
         "QPushButton:hover {"
-            "color: "+hover_font_color+";"
+            "color: "+m_hover_font_color+";"
             "font-size: 13px;"
             "border-style:  inset;"
-            "background-color:"+hover_background_color+";"
+            "background-color:"+m_hover_background_color+";"
         "}"
         "QPushButton:checked {"
-            "background-color:"+checked_background_color+";"
+            "background-color:"+m_checked_background_color+";"
         "}"
         "QPushButton:pressed:checked {"
-            "background-color:"+checked1_background_color+";"
+            "background-color:"+m_pressed_checked_background_color+";"
         "}"
         "QPushButton:pressed:!checked {"
-            "background-color:"+checked0_background_color+";"
+            "background-color:"+m_pressed_not_checked_background_color+";"
         "}"
      );
      return res;
@@ -124,23 +145,23 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // 获取按钮的高度和宽度
-    int height = this->height();
-    int width = this->width();
-    int fillHeight = m_distCur / m_distMax * height;
+    int h = this->height();
+    int w = this->width();
 
     // 解析样式表边框宽度和圆角半径
-    int borderRadius = parseStyleInt(this->styleSheet(), "QPushButton", "border-radius") - 2; // 微调圆角半径
-    int borderWidth = parseStyleInt(this->styleSheet(), "QPushButton", "border-width");
+    int br = styleToInt("QPushButton", "border-radius") - 2;
+    int bw = styleToInt("QPushButton", "border-width");
+    int fh = m_distCur / m_distMax * h;
 
     // 定义内容区域（减去边框宽度）
-    QRect contentRect(borderWidth, borderWidth, width - 2 * borderWidth, height - 2 * borderWidth);
+    QRect contentRect(bw, bw, w - 2 * bw, h - 2 * bw);
 
     // 定义填充区域（从顶部向下填充）
-    QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fillHeight);
+    QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fh);
 
     // 定义圆角矩形路径
     QPainterPath roundedRectPath;
-    roundedRectPath.addRoundedRect(contentRect, borderRadius, borderRadius);
+    roundedRectPath.addRoundedRect(contentRect, br, br);
 
     // 限制绘制范围到内容区域
     painter.setClipPath(roundedRectPath);
@@ -153,36 +174,46 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
         painter.fillRect(fillRect, QColor(186, 209, 243, 150));
     }
 }
-// 从样式表中解析边框宽度
-int MKeyboardKey::parseBorderWidthFromStyleSheet() {
-    QString styleSheet = this->styleSheet();
-    QRegularExpression regex(R"(border-width:\s*(\d+)px)");
-    QRegularExpressionMatch match = regex.match(styleSheet);
-    if (match.hasMatch()) {
-        return match.captured(1).toInt();
-    }
-    return 1; // 默认值
+
+
+// 颜色转换为字符串
+QString MKeyboardKey::colorToStr(QColor color)
+{
+    if (color.alpha() < 255)
+        return QString("rgba(%1, %2, %3, %4)").arg(color.red()).arg(color.green()).arg(color.blue()).arg(color.alpha());
+    return QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
 }
 
-// 从样式表中解析圆角半径
-int MKeyboardKey::parseBorderRadiusFromStyleSheet() {
-    QString styleSheet = this->styleSheet();
-    QRegularExpression regex(R"(border-radius:\s*(\d+)px)");
-    QRegularExpressionMatch match = regex.match(styleSheet);
-    if (match.hasMatch()) {
-        return match.captured(1).toInt();
+// 解析颜色字符串为 QColor
+QColor MKeyboardKey::strToColor(const QString &str)
+{
+    if (str.isEmpty()) return QColor();
+    QString s = str.trimmed();
+    // #RGB / #RRGGBB / #RRGGBBAA
+    if (s.startsWith('#')) {
+        return QColor(s);
     }
-    return 0; // 默认值
+    // rgb(r, g, b)
+    QRegularExpression reRgb(R"(rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\))");
+    QRegularExpressionMatch m = reRgb.match(s);
+    if (m.hasMatch()) {
+        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
+    }
+    // rgba(r, g, b, a)
+    QRegularExpression reRgba(R"(rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\))");
+    m = reRgba.match(s);
+    if (m.hasMatch()) {
+        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt(), m.captured(4).toInt());
+    }
+    return QColor(s);
 }
-
-
 
 // 从样式表字符串中提取指定选择器内的属性值
 // 返回属性值字符串，未找到返回空
-static QString extractStyleProp(const QString &qss, const QString &selector, const QString &prop)
+QString MKeyboardKey::extractStyleAttr(const QString &style, const QString &selector, const QString &prop)
 {
     // 移除注释
-    QString clean = qss;
+    QString clean = style;
     clean.remove(QRegularExpression(R"(/\*.*?\*/)"));
 
     // 匹配选择器块内容
@@ -200,46 +231,17 @@ static QString extractStyleProp(const QString &qss, const QString &selector, con
     return propMatch.captured(1).trimmed();
 }
 
-// 解析颜色字符串为 QColor
-static QColor strToColor(const QString &str)
-{
-    if (str.isEmpty()) return QColor();
-
-    QString s = str.trimmed();
-
-    // #RGB / #RRGGBB / #RRGGBBAA
-    if (s.startsWith('#')) {
-        return QColor(s);
-    }
-
-    // rgb(r, g, b)
-    QRegularExpression reRgb(R"(rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\))");
-    QRegularExpressionMatch m = reRgb.match(s);
-    if (m.hasMatch()) {
-        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
-    }
-
-    // rgba(r, g, b, a)
-    QRegularExpression reRgba(R"(rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\))");
-    m = reRgba.match(s);
-    if (m.hasMatch()) {
-        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt(), m.captured(4).toInt());
-    }
-
-    return QColor(s);
-}
-
 // 从样式表解析颜色
-QColor MKeyboardKey::parseStyleColor(const QString &qss, const QString &selector, const QString &prop)
+QColor MKeyboardKey::styleToColor(const QString &selector, const QString &prop)
 {
-    QString val = extractStyleProp(qss, selector, prop);
+    QString val = extractStyleAttr(m_style, selector, prop);
     return strToColor(val);
 }
 
 // 从样式表解析整数
-int MKeyboardKey::parseStyleInt(const QString &qss, const QString &selector, const QString &prop)
+int MKeyboardKey::styleToInt(const QString &selector, const QString &prop)
 {
-    QString val = extractStyleProp(qss, selector, prop);
+    QString val = extractStyleAttr(m_style, selector, prop);
     // 移除 "px" 后缀
     val.remove("px");
     bool ok = false;
@@ -248,135 +250,128 @@ int MKeyboardKey::parseStyleInt(const QString &qss, const QString &selector, con
 }
 
 // 从样式表解析字符串
-QString MKeyboardKey::parseStyleString(const QString &qss, const QString &selector, const QString &prop)
+QString MKeyboardKey::styleToStr(const QString &selector, const QString &prop)
 {
-    return extractStyleProp(qss, selector, prop);
-}
-// 颜色转换为字符串
-QString MKeyboardKey::colorToStr(QColor color)
-{
-    if (color.alpha() < 255)
-        return QString("rgba(%1, %2, %3, %4)").arg(color.red()).arg(color.green()).arg(color.blue()).arg(color.alpha());
-    return QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
+    return extractStyleAttr(m_style, selector, prop);
 }
 
 // --- 颜色 getter：从当前 styleSheet() 解析 ---
-QColor MKeyboardKey::get_dft_border_color()          { return parseStyleColor(m_qss, "QPushButton", "border-color"); }
-QColor MKeyboardKey::get_dft_font_color()            { return parseStyleColor(m_qss, "QPushButton", "color"); }
-QColor MKeyboardKey::get_hover_font_color()          { return parseStyleColor(m_qss, "QPushButton:hover", "color"); }
-QColor MKeyboardKey::get_dft_background_color()      { return parseStyleColor(m_qss, "QPushButton", "background-color"); }
-QColor MKeyboardKey::get_hover_background_color()    { return parseStyleColor(m_qss, "QPushButton:hover", "background-color"); }
-QColor MKeyboardKey::get_checked_background_color()  { return parseStyleColor(m_qss, "QPushButton:checked", "background-color"); }
-QColor MKeyboardKey::get_checked0_background_color() { return parseStyleColor(m_qss, "QPushButton:pressed:!checked", "background-color"); }
-QColor MKeyboardKey::get_checked1_background_color() { return parseStyleColor(m_qss, "QPushButton:pressed:checked", "background-color"); }
+QColor MKeyboardKey::get_border_color()          { return styleToColor("QPushButton", "border-color"); }
+QColor MKeyboardKey::get_font_color()            { return styleToColor("QPushButton", "color"); }
+QColor MKeyboardKey::get_hover_font_color()          { return styleToColor("QPushButton:hover", "color"); }
+QColor MKeyboardKey::get_background_color()      { return styleToColor("QPushButton", "background-color"); }
+QColor MKeyboardKey::get_hover_background_color()    { return styleToColor("QPushButton:hover", "background-color"); }
+QColor MKeyboardKey::get_checked_background_color()  { return styleToColor("QPushButton:checked", "background-color"); }
+QColor MKeyboardKey::get_pressed_not_checked_background_color() { return styleToColor("QPushButton:pressed:!checked", "background-color"); }
+QColor MKeyboardKey::get_pressed_checked_background_color() { return styleToColor("QPushButton:pressed:checked", "background-color"); }
 
 // --- 布局 getter：从当前 styleSheet() 解析 ---
-int MKeyboardKey::get_border_width()     { return parseStyleInt(m_qss, "QPushButton", "border-width"); }
-int MKeyboardKey::get_border_radius()    { return parseStyleInt(m_qss, "QPushButton", "border-radius"); }
-int MKeyboardKey::get_font_size()        { return parseStyleInt(m_qss, "QPushButton", "font-size"); }
-int MKeyboardKey::get_hover_font_size()  { return parseStyleInt(m_qss, "QPushButton:hover", "font-size"); }
-int MKeyboardKey::get_padding()          { return parseStyleInt(m_qss, "QPushButton", "padding"); }
+int MKeyboardKey::get_border_width()     { return styleToInt("QPushButton", "border-width"); }
+int MKeyboardKey::get_border_radius()    { return styleToInt("QPushButton", "border-radius"); }
+int MKeyboardKey::get_font_size()        { return styleToInt("QPushButton", "font-size"); }
+int MKeyboardKey::get_hover_font_size()  { return styleToInt("QPushButton:hover", "font-size"); }
+int MKeyboardKey::get_padding()          { return styleToInt("QPushButton", "padding"); }
 
 // --- 字体 getter：从当前 styleSheet() 解析 ---
-QString MKeyboardKey::get_font_family()  { return parseStyleString(m_qss, "QPushButton", "font-family"); }
+QString MKeyboardKey::get_font_family()  { return styleToStr("QPushButton", "font-family"); }
 
 // --- 颜色 setter：修改样式表中对应属性值 ---
-QString MKeyboardKey::set_dft_border_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_border_color(QColor color) {
+    m_border_color = color;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*border-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    // setStyleSheet(qss);
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    // setStyleSheet(style);
+    return m_style;
 }
 
-QString MKeyboardKey::set_dft_font_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_font_color(QColor color) {
+    m_font_color = color;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_hover_font_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_hover_font_color(QColor color) {
+    m_hover_font_color = color;
     QRegularExpression re("(QPushButton:hover\\s*\\{[^}]*color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_dft_background_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_background_color(QColor color) {
+    m_background_color = color;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*background-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_hover_background_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_hover_background_color(QColor color) {
+    m_hover_background_color = color;
     QRegularExpression re("(QPushButton:hover\\s*\\{[^}]*background-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_checked_background_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_checked_background_color(QColor color) {
+    m_checked_background_color = color;
     QRegularExpression re("(QPushButton:checked\\s*\\{[^}]*background-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_checked0_background_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_pressed_not_checked_background_color(QColor color) {
+    m_pressed_not_checked_background_color = color;
     QRegularExpression re("(QPushButton:pressed:!checked\\s*\\{[^}]*background-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_checked1_background_color(QString qss, QColor color)
-{
+QString MKeyboardKey::set_pressed_checked_background_color(QColor color) {
+    m_pressed_checked_background_color = color;
     QRegularExpression re("(QPushButton:pressed:checked\\s*\\{[^}]*background-color\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + colorToStr(color) + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + colorToStr(color) + "\\2");
+    return m_style;
 }
 
 // --- 布局 setter：修改样式表中对应属性值 ---
-QString MKeyboardKey::set_border_width(QString qss, int w)
-{
+QString MKeyboardKey::set_border_width(int w) {
+    m_border_width = w;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*border-width\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + QString::number(w) + "px\\2");
-    return qss;
+    m_style.replace(re, "\\1" + QString::number(w) + "px\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_border_radius(QString qss, int r)
-{
+QString MKeyboardKey::set_border_radius(int r) {
+    m_border_radius = r;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*border-radius\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + QString::number(r) + "px\\2");
-    return qss;
+    m_style.replace(re, "\\1" + QString::number(r) + "px\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_font_size(QString qss, int s)
-{
+QString MKeyboardKey::set_font_size(int s) {
+    m_font_size = s;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*font-size\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + QString::number(s) + "px\\2");
-    return qss;
+    m_style.replace(re, "\\1" + QString::number(s) + "px\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_hover_font_size(QString qss, int s)
-{
+QString MKeyboardKey::set_hover_font_size(int s) {
+    m_hover_font_size = s;
     QRegularExpression re("(QPushButton:hover\\s*\\{[^}]*font-size\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + QString::number(s) + "px\\2");
-    return qss;
+    m_style.replace(re, "\\1" + QString::number(s) + "px\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_padding(QString qss, int p)
-{
+QString MKeyboardKey::set_padding(int p) {
+    m_padding = p;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*padding\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + QString::number(p) + "px\\2");
-    return qss;
+    m_style.replace(re, "\\1" + QString::number(p) + "px\\2");
+    return m_style;
 }
 
-QString MKeyboardKey::set_font_family(QString qss, const QString &f)
-{
+QString MKeyboardKey::set_font_family(const QString &f) {
+    m_font_family = f;
     QRegularExpression re("(QPushButton\\s*\\{[^}]*font-family\\s*:\\s*)[^;]+(;)");
-    qss.replace(re, "\\1" + f + "\\2");
-    return qss;
+    m_style.replace(re, "\\1" + f + "\\2");
+    return m_style;
 }

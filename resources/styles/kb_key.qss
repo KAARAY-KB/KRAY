@@ -1,4 +1,5 @@
 
+/* 按钮样式 */
 QPushButton {
     color: #353535;
     /* background-color:  #f0edea; */
@@ -16,6 +17,7 @@ QPushButton {
     border-style:  outset;
     border-color:rgba(200, 200, 200, 0.5);
 }
+/* 悬停时 */
 QPushButton:hover {
     color: #555555;
     background-color: #efcfca;
@@ -24,12 +26,15 @@ QPushButton:hover {
     
     border-style:  inset;
 }
+/* 选中时 */
 QPushButton:checked {
     background-color: #c6ded0;
 }
+/* 选中时按下 */
 QPushButton:pressed:checked {
     background-color: #cfe1d6;
 }
+/* 未选中时按下 */
 QPushButton:pressed:!checked {
     background-color: #f0d6d2;
 }

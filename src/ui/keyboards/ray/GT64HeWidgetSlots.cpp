@@ -53,14 +53,14 @@ void GT64HeWidget::on_param_dbg_btn_setColor_clicked() {
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
                 if (key->isChecked()) {
                     GT64HeWidget *widget = (GT64HeWidget *)user;
-                    if (widget->ui->param->dbg->dft_border->isChecked())            key->set_dft_border_color(color);
-                    if (widget->ui->param->dbg->dft_font->isChecked())              key->set_dft_font_color(color);
+                    if (widget->ui->param->dbg->dft_border->isChecked())            key->set_border_color(color);
+                    if (widget->ui->param->dbg->dft_font->isChecked())              key->set_font_color(color);
                     if (widget->ui->param->dbg->hover_font->isChecked())            key->set_hover_font_color(color);
-                    if (widget->ui->param->dbg->dft_background->isChecked())        key->set_dft_background_color(color);
+                    if (widget->ui->param->dbg->dft_background->isChecked())        key->set_background_color(color);
                     if (widget->ui->param->dbg->hover_background->isChecked())      key->set_hover_background_color(color);
                     if (widget->ui->param->dbg->checked_background->isChecked())    key->set_checked_background_color(color);
-                    if (widget->ui->param->dbg->checked0_background->isChecked())   key->set_checked0_background_color(color);
-                    if (widget->ui->param->dbg->checked1_background->isChecked())   key->set_checked1_background_color(color);
+                    if (widget->ui->param->dbg->checked0_background->isChecked())   key->set_pressed_not_checked_background_color(color);
+                    if (widget->ui->param->dbg->checked1_background->isChecked())   key->set_pressed_checked_background_color(color);
                     key->updateStyle();
                 }
             },
@@ -83,7 +83,7 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_border_clicked() {
         ui->param->dbg->btn_color_dft_border->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
             if (key->isChecked()) {
-                key->set_dft_border_color(color);
+                key->set_border_color(color);
                 key->updateStyle();
             }
         }, 
@@ -97,7 +97,7 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_font_clicked() {
         ui->param->dbg->btn_color_dft_font->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
             if (key->isChecked()) {
-                key->set_dft_font_color(color);
+                key->set_font_color(color);
                 key->updateStyle();
             }
         }, 
@@ -125,7 +125,7 @@ void GT64HeWidget::on_param_dbg_btn_color_dft_background_clicked() {
         ui->param->dbg->btn_color_dft_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
             if (key->isChecked()) {
-                key->set_dft_background_color(color);
+                key->set_background_color(color);
                 key->updateStyle();
             }
         }, 
@@ -167,7 +167,7 @@ void GT64HeWidget::on_param_dbg_btn_color_checked0_background_clicked() {
         ui->param->dbg->btn_color_checked0_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
             if (key->isChecked()) {
-                key->set_checked0_background_color(color);
+                key->set_pressed_not_checked_background_color(color);
                 key->updateStyle();
             }
         }, 
@@ -181,7 +181,7 @@ void GT64HeWidget::on_param_dbg_btn_color_checked1_background_clicked() {
         ui->param->dbg->btn_color_checked1_background->setStyleSheet(QString("background-color: %1; border: 1px solid #888888;").arg(colorStr));
         ui->keyboard->layout->m_panel->getAllKeyNum([color](MKeyboardKey *key, void *user) -> void {
             if (key->isChecked()) {
-                key->set_checked1_background_color(color);
+                key->set_pressed_checked_background_color(color);
                 key->updateStyle();
             }
         }, 
