@@ -10,9 +10,9 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::GT64HeWidget)
     , m_rhythm_btn(nullptr)
+    , m_rhythm_mode_combo(nullptr)
     , m_rhythm_on(false)
     , m_music_ref(nullptr)
-    , m_key_rhythm_color(0, 255, 0) // 律动色
 {
     ui->setupUi(this);
 
@@ -48,14 +48,34 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     );
     connect(m_rhythm_btn, &QPushButton::clicked, this, &GT64HeWidget::on_rhythm_btn_clicked);
 
-    m_key_rhythm_color = QColor(0, 255, 0, 128);     // 律动色
-        // 保存按键当前背景色（开启律动前快照）
-        m_key_base_color.clear();
-        ui->keyboard->layout->m_panel->getAllKeyNum([this](MKeyboardKey *key, void *user) {
-            GT64HeWidget *self = (GT64HeWidget *)user;
-            QColor bg = key->get_dft_background_color();
-            self->m_key_base_color.append(bg);
-        }, this);
+    // 律动模式选择下拉框
+    m_rhythm_mode_combo = new QComboBox(this);
+    m_rhythm_mode_combo->setFixedSize(90, 28);
+    m_rhythm_mode_combo->move(75, 6);
+    for (int i = 0; i < LED_FX_MAX; i++) {
+        m_rhythm_mode_combo->addItem(LedEffect::mode_name((LedEffectMode)i));
+    }
+    m_rhythm_mode_combo->setStyleSheet(
+        "QComboBox { background-color: #444; color: white; border-radius: 4px; padding: 2px 6px; }"
+        "QComboBox::drop-down { border: none; }"
+        "QComboBox QAbstractItemView { background-color: #333; color: white; selection-background-color: #555; }"
+    );
+    connect(m_rhythm_mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &GT64HeWidget::on_rhythm_mode_changed);
+
+    // 保存按键当前背景色
+    m_key_base_color.clear();
+    ui->keyboard->layout->m_panel->getAllKeyNum([this](MKeyboardKey *key, void *user) {
+        GT64HeWidget *self = (GT64HeWidget *)user;
+        QColor bg = key->get_dft_background_color();
+        self->m_key_base_color.append(bg);
+    }, this);
+    // 初始化灯效
+    m_led_effect.set_mode(LED_FX_COLOR_CYCLE);
+    m_led_effect.set_base_color(QColor(0, 255, 0));
+
+    // 设置灯效灯数
+    m_led_effect.set_count(m_key_base_color.size());
 
     m_activeWindowTimer->start(50);
 }
@@ -144,14 +164,10 @@ void GT64HeWidget::on_rhythm_btn_clicked()
     }
 }
 
-// 根据亮度在按键原始底色和律动颜色之间插值，brightness: 0~100
-QColor GT64HeWidget::blend_color(const QColor base_color, const QColor rhythm_color, float brightness)
+// 律动模式切换
+void GT64HeWidget::on_rhythm_mode_changed(int index)
 {
-    int t = qBound(0, (int)brightness, 100);
-    int r = base_color.red()   + (rhythm_color.red()   - base_color.red())   * t / 100;
-    int g = base_color.green() + (rhythm_color.green() - base_color.green()) * t / 100;
-    int b = base_color.blue()  + (rhythm_color.blue()  - base_color.blue())  * t / 100;
-    return QColor(r, g, b);
+    m_led_effect.set_mode((LedEffectMode)index);
 }
 
 // 接收LED网格数据，映射到键盘按键背景色
@@ -161,40 +177,49 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
 
     int cols = 16;
     int rows = 5;
-    int key_idx = 0;
+    int key_cnt = m_key_base_color.size();
 
     // 首帧初始化 prev 缓存
-    if (m_key_prev_color.size() != m_key_base_color.size()) {
-        m_key_prev_color.resize(m_key_base_color.size());
+    if (m_key_prev_color.size() != key_cnt) {
+        m_key_prev_color.resize(key_cnt);
         m_key_prev_color.fill(QColor(-1, -1, -1));
     }
 
-    ui->keyboard->layout->m_panel->getAllKeyNum([this, &data, cols, rows, &key_idx](MKeyboardKey *key, void *user) {
-        GT64HeWidget *self = (GT64HeWidget *)user;
-
+    // 构建每个按键的亮度数组（从 LED grid 映射）
+    QVector<float> brightness(key_cnt, 0.0f);
+    int key_idx = 0;
+    ui->keyboard->layout->m_panel->getAllKeyNum([this, &data, cols, rows, &brightness, &key_idx](MKeyboardKey *key, void *user) {
         // 用按键 id 查找对应的灯位（light_pos 索引 = key id）
         int id = key->getId();
-        int x = self->device->light_pos[id].x;
-        int y = self->device->light_pos[id].y;
+        int x = device->light_pos[id].x;
+        int y = device->light_pos[id].y;
         // 翻转y：键盘y=4(顶行)对应grid y=0
         int grid_y = rows - 1 - y;
         int grid_idx = grid_y * cols + x;
 
-        float brightness = 0.0f;
         if (grid_idx >= 0 && grid_idx < data.size()) {
-            brightness = data[grid_idx];
+            brightness[key_idx] = data[grid_idx];
         }
+        key_idx++;
+    }, this);
 
-        // 按键原始底色→律动颜色插值
-        QColor color = self->blend_color(self->m_key_base_color[key_idx], self->m_key_rhythm_color, brightness);
+    // 通过灯效算法计算每个按键颜色
+    QVector<QColor> colors = m_led_effect.next_frame(brightness, m_key_base_color);
 
-        // 只在颜色变化时才更新样式（避免每帧1830次setStyleSheet）
-        if (color != self->m_key_prev_color[key_idx]) {
-            self->m_key_prev_color[key_idx] = color;
-            key->set_dft_background_color(color);
-            key->updateStyle();
+    // 应用颜色到按键
+    key_idx = 0;
+    ui->keyboard->layout->m_panel->getAllKeyNum([this, &colors, &key_idx](MKeyboardKey *key, void *user) {
+        GT64HeWidget *self = (GT64HeWidget *)user;
+
+        if (key_idx < colors.size()) {
+            QColor color = colors[key_idx];
+            // 只在颜色变化时才更新样式
+            if (color != self->m_key_prev_color[key_idx]) {
+                self->m_key_prev_color[key_idx] = color;
+                key->set_dft_background_color(color);
+                key->updateStyle();
+            }
         }
-
         key_idx++;
     }, this);
 }

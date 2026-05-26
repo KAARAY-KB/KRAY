@@ -6,11 +6,13 @@
 #include <QCloseEvent>
 #include <QStyleOption>
 #include <QColorDialog>
+#include <QComboBox>
 #include <QPainter>
 
 #include "usb_device_info.hpp"
 #include "gt64he_device.hpp"
 #include "MusicRhythmWidget.h"
+#include "LedEffect.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class GT64HeWidget; }
@@ -96,6 +98,7 @@ private slots:
     void slot_activeWindowChanged(bool active);
     void on_rhythm_btn_clicked();
     void on_led_grid(const QVector<float> &data);
+    void on_rhythm_mode_changed(int index);
 
 signals:
     void exitWindow();
@@ -104,14 +107,12 @@ signals:
 private:
     Ui::GT64HeWidget *ui;
     QPushButton *m_rhythm_btn;      // 律动开关按钮
+    QComboBox *m_rhythm_mode_combo; // 律动模式选择
     bool m_rhythm_on;               // 律动是否开启
     MusicRhythmWidget *m_music_ref; // 音乐律动窗口引用
     QVector<QColor> m_key_base_color;  // 按键原始背景色
     QVector<QColor> m_key_prev_color;  // 按键上一帧律动色（用于跳过无变化更新）
-    QColor m_key_rhythm_color;          // 律动颜色
-
-    // 根据亮度在按键原始底色和律动颜色之间插值
-    QColor blend_color(const QColor base_color, const QColor rhythm_color, float brightness);
+    LedEffect m_led_effect;            // 灯效算法实例
 };
 
 #endif // GT64HEWIDGET_H

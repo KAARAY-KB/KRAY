@@ -708,7 +708,7 @@ void MusicRhythmWidget::create_ctrl_panel()
     m_bar_cnt_label->setStyleSheet(label_style);
     m_bar_cnt_label->setText(QString("BARS: %1").arg(m_bar_cnt));
     m_bar_cnt_slider = new QSlider(Qt::Horizontal, this);
-    m_bar_cnt_slider->setRange(8, 512);
+    m_bar_cnt_slider->setRange(16, 512);
     m_bar_cnt_slider->setSingleStep(1);
     m_bar_cnt_slider->setPageStep(1);
     m_bar_cnt_slider->setValue(m_bar_cnt);
