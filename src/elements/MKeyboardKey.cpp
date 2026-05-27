@@ -50,8 +50,8 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     m_hover_font_color = styleToColor("QPushButton:hover", "color");
     m_hover_background_color = styleToColor("QPushButton:hover", "background-color");
     m_checked_background_color = styleToColor("QPushButton:checked", "background-color");
-    m_pressed_not_checked_background_color = styleToColor("QPushButton:pressed:checked", "background-color");
-    m_pressed_checked_background_color = styleToColor("QPushButton:pressed:!checked", "background-color");
+    m_pressed_not_checked_background_color = styleToColor("QPushButton:pressed:!checked", "background-color");
+    m_pressed_checked_background_color = styleToColor("QPushButton:pressed:checked", "background-color");
 
     m_border_width = styleToInt("QPushButton", "border-width");
     m_border_radius = styleToInt("QPushButton", "border-radius");
@@ -145,33 +145,35 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // 获取按钮的高度和宽度
-    int h = this->height();
     int w = this->width();
+    int h = this->height();
 
     // 解析样式表边框宽度和圆角半径
-    int br = styleToInt("QPushButton", "border-radius") - 2;
-    int bw = styleToInt("QPushButton", "border-width");
-    int fh = m_distCur / m_distMax * h;
+    int bw = m_border_width;
+    int br = m_border_radius;
 
-    // 定义内容区域（减去边框宽度）
-    QRect contentRect(bw, bw, w - 2 * bw, h - 2 * bw);
+    if (m_distCur > 0) {
+        int fh = static_cast<int>(m_distCur / m_distMax * h);
+        // 定义内容区域（减去边框宽度）
+        QRect contentRect(bw, bw, w - 2 * bw, h - 2 * bw);
 
-    // 定义填充区域（从顶部向下填充）
-    QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fh);
+        // 定义填充区域（从顶部向下填充）
+        QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fh);
 
-    // 定义圆角矩形路径
-    QPainterPath roundedRectPath;
-    roundedRectPath.addRoundedRect(contentRect, br, br);
+        // 定义圆角矩形路径
+        QPainterPath roundedRectPath;
+        roundedRectPath.addRoundedRect(contentRect, br, br);
 
-    // 限制绘制范围到内容区域
-    painter.setClipPath(roundedRectPath);
-    if (m_dist_dir == DIR_D2U) {
-        // rgba(242, 223, 201, 0.5)
-        painter.fillRect(fillRect, QColor(242, 221, 199, 150));
-    }
-    else {
-        // rgba(186, 209, 243, 0.5)
-        painter.fillRect(fillRect, QColor(186, 209, 243, 150));
+        // 限制绘制范围到内容区域
+        painter.setClipPath(roundedRectPath);
+        if (m_dist_dir == DIR_D2U) {
+            // rgba(242, 223, 201, 0.5)
+            painter.fillRect(fillRect, QColor(242, 221, 199, 150));
+        }
+        else {
+            // rgba(186, 209, 243, 0.5)
+            painter.fillRect(fillRect, QColor(186, 209, 243, 150));
+        }
     }
 }
 
@@ -199,11 +201,14 @@ QColor MKeyboardKey::strToColor(const QString &str)
     if (m.hasMatch()) {
         return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
     }
-    // rgba(r, g, b, a)
-    QRegularExpression reRgba(R"(rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\))");
+    // rgba(r, g, b, a) — a 可以是浮点数(0.0~1.0)或整数(0~255)
+    QRegularExpression reRgba(R"(rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\))");
     m = reRgba.match(s);
     if (m.hasMatch()) {
-        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt(), m.captured(4).toInt());
+        double alpha = m.captured(4).toDouble();
+        // CSS 规范：alpha ≤ 1.0 为 0.0~1.0 范围，需转为 0~255
+        int alphaInt = (alpha <= 1.0) ? qRound(alpha * 255) : qRound(alpha);
+        return QColor(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt(), alphaInt);
     }
     return QColor(s);
 }
