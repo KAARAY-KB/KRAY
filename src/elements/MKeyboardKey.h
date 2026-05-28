@@ -9,13 +9,24 @@
 #include <QPainterPath>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QPolygonF>
+#include <QLinearGradient>
 #include <QRegularExpression>
 #include <QDebug>
+#include <QEvent>
 
 
 class MKeyboardKey : public QPushButton {
     Q_OBJECT
 public:
+    // 边框3D模式
+    typedef enum {
+        BORDER_3D_NONE = 0,     // 无3D效果，纯色边框
+        BORDER_3D_DIAG,         // 对角线渐变（左上亮→右下暗）
+        BORDER_3D_VERTICAL,     // 垂直渐变（上亮→下暗）
+        BORDER_3D_SPLIT,        // 分割式（上/左亮，下/右暗，带渐变过渡）
+    } border_3d_mode_t;
+
     typedef enum {
         CH_TY_OTHER  = 0x01 << 0,
         CH_TY_LETTER = 0x01 << 1,
@@ -51,10 +62,8 @@ public:
     // 从成员变量生成样式表
     QString getStyle();
     // 刷新样式到控件，并同步更新 m_style
-    void updateStyle() {
-        m_style = getStyle();
-        setStyleSheet(m_style.toUtf8());
-    }
+    // 刷新样式到控件（背景色设为 transparent，由 paintEvent 自绘抗锯齿圆角）
+    void updateStyle();
 
     // 距离相关
     float getDistMax() const { return m_distMax; }
@@ -106,6 +115,16 @@ public:
     QString set_padding(int p);
     QString set_font_family(const QString &f);
 
+    // --- 边框3D模式 ---
+    border_3d_mode_t get_border_3d_mode() const { return m_border_3d_mode; }
+    void set_border_3d_mode(border_3d_mode_t mode) { m_border_3d_mode = mode; update(); }
+    // 亮色透明度 (0.0~1.0)
+    float get_border_light_alpha() const { return m_border_light_alpha; }
+    void set_border_light_alpha(float a) { m_border_light_alpha = a; update(); }
+    // 暗色透明度 (0.0~1.0)
+    float get_border_dark_alpha() const { return m_border_dark_alpha; }
+    void set_border_dark_alpha(float a) { m_border_dark_alpha = a; update(); }
+
 private:
     int m_base_w;
     int m_base_h;
@@ -132,6 +151,11 @@ private:
     int m_padding;
     QString m_font_family;
 
+    // 边框3D相关
+    border_3d_mode_t m_border_3d_mode = BORDER_3D_SPLIT;
+    float m_border_light_alpha = 0.7;
+    float m_border_dark_alpha = 0.7;
+
 
     // 从样式表字符串中提取指定选择器内的属性值
     // 返回属性值字符串，未找到返回空
@@ -149,6 +173,9 @@ private:
     
 protected:
     void paintEvent(QPaintEvent *event) override;
+    // 鼠标进入/离开时触发重绘，更新 hover 状态
+    void enterEvent(QEvent *event) override { update(); QPushButton::enterEvent(event); }
+    void leaveEvent(QEvent *event) override { update(); QPushButton::leaveEvent(event); }
 signals:
     // void stateChanged(int idx, bool checked);
     void clicked(int idx, bool checked);

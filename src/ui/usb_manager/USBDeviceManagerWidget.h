@@ -10,7 +10,7 @@
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include <QGridLayout>
-#include <QPushButton>
+#include <QMouseEvent>
 #include <QCloseEvent>
 #include "usb_device_info.hpp"
 
@@ -28,9 +28,14 @@ private:
     UsbDeviceInfo m_info;
     QVBoxLayout *layout;
     QLabel *label;
-    QPushButton *btn_enter;
 signals:
     void enterRequested(UsbDeviceInfo &m_info);
+protected:
+    // 点击卡片发射进入信号
+    void mousePressEvent(QMouseEvent *event) override;
+    // 悬停时显示手型光标
+    void enterEvent(QEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 };
 
 class USBDeviceManagerWidget : public QWidget 

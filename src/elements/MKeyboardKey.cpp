@@ -1,6 +1,6 @@
 #include "MKeyboardKey.h"
 #include "console.h"
-
+#include <cmath>
 
 MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     : QPushButton(parent)
@@ -19,6 +19,8 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     setMinimumSize(w, h);
     setMaximumSize(w, h);
     setFocusPolicy(Qt::NoFocus);
+    // 禁止 Qt 自动填充背景，由 paintEvent 自绘
+    setAutoFillBackground(false);
     connect(this, &MKeyboardKey::toggled, this, [this](bool checked) {
         emit clicked(m_msg.id, checked);
     });
@@ -38,12 +40,8 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     else {
         Console::out() << "error opening the file: " << qss_path.toStdString() << std::endl;
     }
-    setStyleSheet(m_style);
-    // Console::out() << m_style.toStdString() << std::endl;
-
-
     // 从 QSS 文件内容初始化颜色成员变量，保持与 QSS 文件同步
-    // 这样后续 getStyle() 用成员变量替换 m_style 中的颜色时，初始值一致
+    // 必须在 updateStyle() 之前初始化，因为 paintEvent 使用这些成员变量
     m_border_color = styleToColor("QPushButton", "border-color");
     m_font_color = styleToColor("QPushButton", "color");
     m_background_color = styleToColor("QPushButton", "background-color");
@@ -60,7 +58,8 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
     m_padding = styleToInt("QPushButton", "padding");
     m_font_family = styleToStr("QPushButton", "font-family");
 
-    // updateStyle();
+    // 用 updateStyle() 设置样式（自动将 background-color 替换为 transparent）
+    updateStyle();
 }
 
 /*
@@ -138,43 +137,195 @@ QString MKeyboardKey::getStyle() {
 #endif
 }
 
+// 刷新样式到控件，并同步更新 m_style
+// 将 background-color 和 border 替换，避免 Qt stylesheet 自绘锯齿圆角
+// 背景和边框由 paintEvent 中 QPainter + Antialiasing 自绘
+void MKeyboardKey::updateStyle() {
+    m_style = getStyle();
+    QString ts = m_style;
+    // 替换所有 background-color 为 transparent
+    QRegularExpression re_bg("(background-color\\s*:\\s*)[^;]+(;)");
+    ts.replace(re_bg, "\\1transparent\\2");
+    // 替换所有 border-style 为 none
+    QRegularExpression re_bs("(border-style\\s*:\\s*)[^;]+(;)");
+    ts.replace(re_bs, "\\1none\\2");
+    // 替换所有 border-width 为 0px
+    QRegularExpression re_bw("(border-width\\s*:\\s*)[^;]+(;)");
+    ts.replace(re_bw, "\\10px\\2");
+    setStyleSheet(ts.toUtf8());
+}
+
 void MKeyboardKey::paintEvent(QPaintEvent *event) {
-    QPushButton::paintEvent(event);
+    // 完全自绘：用 QPainter + Antialiasing 绘制抗锯齿圆角
+    // 避免 Qt stylesheet border-radius 的锯齿问题
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
+    painter.setRenderHint(QPainter::TextAntialiasing);
 
-    // 获取按钮的高度和宽度
-    int w = this->width();
-    int h = this->height();
-
-    // 解析样式表边框宽度和圆角半径
+    int w = width();
+    int h = height();
     int bw = m_border_width;
     int br = m_border_radius;
+    int inner_br = qMax(0, br - bw);
 
+    // 根据交互状态选择颜色和字体大小
+    // 优先级：pressed > checked > hover > normal
+    QColor bg = m_background_color;
+    QColor fc = m_font_color;
+    int fs = m_font_size;
+    // 计算 outset/inset 边框的亮色和暗色
+    // outset: 凸起，inset: 凹陷
+    QColor borderLight = m_border_color.lighter(200); // base:100
+    QColor borderDark = m_border_color.darker(95); // base:100
+    // 应用透明度
+    borderLight.setAlphaF(0.7);
+    borderDark.setAlphaF(0.7);
+
+    bool isHover = underMouse(); // 悬停或按下状态
+
+    if (isDown()) { // 按下状态
+        bg = isChecked() ? m_pressed_checked_background_color
+                         : m_pressed_not_checked_background_color;
+        fc = m_hover_font_color;
+        fs = m_hover_font_size;
+    }
+    else if (isChecked()) { // 选中状态
+        bg = m_checked_background_color;
+        if (isHover) { // 悬停状态
+            fc = m_hover_font_color;
+            fs = m_hover_font_size;
+        }
+    }
+    else if (isHover) { // 悬停状态
+        bg = m_hover_background_color;
+        fc = m_hover_font_color;
+        fs = m_hover_font_size;
+    }
+
+    // 悬停或按下时使用 inset 边框，与原始 QSS 的 border-style 对应
+    if (isHover) {
+        std::swap(borderLight, borderDark);
+    }
+
+    // 绘制边框 + 背景
+    // 方法：先填充整个控件为边框色（外层圆角），再填充内部为背景色（内层圆角）
+    // 避免描边方式导致边框被控件矩形裁切只显示一半的问题
+    QPainterPath outer_path;
+    outer_path.addRoundedRect(0, 0, w, h, br, br);
+
+    if (bw > 0) {
+        QLinearGradient grad;
+        switch (m_border_3d_mode) {
+        case BORDER_3D_NONE:
+            // 纯色边框，无3D效果
+            painter.fillPath(outer_path, borderLight);
+            break;
+        case BORDER_3D_DIAG:
+            // 对角线渐变：左上亮→右下暗
+                grad = QLinearGradient(0, 0, w, h);
+                grad.setColorAt(0, borderLight);
+                grad.setColorAt(1, borderDark);
+                painter.fillPath(outer_path, grad);
+            break;
+        case BORDER_3D_VERTICAL:
+            // 垂直渐变：上亮→下暗
+                grad = QLinearGradient(0, 0, 0, h);
+                grad.setColorAt(0, borderLight);
+                grad.setColorAt(1, borderDark);
+                painter.fillPath(outer_path, grad);
+            break;
+
+        case BORDER_3D_SPLIT:
+            // 分割式：上/左亮，下/右暗，对角线渐变过渡
+            // 先用暗色填充整个边框区域（下边+右边+右下圆角）
+            painter.fillPath(outer_path, borderDark);
+            // 用对角线渐变裁剪覆盖亮色，在对角线处产生柔和过渡
+            if (0)
+            {
+                // 渐变方向：从右上(0,h)到左下(w,0)的对角线
+                // 过渡宽度为边框宽度的2倍，避免太窄
+                float halfLen = qMax(bw * 2.0f, 4.0f);
+                float diagLen = sqrtf(float(w * w + h * h));
+                float centerT = 1.0f - float(h) / diagLen;
+                float spreadT = halfLen / diagLen;
+
+                QLinearGradient grad(w, 0, 0, h);
+                grad.setColorAt(0, borderLight);
+                grad.setColorAt(qMax(0.0f, centerT - spreadT), borderLight);
+                grad.setColorAt(qMin(1.0f, centerT + spreadT), borderDark);
+                grad.setColorAt(1, borderDark);
+            }
+            // 用多边形裁剪，上边+左边+左上圆角+右上圆角覆盖亮色
+            // 对角线从右上到左下，与 Qt outset/inset 边框效果一致
+            /*
+                (0,0)→(w,0)→(w,br)→(0,h)
+
+                (0,0) ─────────────── (w,0)
+                │                         │
+                │     area                │
+                │                         │
+                (0,h) ─────────────── (w,h)
+            */
+            QPainterPath clip;
+            clip.addPolygon(QPolygonF()
+                << QPointF(0, h - br * 0.05)
+                << QPointF(0, 0)
+                << QPointF(w, 0)
+                << QPointF(w, br * 0.2));
+            clip.closeSubpath();
+            painter.save();
+            painter.setClipPath(clip);
+            painter.fillPath(outer_path, borderLight);
+            painter.restore();
+            break;
+        }
+
+        // 填充内部背景
+        QPainterPath inner_path;
+        inner_path.addRoundedRect(bw, bw, w - 2 * bw, h - 2 * bw, inner_br, inner_br);
+        painter.fillPath(inner_path, bg);
+    }
+    else {
+        painter.fillPath(outer_path, bg);
+    }
+
+    // 距离填充效果（按键按压深度可视化）
     if (m_distCur > 0) {
         int fh = static_cast<int>(m_distCur / m_distMax * h);
         // 定义内容区域（减去边框宽度）
         QRect contentRect(bw, bw, w - 2 * bw, h - 2 * bw);
-
         // 定义填充区域（从顶部向下填充）
         QRect fillRect(contentRect.x(), contentRect.y(), contentRect.width(), fh);
 
         // 定义圆角矩形路径
-        QPainterPath roundedRectPath;
-        roundedRectPath.addRoundedRect(contentRect, br, br);
+        QPainterPath clip_path;
+        clip_path.addRoundedRect(contentRect, inner_br, inner_br);
 
         // 限制绘制范围到内容区域
-        painter.setClipPath(roundedRectPath);
+        painter.setClipPath(clip_path);
         if (m_dist_dir == DIR_D2U) {
-            // rgba(242, 223, 201, 0.5)
             painter.fillRect(fillRect, QColor(242, 221, 199, 150));
         }
         else {
-            // rgba(186, 209, 243, 0.5)
             painter.fillRect(fillRect, QColor(186, 209, 243, 150));
         }
+        painter.setClipping(false);
     }
+
+    // 从 QSS 解析的属性构建字体，而非 this->font()
+    // 因为 QSS 字体属性由样式系统渲染时应用，不会写入 QWidget::font()
+    QFont f;
+    if (!m_font_family.isEmpty()) {
+        f.setFamily(m_font_family);
+    }
+    f.setPixelSize(fs);
+    f.setWeight(QFont::Normal);
+    painter.setFont(f);
+
+    // 绘制文字（带抗锯齿）
+    painter.setPen(fc);
+    painter.drawText(rect(), Qt::AlignCenter, text());
 }
 
 

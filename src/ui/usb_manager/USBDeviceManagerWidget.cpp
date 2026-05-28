@@ -13,6 +13,8 @@ USBDeviceSubWidget::USBDeviceSubWidget(UsbDeviceInfo &info, QWidget *parent)
     setFrameStyle(QFrame::Box | QFrame::Raised); // 设置边框样式
     setLineWidth(1);
     setFixedSize(WIDTH, HEIGHT);
+    // 鼠标悬停时显示手型光标，提示用户可点击
+    setCursor(Qt::PointingHandCursor);
 
     layout = new QVBoxLayout(this);
     label = new QLabel();
@@ -27,14 +29,31 @@ USBDeviceSubWidget::USBDeviceSubWidget(UsbDeviceInfo &info, QWidget *parent)
 
     // 鼠标悬停显示详细提示信息
     QString tooltip = QString::fromStdString(m_info.to_string());
-    // Console::out() << tooltip.toStdString() << std::endl;
     label->setToolTip(tooltip);
     
-    btn_enter = new QPushButton("Enter");
-    connect(btn_enter, &QPushButton::clicked, this, [this](){ emit enterRequested(m_info); });
-
     layout->addWidget(label);
-    layout->addWidget(btn_enter);
+}
+
+// 点击卡片发射进入信号
+void USBDeviceSubWidget::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        emit enterRequested(m_info);
+    }
+    QFrame::mousePressEvent(event);
+}
+
+// 鼠标进入时高亮边框
+void USBDeviceSubWidget::enterEvent(QEvent *event) {
+    setFrameStyle(QFrame::Box | QFrame::Plain);
+    setLineWidth(2);
+    QFrame::enterEvent(event);
+}
+
+// 鼠标离开时恢复边框
+void USBDeviceSubWidget::leaveEvent(QEvent *event) {
+    setFrameStyle(QFrame::Box | QFrame::Raised);
+    setLineWidth(1);
+    QFrame::leaveEvent(event);
 }
 
 USBDeviceManagerWidget::USBDeviceManagerWidget(QWidget *parent) 
