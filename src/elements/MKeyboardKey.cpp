@@ -285,7 +285,36 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
         // 填充内部背景
         QPainterPath inner_path;
         inner_path.addRoundedRect(bw, bw, w - 2 * bw, h - 2 * bw, inner_br, inner_br);
-        painter.fillPath(inner_path, bg);
+
+        if (m_segment_colors.size() > 1) {
+            // 多段颜色：水平分段填充，每段对应一颗LED
+            int seg_cnt = m_segment_colors.size();
+            int inner_w = w - 2 * bw;
+            int seg_w = inner_w / seg_cnt;
+
+            // 裁剪到内部圆角区域
+            painter.save();
+            painter.setClipPath(inner_path);
+
+            for (int i = 0; i < seg_cnt; i++) {
+                int x_start = bw + i * seg_w;
+                int x_end = (i == seg_cnt - 1) ? w - bw : bw + (i + 1) * seg_w;
+                QRect seg_rect(x_start, bw, x_end - x_start, h - 2 * bw);
+                painter.fillRect(seg_rect, m_segment_colors[i]);
+            }
+
+            // 交互状态叠加：在段颜色上方覆盖半透明的交互背景色
+            if (bg != m_background_color) {
+                QColor overlay = bg;
+                overlay.setAlpha(180);
+                painter.fillRect(QRect(bw, bw, inner_w, h - 2 * bw), overlay);
+            }
+
+            painter.restore();
+        } else {
+            // 单色填充
+            painter.fillPath(inner_path, bg);
+        }
     }
     else {
         painter.fillPath(outer_path, bg);
@@ -531,4 +560,35 @@ QString MKeyboardKey::set_font_family(const QString &f) {
     QRegularExpression re("(QPushButton\\s*\\{[^}]*font-family\\s*:\\s*)[^;]+(;)");
     m_style.replace(re, "\\1" + f + "\\2");
     return m_style;
+}
+
+// 设置按键下方的LED灯数量，用于多段颜色显示
+void MKeyboardKey::set_light_count(int count) {
+    m_light_count = count;
+    // 用当前背景色初始化段颜色，避免默认黑色覆盖原始样式
+    QColor bg = get_background_color();
+    m_segment_colors.fill(bg, count);
+    update();
+}
+
+// 设置指定段的LED颜色（不触发重绘，由调用方统一updateStyle）
+void MKeyboardKey::set_segment_color(int seg, const QColor &color) {
+    if (seg >= 0 && seg < m_segment_colors.size()) {
+        m_segment_colors[seg] = color;
+    }
+}
+
+// 获取指定段的LED颜色
+QColor MKeyboardKey::get_segment_color(int seg) const {
+    if (seg >= 0 && seg < m_segment_colors.size()) {
+        return m_segment_colors[seg];
+    }
+    return QColor();
+}
+
+// 清除所有段颜色，恢复为单LED模式
+void MKeyboardKey::clear_segment_colors() {
+    m_segment_colors.clear();
+    m_light_count = 1;
+    update();
 }

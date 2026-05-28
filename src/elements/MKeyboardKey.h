@@ -58,6 +58,7 @@ public:
     explicit MKeyboardKey(msg_t &msg, int base_w = 20, int base_h = 20, QWidget *parent = nullptr);
     int getId() const { return m_msg.id; }
     uint16_t getChTy() const { return m_msg.ch_ty; }
+    float get_w_unit() const { return m_msg.w_unit; }
 
     // 从成员变量生成样式表
     QString getStyle();
@@ -125,6 +126,13 @@ public:
     float get_border_dark_alpha() const { return m_border_dark_alpha; }
     void set_border_dark_alpha(float a) { m_border_dark_alpha = a; update(); }
 
+    // --- 多段颜色（宽按键如空格对应多颗LED） ---
+    int get_light_count() const { return m_light_count; }
+    void set_light_count(int count);
+    void set_segment_color(int seg, const QColor &color);
+    QColor get_segment_color(int seg) const;
+    void clear_segment_colors();
+
 private:
     int m_base_w;
     int m_base_h;
@@ -155,6 +163,10 @@ private:
     border_3d_mode_t m_border_3d_mode = BORDER_3D_SPLIT;
     float m_border_light_alpha = 0.7;
     float m_border_dark_alpha = 0.7;
+
+    // 多段颜色（宽按键如空格对应多颗LED）
+    int m_light_count = 1;
+    QVector<QColor> m_segment_colors;
 
 
     // 从样式表字符串中提取指定选择器内的属性值

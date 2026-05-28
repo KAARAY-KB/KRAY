@@ -11,7 +11,9 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     , ui(new Ui::GT64HeWidget)
     , m_rhythm_btn(nullptr)
     , m_rhythm_mode_combo(nullptr)
+    , m_rhythm_check_combo(nullptr)
     , m_rhythm_on(false)
+    , m_rhythm_check_mode(RHYTHM_CHECK_SKIP)
     , m_music_ref(nullptr)
 {
     ui->setupUi(this);
@@ -64,19 +66,44 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     connect(m_rhythm_mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &GT64HeWidget::on_rhythm_mode_changed);
 
-    // 保存按键当前背景色
+    // 律动选中模式选择下拉框
+    m_rhythm_check_combo = new QComboBox(this);
+    m_rhythm_check_combo->setFixedSize(110, 28);
+    m_rhythm_check_combo->move(170, 6);
+    m_rhythm_check_combo->addItem("选中不跳");
+    m_rhythm_check_combo->addItem("选中也跳");
+    m_rhythm_check_combo->setStyleSheet(
+        "QComboBox { background-color: #444; color: white; border-radius: 4px; padding: 2px 6px; }"
+        "QComboBox::drop-down { border: none; }"
+        "QComboBox QAbstractItemView { background-color: #333; color: white; selection-background-color: #555; }"
+    );
+    connect(m_rhythm_check_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &GT64HeWidget::on_rhythm_check_mode_changed);
+
+    // 保存按键当前背景色，并从设备映射表读取每个按键的LED灯数量
     m_key_base_color.clear();
+    m_key_light_count.clear();
+    m_total_led_count = 0;
     ui->keyboard->layout->m_panel->getAllKeyNum([this](MKeyboardKey *key, void *user) {
         GT64HeWidget *self = (GT64HeWidget *)user;
         QColor bg = key->get_background_color();
         self->m_key_base_color.append(bg);
+        // 从设备 light_msg 读取LED数量
+        int id = key->getId();
+        int light_cnt = (id >= 0 && id < 61) ? self->device->light_msg[id].num : 1;
+        self->m_key_light_count.append(light_cnt);
+        self->m_total_led_count += light_cnt;
+        // 多LED按键设置分段数
+        if (light_cnt > 1) {
+            key->set_light_count(light_cnt);
+        }
     }, this);
     // 初始化灯效
     m_led_effect.set_mode(LED_FX_COLOR_CYCLE);
     m_led_effect.set_base_color(QColor(0, 255, 0));
 
-    // 设置灯效灯数
-    m_led_effect.set_count(m_key_base_color.size());
+    // 设置灯效灯数为总LED数（包含多LED按键的额外LED）
+    m_led_effect.set_count(m_total_led_count);
 
     m_activeWindowTimer->start(50);
 }
@@ -157,6 +184,10 @@ void GT64HeWidget::on_rhythm_btn_clicked()
         ui->keyboard->layout->m_panel->getAllKeyNum([this, &idx](MKeyboardKey *key, void *user) {
             GT64HeWidget *self = (GT64HeWidget *)user;
             if (idx < self->m_key_base_color.size()) {
+                // 多LED按键清除段颜色，恢复单色模式
+                if (self->m_key_light_count[idx] > 1) {
+                    key->clear_segment_colors();
+                }
                 key->set_background_color(self->m_key_base_color[idx]);
                 key->updateStyle();
             }
@@ -165,10 +196,16 @@ void GT64HeWidget::on_rhythm_btn_clicked()
     }
 }
 
-// 律动模式切换
+// 律动灯效模式切换
 void GT64HeWidget::on_rhythm_mode_changed(int index)
 {
     m_led_effect.set_mode((LedEffectMode)index);
+}
+
+// 律动选中模式切换
+void GT64HeWidget::on_rhythm_check_mode_changed(int index)
+{
+    m_rhythm_check_mode = (RhythmCheckMode)index;
 }
 
 // 接收LED网格数据，映射到键盘按键背景色
@@ -186,41 +223,77 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
         m_key_prev_color.fill(QColor(-1, -1, -1));
     }
 
-    // 构建每个按键的亮度数组（从 LED grid 映射）
-    QVector<float> brightness(key_cnt, 0.0f);
-    int key_idx = 0;
-    ui->keyboard->layout->m_panel->getAllKeyNum([this, &data, cols, rows, &brightness, &key_idx](MKeyboardKey *key, void *user) {
-        // 用按键 id 查找对应的灯位（light_pos 索引 = key id）
-        int id = key->getId();
-        int x = device->light_pos[id].x;
-        int y = device->light_pos[id].y;
-        // 翻转y：键盘y=4(顶行)对应grid y=0
-        int grid_y = rows - 1 - y;
-        int grid_idx = grid_y * cols + x;
+    // 构建每颗LED的亮度数组和底色数组（多LED按键有多颗LED）
+    QVector<float> led_brightness(m_total_led_count, 0.0f);
+    QVector<QColor> led_base_colors(m_total_led_count);
 
-        if (grid_idx >= 0 && grid_idx < data.size()) {
-            brightness[key_idx] = data[grid_idx];
+    int led_offset = 0;
+    int key_idx = 0;
+    ui->keyboard->layout->m_panel->getAllKeyNum([this, &data, cols, rows, &led_brightness, &led_base_colors, &led_offset, &key_idx](MKeyboardKey *key, void *user) {
+        // 用按键 id 从 light_msg 读取LED位置
+        int id = key->getId();
+        int light_cnt = m_key_light_count[key_idx];
+
+        // 为每颗LED从 light_msg[id].pos 读取xy位置，映射到网格亮度
+        for (int seg = 0; seg < light_cnt; seg++) {
+            int x = device->light_msg[id].pos[seg].x;
+            int y = device->light_msg[id].pos[seg].y;
+            // 翻转y：键盘y=4(顶行)对应grid y=0
+            int grid_y = rows - 1 - y;
+            int grid_idx = grid_y * cols + x;
+
+            if (grid_idx >= 0 && grid_idx < data.size()) {
+                led_brightness[led_offset + seg] = data[grid_idx];
+            }
+            led_base_colors[led_offset + seg] = m_key_base_color[key_idx];
         }
+        led_offset += light_cnt;
         key_idx++;
     }, this);
 
-    // 通过灯效算法计算每个按键颜色
-    QVector<QColor> colors = m_led_effect.next_frame(brightness, m_key_base_color);
+    // 通过灯效算法计算每颗LED的颜色
+    QVector<QColor> led_colors = m_led_effect.next_frame(led_brightness, led_base_colors);
 
     // 应用颜色到按键
+    led_offset = 0;
     key_idx = 0;
-    ui->keyboard->layout->m_panel->getAllKeyNum([this, &colors, &key_idx](MKeyboardKey *key, void *user) {
+    ui->keyboard->layout->m_panel->getAllKeyNum([this, &led_colors, &led_offset, &key_idx](MKeyboardKey *key, void *user) {
         GT64HeWidget *self = (GT64HeWidget *)user;
+        int light_cnt = self->m_key_light_count[key_idx];
 
-        if (key_idx < colors.size()) {
-            QColor color = colors[key_idx];
-            // 只在颜色变化时才更新样式
+        // 模式1：选中按键律动不跳，保持选中色
+        if (self->m_rhythm_check_mode == RHYTHM_CHECK_SKIP && key->isChecked()) {
+            led_offset += light_cnt;
+            key_idx++;
+            return;
+        }
+
+        if (light_cnt > 1) {
+            // 多LED按键：设置多段颜色
+            bool changed = false;
+            for (int seg = 0; seg < light_cnt; seg++) {
+                QColor color = led_colors[led_offset + seg];
+                if (color != key->get_segment_color(seg)) {
+                    changed = true;
+                }
+            }
+            if (changed) {
+                for (int seg = 0; seg < light_cnt; seg++) {
+                    key->set_segment_color(seg, led_colors[led_offset + seg]);
+                }
+                key->updateStyle();
+            }
+        } else {
+            // 单LED按键：设置单一背景色
+            QColor color = led_colors[led_offset];
             if (color != self->m_key_prev_color[key_idx]) {
                 self->m_key_prev_color[key_idx] = color;
                 key->set_background_color(color);
                 key->updateStyle();
             }
         }
+
+        led_offset += light_cnt;
         key_idx++;
     }, this);
 }

@@ -14,6 +14,13 @@
 #include "MusicRhythmWidget.h"
 #include "LedEffect.h"
 
+// 律动选中模式：控制律动对选中按键的行为
+enum RhythmCheckMode {
+    RHYTHM_CHECK_SKIP = 0,   // 模式1：选中按键律动不跳
+    RHYTHM_CHECK_OVERRIDE,    // 模式2：选中按键律动也跳
+    RHYTHM_CHECK_MAX
+};
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class GT64HeWidget; }
 QT_END_NAMESPACE
@@ -99,6 +106,7 @@ private slots:
     void on_rhythm_btn_clicked();
     void on_led_grid(const QVector<float> &data);
     void on_rhythm_mode_changed(int index);
+    void on_rhythm_check_mode_changed(int index);
 
 signals:
     void exitWindow();
@@ -106,12 +114,16 @@ signals:
     void activeWindowChanged(bool active);
 private:
     Ui::GT64HeWidget *ui;
-    QPushButton *m_rhythm_btn;      // 律动开关按钮
-    QComboBox *m_rhythm_mode_combo; // 律动模式选择
-    bool m_rhythm_on;               // 律动是否开启
+    QPushButton *m_rhythm_btn;          // 律动开关按钮
+    QComboBox *m_rhythm_mode_combo;     // 律动灯效模式选择
+    QComboBox *m_rhythm_check_combo;    // 律动选中模式选择
+    bool m_rhythm_on;                   // 律动是否开启
+    RhythmCheckMode m_rhythm_check_mode;// 律动选中模式
     MusicRhythmWidget *m_music_ref; // 音乐律动窗口引用
     QVector<QColor> m_key_base_color;  // 按键原始背景色
     QVector<QColor> m_key_prev_color;  // 按键上一帧律动色（用于跳过无变化更新）
+    QVector<int> m_key_light_count;    // 每个按键的LED灯数量
+    int m_total_led_count = 0;         // 所有按键LED总数
     LedEffect m_led_effect;            // 灯效算法实例
 };
 
