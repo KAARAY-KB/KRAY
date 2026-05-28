@@ -1,4 +1,5 @@
 #include "console_widget.h"
+#include "console.h"
 #include <QScrollBar>
 #include <QIcon>
 #include <QPixmap>
@@ -6,6 +7,11 @@
 #include <QContextMenuEvent>
 #include <QTextBlock>
 #include <QWheelEvent>
+#include <QFileDialog>
+#include <QFile>
+#include <QMessageBox>
+#include <QDateTime>
+#include <QDir>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -114,6 +120,12 @@ ConsoleWidget::ConsoleWidget(QWidget* parent)
     connect(this, &ConsoleWidget::textReady,
             this, &ConsoleWidget::appendText,
             Qt::QueuedConnection);
+}
+
+// 析构：先从 Console 注销 sink，确保后续不再有写操作发到这个 widget
+ConsoleWidget::~ConsoleWidget()
+{
+    Console::unregisterSink(&m_sink);
 }
 
 void ConsoleWidget::show_top(void)
@@ -273,6 +285,8 @@ void ConsoleWidget::contextMenuEvent(QContextMenuEvent* event) {
     menu.addSeparator();
     QAction* clearAct = menu.addAction("清空日志");
     QAction* scrollAct = menu.addAction("滚动到底部");
+    menu.addSeparator();
+    QAction* exportAct = menu.addAction("导出日志…");
 
     QAction* chosen = menu.exec(event->globalPos());
     if (chosen == copyAct) {
@@ -285,7 +299,37 @@ void ConsoleWidget::contextMenuEvent(QContextMenuEvent* event) {
         m_newLogHint->hide();
     } else if (chosen == scrollAct) {
         verticalScrollBar()->setValue(verticalScrollBar()->maximum());
+    } else if (chosen == exportAct) {
+        exportLog();
     }
+}
+
+// 把当前文本控件内容以 UTF-8 写入用户选定的文件
+void ConsoleWidget::exportLog()
+{
+    QString defaultName = QString("console_%1.log").arg(
+        QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));   // 以时间戳避免重名
+    QString startPath = QDir::current().filePath(defaultName);      // 默认保存到当前目录
+    QString path = QFileDialog::getSaveFileName(
+        this, "导出日志", startPath,
+        "日志文件 (*.log *.txt);;所有文件 (*)");
+    if (path.isEmpty()) return;                                     // 用户取消
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {   // 二进制写入避免换行符被改写
+        QMessageBox::warning(this, "导出失败",
+            QString("无法写入文件:\n%1").arg(path));
+        return;
+    }
+    QByteArray data = toPlainText().toUtf8();                       // 当前可见的日志文本
+    qint64 written = file.write(data);
+    file.close();
+    if (written != data.size()) {                                   // 实际写入字节数不一致视为失败
+        QMessageBox::warning(this, "导出失败",
+            QString("写入未完成:\n%1").arg(path));
+        return;
+    }
+    Console::info("Console") << "日志已导出到 " << path.toStdString();
 }
 
 // 在 UI 线程追加文本

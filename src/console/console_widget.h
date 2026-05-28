@@ -1,3 +1,5 @@
+// 本文件定义 ConsoleWidget：Qt 文本控件形态的日志窗口，
+// 通过内部 WidgetSink 将 Console 输出转发到 UI，并提供右键导出、过滤等交互。
 #ifndef CONSOLE_WIDGET_H
 #define CONSOLE_WIDGET_H
 
@@ -9,6 +11,7 @@
 #include <QAction>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QPointer>
 #include "console_sink.h"
 
 /**
@@ -33,7 +36,8 @@ class ConsoleWidget : public QTextEdit {
 
 public:
     explicit ConsoleWidget(QWidget* parent = nullptr);
-    ~ConsoleWidget() = default;
+    // 析构时主动注销 sink，避免外部漏掉清理导致悬挂调用
+    ~ConsoleWidget() override;
 
     /**
      * @brief 获取关联的 Sink 指针
@@ -72,6 +76,11 @@ private slots:
      */
     void appendText(const QString& text);
 
+    /**
+     * @brief 弹出文件对话框，把当前文本控件内容保存到 .log/.txt 文件
+     */
+    void exportLog();
+
 private:
     // 判断滚动条是否在底部
     bool isAtBottom() const;
@@ -102,9 +111,9 @@ private:
 
     /**
      * @brief 内部 Sink 实现类
-     * 
+     *
      * 将 Console 的 std::string 输出转换为 Qt 信号，
-     * 实现跨线程安全的 UI 更新。
+     * 实现跨线程安全的 UI 更新；使用 QPointer 防止 widget 被销毁后悬挂调用。
      */
     class WidgetSink : public ConsoleSink {
     public:
@@ -115,12 +124,13 @@ private:
          * @param text 要输出的文本（UTF-8 编码）
          */
         void write(const std::string& text) override {
-            // 将 std::string 转换为 QString 并通过信号发送
-            // 信号槽机制会自动处理跨线程问题
-            emit m_widget->textReady(QString::fromUtf8(text.c_str()));
+            // QPointer 在目标对象销毁时自动置空，避免向已删除的 widget 发信号
+            ConsoleWidget* w = m_widget.data();
+            if (!w) return;
+            emit w->textReady(QString::fromUtf8(text.c_str()));
         }
     private:
-        ConsoleWidget* m_widget;  // 关联的窗口实例
+        QPointer<ConsoleWidget> m_widget; // 自动置空的弱指针
     };
 
     WidgetSink m_sink;              // 内部 Sink 实例
