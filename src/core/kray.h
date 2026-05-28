@@ -9,6 +9,8 @@
 #include "USBWidget.h"
 #include "MusicRhythmWidget.h"
 
+class ConsoleWidget; // 控制台窗口前向声明，仅作指针成员使用
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class Kray;
@@ -29,7 +31,8 @@ private:
     USBWidget *usb_widget = nullptr;
     MusicRhythmWidget *m_music_widget = nullptr;
     MSystemTrayIcon *m_system_tray_icon = nullptr;
-    bool m_close_to_quit = false; // 是否关闭时退出程序
+    ConsoleWidget *m_console_widget = nullptr; // 控制台日志窗口（应用级日志 UI）
+    bool m_close_to_quit = false;              // 是否关闭时退出程序
 
     void closeEvent(QCloseEvent *event) override;
     void get_system_info(void *p_context);

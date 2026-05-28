@@ -4,9 +4,6 @@
 #include "console_widget.h"
 #include <QApplication>
 
-// 控制台窗口实例（内部实现细节，不在头文件暴露）
-static ConsoleWidget *_consoleWin = nullptr;
-
 Kray::Kray(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Kray)
@@ -15,9 +12,9 @@ Kray::Kray(QWidget *parent)
     setWindowTitle("KRAY");
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
-    // 创建控制台窗口并注册
-    _consoleWin = new ConsoleWidget();
-    Console::registerSink(_consoleWin->sink());
+    // 创建控制台窗口并注册为日志 sink（与 Kray 同生命周期）
+    m_console_widget = new ConsoleWidget();
+    Console::registerSink(m_console_widget->sink());
     Console::abort_msg();
 
     m_system_tray_icon = new MSystemTrayIcon(this, QIcon(":/images/pixel_parrot.png"), QApplication::font());
@@ -79,11 +76,11 @@ void Kray::closeEvent(QCloseEvent *event)
         delete m_music_widget;
         m_music_widget = nullptr;
     }
-    // 不关闭 console 窗口
-    if (_consoleWin != nullptr)
+    // 不关闭 console 窗口：日志在主窗口隐藏后仍可见
+    if (m_console_widget != nullptr)
     {
-        qDebug() << "Kray::closeEvent() _consoleWin not close";
-        Console::out() << "Kray::closeEvent() _consoleWin not close" << std::endl;
+        qDebug() << "Kray::closeEvent() m_console_widget not close";
+        Console::out() << "Kray::closeEvent() m_console_widget not close" << std::endl;
     }
     // 勾选"退出时关闭程序"则彻底退出应用
     if (m_close_to_quit) {
@@ -122,24 +119,22 @@ Kray::~Kray()
         Console::out() << "Kray::~Kray() m_system_tray_icon";
         delete m_system_tray_icon;
     }
-    if (_consoleWin != nullptr) {
-        qDebug() << "Kray::~Kray() _consoleWin";
-        Console::out() << "Kray::~Kray() _consoleWin";
-        qDebug() << "Kray::~Kray() _consoleWin unregister sink";
-        Console::out() << "Kray::~Kray() _consoleWin unregister sink" << std::endl;
-
-        // 延迟10秒
-       // QThread::msleep(10000);
-        Console::unregisterSink(_consoleWin->sink());
-        delete _consoleWin;
-        _consoleWin = nullptr;
+    if (m_console_widget != nullptr) {
+        qDebug() << "Kray::~Kray() m_console_widget";
+        Console::out() << "Kray::~Kray() m_console_widget" << std::endl;
+        // ConsoleWidget 析构内部会自动调用 Console::unregisterSink，
+        // 此处只负责释放窗口对象，保持调用顺序：先注销、再删除（由析构函数完成）
+        delete m_console_widget;
+        m_console_widget = nullptr;
     }
     delete ui;
 }
 
 void Kray::on_btn_console_clicked()
 {
-    _consoleWin->show_top();
+    if (m_console_widget != nullptr) {
+        m_console_widget->show_top();
+    }
 }
 
 void Kray::on_btn_usb_clicked()
