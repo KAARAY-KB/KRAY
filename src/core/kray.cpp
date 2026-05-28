@@ -40,38 +40,38 @@ Kray::Kray(QWidget *parent)
 void Kray::closeEvent(QCloseEvent *event)
 {
     qDebug() << "Kray::closeEvent()";
-    Console::out() << "Kray::closeEvent()" << std::endl;
+    Console::info("kray") << "closeEvent()" << std::endl;
     // 关闭所有子窗口（除了 console 窗口）
     if (t1 != nullptr) {
         qDebug() << "Kray::closeEvent() t1";
-        Console::out() << "Kray::closeEvent() t1" << std::endl;
+        Console::info("kray") << "closeEvent() t1" << std::endl;
         t1->close();
         delete t1;
         t1 = nullptr;
     }
     if (t2 != nullptr) {
         qDebug() << "Kray::closeEvent() t2";
-        Console::out() << "Kray::closeEvent() t2" << std::endl;
+        Console::info("kray") << "closeEvent() t2" << std::endl;
         t2->close();
         delete t2;
         t2 = nullptr;
     }
     if (m_system_tray_icon != nullptr) {
         qDebug() << "Kray::closeEvent() m_system_tray_icon";
-        Console::out() << "Kray::closeEvent() m_system_tray_icon" << std::endl;
+        Console::info("kray") << "closeEvent() m_system_tray_icon" << std::endl;
         delete m_system_tray_icon;
         m_system_tray_icon = nullptr;
     }
     if (usb_widget != nullptr) {
         qDebug() << "Kray::closeEvent() usb_widget";
-        Console::out() << "Kray::closeEvent() usb_widget" << std::endl;
+        Console::info("kray") << "closeEvent() usb_widget" << std::endl;
         usb_widget->close();
         delete usb_widget;
         usb_widget = nullptr;
     }
     if (m_music_widget != nullptr) {
         qDebug() << "Kray::closeEvent() m_music_widget";
-        Console::out() << "Kray::closeEvent() m_music_widget" << std::endl;
+        Console::info("kray") << "closeEvent() m_music_widget" << std::endl;
         m_music_widget->close();
         delete m_music_widget;
         m_music_widget = nullptr;
@@ -80,7 +80,7 @@ void Kray::closeEvent(QCloseEvent *event)
     if (m_console_widget != nullptr)
     {
         qDebug() << "Kray::closeEvent() m_console_widget not close";
-        Console::out() << "Kray::closeEvent() m_console_widget not close" << std::endl;
+        Console::info("kray") << "closeEvent() m_console_widget not close" << std::endl;
     }
     // 勾选"退出时关闭程序"则彻底退出应用
     if (m_close_to_quit) {
@@ -93,35 +93,35 @@ void Kray::closeEvent(QCloseEvent *event)
 Kray::~Kray()
 {
     qDebug() << "Kray::~Kray()";
-    Console::out() << "Kray::~Kray()" << std::endl;
+    Console::info("kray") << "~Kray()" << std::endl;
     if (t1 != nullptr) {
         qDebug() << "Kray::~Kray() t1";
-        Console::out() << "Kray::~Kray() t1";
+        Console::info("kray") << "~Kray() t1";
         delete t1;
     }
     if (t2 != nullptr) {
         qDebug() << "Kray::~Kray() t2";
-        Console::out() << "Kray::~Kray() t2";
+        Console::info("kray") << "~Kray() t2";
         delete t2;
     }
     if (usb_widget != nullptr) {
         qDebug() << "Kray::~Kray() usb_widget";
-        Console::out() << "Kray::~Kray() usb_widget";
+        Console::info("kray") << "~Kray() usb_widget";
         delete usb_widget;
     }
     if (m_music_widget != nullptr) {
         qDebug() << "Kray::~Kray() m_music_widget";
-        Console::out() << "Kray::~Kray() m_music_widget";
+        Console::info("kray") << "~Kray() m_music_widget";
         delete m_music_widget;
     }
     if (m_system_tray_icon != nullptr) {
         qDebug() << "Kray::~Kray() m_system_tray_icon";
-        Console::out() << "Kray::~Kray() m_system_tray_icon";
+        Console::info("kray") << "~Kray() m_system_tray_icon";
         delete m_system_tray_icon;
     }
     if (m_console_widget != nullptr) {
         qDebug() << "Kray::~Kray() m_console_widget";
-        Console::out() << "Kray::~Kray() m_console_widget" << std::endl;
+        Console::info("kray") << "~Kray() m_console_widget" << std::endl;
         // ConsoleWidget 析构内部会自动调用 Console::unregisterSink，
         // 此处只负责释放窗口对象，保持调用顺序：先注销、再删除（由析构函数完成）
         delete m_console_widget;

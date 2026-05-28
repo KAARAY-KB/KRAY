@@ -19,9 +19,10 @@ GT64HeWidget::GT64HeWidget(UsbDeviceInfo info, QWidget *parent)
     // 创建并打开 GT-64HE 设备
     device = new GT64HeDevice(info);
     if (device->open()) {
-        Console::out() << "GT64HeWidget: device opened" << std::endl;
-    } else {
-        Console::out() << "GT64HeWidget: device open failed" << std::endl;
+        Console::info("GT64HeWidget") << "device opened" << std::endl;
+    }
+    else {
+        Console::error("GT64HeWidget") << "device open failed" << std::endl;
     }
 
     connect(this, &GT64HeWidget::activeWindowChanged, this, &GT64HeWidget::slot_activeWindowChanged);
@@ -85,12 +86,12 @@ GT64HeWidget::~GT64HeWidget() {
         emit activeWindowChanged(false);
     }
     if (m_activeWindowTimer) {
-        Console::out() << "GT64HeWidget::~m_activeWindowTimer" << std::endl;
+        Console::info("GT64HeWidget") << "m_activeWindowTimer stopped" << std::endl;
         m_activeWindowTimer->stop();
         delete m_activeWindowTimer;
     }
     if (device) {
-        Console::out() << "GT64HeWidget::~device" << std::endl;
+        Console::info("GT64HeWidget") << "device closed" << std::endl;
         device->close();
         delete device;
     }
@@ -98,13 +99,13 @@ GT64HeWidget::~GT64HeWidget() {
 }
 
 void GT64HeWidget::closeEvent(QCloseEvent *event) {
-    Console::out() << "GT64HeWidget: close event" << std::endl;
+    Console::info("GT64HeWidget") << "closeEvent" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
 }
 void GT64HeWidget::closeWidget(void) {
-    Console::out() << "GT64HeWidget: close widget" << std::endl;
+    Console::info("GT64HeWidget") << "closeWidget" << std::endl;
     emit exitWidget();
 }
 
@@ -120,7 +121,7 @@ void GT64HeWidget::on_read_done(const std::vector<uint8_t>& data) {
         str += std::to_string(data[i]) + ",";
     }
     if (!data.empty()) str.pop_back();
-    Console::out() << str << std::endl;
+    Console::info("GT64HeWidget") << str << std::endl;
 }
 
 // 律动开关按钮点击
@@ -136,12 +137,12 @@ void GT64HeWidget::on_rhythm_btn_clicked()
                 m_music_ref = mw;
                 connect(m_music_ref, &MusicRhythmWidget::sig_led_grid,
                         this, &GT64HeWidget::on_led_grid);
-                Console::out() << "GT64HeWidget: rhythm connected" << std::endl;
+                Console::info("GT64HeWidget") << "rhythm connected" << std::endl;
                 return;
             }
         }
         // 没找到，关闭律动
-        Console::out() << "GT64HeWidget: no MusicRhythmWidget found" << std::endl;
+        Console::warn("GT64HeWidget") << "no MusicRhythmWidget found" << std::endl;
         m_rhythm_on = false;
         m_rhythm_btn->setChecked(false);
     } else {

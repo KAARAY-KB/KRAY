@@ -38,7 +38,7 @@ MKeyboardKey::MKeyboardKey(msg_t &msg, int base_w, int base_h, QWidget *parent)
         m_style.remove(commentRe);
     }
     else {
-        Console::out() << "error opening the file: " << qss_path.toStdString() << std::endl;
+        Console::error("MKeyboardKey") << "opening the file: " << qss_path.toStdString() << std::endl;
     }
     // 从 QSS 文件内容初始化颜色成员变量，保持与 QSS 文件同步
     // 必须在 updateStyle() 之前初始化，因为 paintEvent 使用这些成员变量
@@ -101,7 +101,8 @@ QString MKeyboardKey::getStyle() {
     // set_font_family(m_font_family);
     
     if (getId() == 0)
-        Console::out() << m_style.toStdString() << std::endl;
+        if (Console::shouldLog("MKeyboardKey", 1000))
+            Console::info("MKeyboardKey") << m_style.toStdString() << std::endl;
     return m_style;
 #else
     QString res = QString(

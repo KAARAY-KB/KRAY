@@ -147,12 +147,12 @@ public:
             case PAGE_TY_MAIN:
                 ui->resize(400, 200);
                 ui->setStyleSheet("QWidget#form {background-color: #f0f0f0;}");
-                Console::out() << "main" << std::endl;
+                Console::info("USBWidgetUI") << "main" << std::endl;
                 break;
             case PAGE_TY_KB:
                 ui->resize(1000, 700);
                 ui->setStyleSheet("QWidget#form {background-color: #f0edea;}");
-                Console::out() << "kb" << std::endl;
+                Console::info("USBWidgetUI") << "kb" << std::endl;
                 break;
         }
     }

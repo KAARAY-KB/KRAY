@@ -4,11 +4,11 @@
 
 
 void GT64HeWidget::slot_activeWindowChanged(bool active) {
-    Console::out() << "activeWindowChanged:" << active << std::endl;
+    Console::info("GT64HeWidgetSlots") << "activeWindowChanged:" << active << std::endl;
 }
 
 void GT64HeWidget::slot_keyboard_key_clicked(int idx, bool checked) {
-    Console::out() << "key id" << idx << "checked:" << checked << std::endl;
+    Console::info("GT64HeWidgetSlots") << "key id" << idx << "checked:" << checked << std::endl;
 }
 /*********** slots ***********/
 
@@ -28,7 +28,7 @@ void GT64HeWidget::on_param_dbg_btn_usbTx_clicked() {
 }
 void GT64HeWidget::on_param_dbg_btn_usbRx_clicked() {
     if (!device || !device->is_open()) return;
-    Console::out() << "usb rx start" << std::endl;
+    Console::info("GT64HeWidgetSlots") << "usb rx start" << std::endl;
     // 启动连续异步读取
     device->start_read(GT64HeDevice::EP_SIZE,
         [this](const std::vector<uint8_t>& data) {
@@ -37,7 +37,7 @@ void GT64HeWidget::on_param_dbg_btn_usbRx_clicked() {
 }
 void GT64HeWidget::on_param_dbg_btn_usbRxStop_clicked() {
     if (!device) return;
-    Console::out() << "usb rx stop" << std::endl;
+    Console::info("GT64HeWidgetSlots") << "usb rx stop" << std::endl;
     device->stop_read();
 }
 
@@ -46,7 +46,7 @@ void GT64HeWidget::on_param_dbg_btn_setColor_clicked() {
     QColor color = QColorDialog::getColor(Qt::white, nullptr, "pick a color", QColorDialog::ShowAlphaChannel | QColorDialog::DontUseNativeDialog);
     if (color.isValid()) {
         QString colorStr = QString("rgb(%1, %2, %3)").arg(color.red()).arg(color.green()).arg(color.blue());
-        Console::out() << colorStr.toStdString() << std::endl;
+        Console::info("GT64HeWidgetSlots") << colorStr.toStdString() << std::endl;
         if (ui->param->dbg->panel->isChecked()) {
             ui->keyboard->layout->m_panel->setStyleSheet("background-color: " + colorStr + ";");
         }
@@ -210,7 +210,7 @@ void GT64HeWidget::on_fastLocation_btn_cancel_clicked() {
     ui->keyboard->layout->m_panel->setCheckedType(MKeyboardPanel::CHECKED_TYPE_CANCEL);
 }
 void GT64HeWidget::on_param_property_radioButtonGroup_buttonToggled(int id, bool checked) {
-    Console::out() << "编号为 " << id << "选择状态变更为 " << checked << std::endl;
+    Console::info("GT64HeWidgetSlots") << "编号为 " << id << "选择状态变更为 " << checked << std::endl;
     if (id < ui->param->property->stackedWidget->count()) {
         ui->param->property->stackedWidget->setCurrentIndex(id);
     }
@@ -245,7 +245,7 @@ void GT64HeWidget::on_param_property_slider_param5_userReleased(int value) {
 
 void GT64HeWidget::on_param_property_spinBox_param0_valueChanged(double value) {
     ui->param->property->slider_param[0]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 0 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 0 send usb message" << value << std::endl;
 
     ui->keyboard->layout->m_panel->getAllKeyNum([value](MKeyboardKey *key, void *user) -> void {
         MKeyboardKey::dist_dir_t dir = ((key->getDistCur() - value) > 0.0) ? MKeyboardKey::DIR_D2U : MKeyboardKey::DIR_U2D;
@@ -256,21 +256,21 @@ void GT64HeWidget::on_param_property_spinBox_param0_valueChanged(double value) {
 }
 void GT64HeWidget::on_param_property_spinBox_param1_valueChanged(double value) {
     ui->param->property->slider_param[1]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 1 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 1 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param2_valueChanged(double value) {
     ui->param->property->slider_param[2]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 2 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 2 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param3_valueChanged(double value) {
     ui->param->property->slider_param[3]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 3 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 3 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param4_valueChanged(double value) {
     ui->param->property->slider_param[4]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 4 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 4 send usb message" << value << std::endl;
 }
 void GT64HeWidget::on_param_property_spinBox_param5_valueChanged(double value) {
     ui->param->property->slider_param[5]->setSliderPosition(value * 1000.0);
-    Console::out() << "TODO: 5 send usb message" << value << std::endl;
+    Console::info("GT64HeWidgetSlots") << "TODO: 5 send usb message" << value << std::endl;
 }

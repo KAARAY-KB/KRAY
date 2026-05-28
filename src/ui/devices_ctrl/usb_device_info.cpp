@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <algorithm>
 
-static std::string _dn = "[DevInfo]";
+static const char *_dn = {"UsbDeviceInfoInfo"};
 
 // 已知设备的 VID/PID 表
 struct DevIdEntry {
@@ -38,7 +38,7 @@ static constexpr size_t g_known_devs_count = sizeof(g_known_devs) / sizeof(g_kno
 
 // 从 UsbDevice 创建 UsbDeviceInfo
 UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& dev) {
-    Console::out() << _dn << " from_usb_device: 开始提取设备信息" << std::endl;
+    Console::info(_dn) << " from_usb_device: 开始提取设备信息" << std::endl;
     UsbDeviceInfo info;
 
     if (dev.is_offline()) {
@@ -54,8 +54,8 @@ UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& de
             }
             if (info.is_hid) break;
         }
-        Console::out() << _dn << " from_usb_device: 离线设备 is_hid=" << info.is_hid << std::endl;
-        Console::out() << _dn << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
+        Console::info(_dn) << " from_usb_device: 离线设备 is_hid=" << info.is_hid << std::endl;
+        Console::info(_dn) << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
         return info;
     }
 
@@ -72,7 +72,7 @@ UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& de
         }
         if (info.is_hid) break;
     }
-    Console::out() << _dn << " from_usb_device: is_hid=" << info.is_hid << std::endl;
+    Console::info(_dn) << " from_usb_device: is_hid=" << info.is_hid << std::endl;
 
     if (info.is_hid) {
         int hid_count = 0;
@@ -80,27 +80,27 @@ UsbDeviceInfo UsbDeviceInfo::from_usb_device(const usb_ctrl::core::UsbDevice& de
             for (const auto& iface : cfg.interfaces) {
                 if (iface.bclass == 0x03) {
                     hid_count++;
-                    Console::out() << _dn << " from_usb_device: HID iface="
+                    Console::info(_dn) << " from_usb_device: HID iface="
                                    << (int)iface.number;
                     for (const auto& ep : iface.endpoints) {
-                        Console::out() << " EP=0x" << std::hex << (int)ep.address
+                        Console::info(_dn) << " EP=0x" << std::hex << (int)ep.address
                                        << "(" << ep.max_packet_size << "B)"
                                        << ep.direction_str();
                     }
-                    Console::out() << std::dec << std::endl;
+                    Console::info(_dn) << std::dec << std::endl;
                 }
             }
         }
-        Console::out() << _dn << " from_usb_device: total HID interfaces=" << hid_count << std::endl;
+        Console::info(_dn) << " from_usb_device: total HID interfaces=" << hid_count << std::endl;
     }
 
-    Console::out() << _dn << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
+    Console::info(_dn) << " from_usb_device: 提取 -> " << info.to_string() << std::endl;
     return info;
 }
 
 // 根据 VID/PID 检测设备类型
 UsbDeviceInfo::DevType UsbDeviceInfo::detect_type(uint16_t vid, uint16_t pid) {
-    Console::out() << _dn << " 检测类型: checking " << std::hex 
+    Console::info(_dn) << " 检测类型: checking " << std::hex 
                     << std::setfill('0') << std::setw(4)
                     << "VID:0x" << vid 
                     << " PID:0x" << pid 
@@ -112,7 +112,7 @@ UsbDeviceInfo::DevType UsbDeviceInfo::detect_type(uint16_t vid, uint16_t pid) {
             break;
         }
     }
-    Console::out() << _dn << " 检测类型: matched known device -> " << entry.name << std::endl;
+    Console::info(_dn) << " 检测类型: matched known device -> " << entry.name << std::endl;
     return entry.type;
 }
 

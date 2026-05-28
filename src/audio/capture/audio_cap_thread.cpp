@@ -23,7 +23,6 @@ AudioCapThread::AudioCapThread(QObject *parent, const QString audio_name)
     for (uint16_t i = 0; i < NUM_FFT_SAMPLES_AVG; i++) {
         dir[i] = 1;
     }
-
     Console::out() << "Hello FFMPEG, av_version_info is " << av_version_info() << std::endl;
     Console::out() << "avutil_configuration is " << avutil_configuration() << std::endl;
 

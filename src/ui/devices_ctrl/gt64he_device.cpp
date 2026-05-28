@@ -15,16 +15,16 @@ static std::string _dn = "";
 GT64HeDevice::GT64HeDevice(const UsbDeviceInfo& info)
     : UsbDeviceBase(info) // 调用基类构造函数
 {
-    _dn = "[" + info.di.product + "]";
-    Console::out() << _dn << " construct: device=" << info.to_string() << std::endl;
-    Console::out() << _dn << " construct: VID=0x" << std::hex << VID
+    _dn = info.di.product + ":";
+    Console::info("GT64HeDevice") << _dn << " construct: device=" << info.to_string() << std::endl;
+    Console::info("GT64HeDevice") << _dn << " construct: VID=0x" << std::hex << VID
                    << " PID=0x" << PID << std::dec
                    << " EP_SIZE=" << EP_SIZE << std::endl;
 }
 
 // 析构函数
 GT64HeDevice::~GT64HeDevice() {
-    Console::out() << _dn << " destruct: closing device..." << std::endl;
+    Console::info("GT64HeDevice") << _dn << " destruct: closing device..." << std::endl;
     close();
-    Console::out() << _dn << " destruct: device destroyed" << std::endl;
+    Console::info("GT64HeDevice") << _dn << " destruct: device destroyed" << std::endl;
 }

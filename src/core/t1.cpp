@@ -29,7 +29,7 @@ T1::T1(QWidget *parent)
 
 #if TEST_LIBUSB
     const struct libusb_version *libusb_ver = libusb_get_version();
-    Console::out() << "libusb: " << libusb_ver->major << "." << libusb_ver->minor << "." 
+    Console::info("T1") << "libusb: " << libusb_ver->major << "." << libusb_ver->minor << "." 
                    << libusb_ver->micro << "." << libusb_ver->nano << "." << libusb_ver->rc 
                    << ", " << libusb_ver->describe << std::endl;
 #endif
@@ -66,7 +66,7 @@ T1::~T1()
 
 void T1::closeEvent(QCloseEvent *event)
 {
-    Console::out() << "T1: close event" << std::endl;
+    Console::info("T1") << "closeEvent" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);

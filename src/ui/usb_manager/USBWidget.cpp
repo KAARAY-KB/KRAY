@@ -22,10 +22,10 @@ USBWidget::USBWidget(QWidget *parent)
 
     // 遍历当前设备，添加到设备管理器
     auto& devs = m_ctrl.devices();
-    Console::out() << "USBWidget: found " << devs.size() << " devices" << std::endl << std::endl;
+    Console::info("USBWidget") << "found " << devs.size() << " devices" << std::endl << std::endl;
     size_t i = 0;
     for (auto& dev : devs) {
-        Console::out() << std::endl << "#"<< i++ << ":" << std::endl;
+        Console::info("USBWidget") << std::endl << "#"<< i++ << ":" << std::endl;
         UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(dev);
         ui->usbDeviceManager->haveDevice(info);
     }
@@ -33,7 +33,7 @@ USBWidget::USBWidget(QWidget *parent)
     connect(this, &USBWidget::exitWindow, this, [=]() {
         if (m_gt64heWidget)
         {
-            Console::out() << " gt exitWindow" << std::endl;
+            Console::info("USBWidget") << " gt exitWindow" << std::endl;
             delete m_gt64heWidget;
             m_gt64heWidget = nullptr;
         }
@@ -42,14 +42,14 @@ USBWidget::USBWidget(QWidget *parent)
 
 USBWidget::~USBWidget()
 {
-    Console::out() << "USBWidget::~USBWidget()" << std::endl;
+    Console::info("USBWidget") << "~USBWidget()" << std::endl;
     m_ctrl.hotplug_stop(); // 停止热插拔监听
     delete ui;
 }
 
 void USBWidget::closeEvent(QCloseEvent *event)
 {
-    Console::out() << "USBWidget: close event" << std::endl;
+    Console::info("USBWidget") << "closeEvent" << std::endl;
     event->accept();
     emit exitWindow();
     QWidget::closeEvent(event);
@@ -66,7 +66,7 @@ void USBWidget::dev_hotplug_init(void)
     // 启动热插拔监听，注册插入/拔出回调
     bool ok = m_ctrl.hotplug_start(
         [this](usb_ctrl::core::HotplugEvent event, usb_ctrl::core::UsbDevice& device) {
-            Console::out() << std::endl << "USBWidget: 热插拔事件: " << (event == usb_ctrl::core::HotplugEvent::Arrived ? "插入" : "拔出") << std::endl;
+            Console::info("USBWidget") << std::endl << "热插拔事件: " << (event == usb_ctrl::core::HotplugEvent::Arrived ? "插入" : "拔出") << std::endl;
             UsbDeviceInfo info = UsbDeviceInfo::from_usb_device(device);
             if (event == usb_ctrl::core::HotplugEvent::Arrived) {
                 emit sig_dev_insert(info);
@@ -76,13 +76,13 @@ void USBWidget::dev_hotplug_init(void)
         }
     );
     if (!ok) {
-        Console::out() << "Failed to start hotplug listener" << std::endl;
+        Console::error("USBWidget") << "Failed to start hotplug listener" << std::endl;
     }
 }
 
 void USBWidget::openUSBWidget(UsbDeviceInfo &info) {
     if (!info.is_hid) {
-        Console::out() << "USBWidget: skip non-HID device: " << info.to_string() << std::endl;
+        Console::warn("USBWidget") << "skip non-HID device: " << info.to_string() << std::endl;
         return;
     }
     gt64heWidget(info);
@@ -95,7 +95,7 @@ void USBWidget::gt64heWidget(UsbDeviceInfo &info)
 {
     if (m_gt64heWidget == nullptr)
     {
-        Console::out() << "open keyboard Widget" << std::endl;
+        Console::info("USBWidget") << "open keyboard Widget" << std::endl;
         m_gt64heWidget = new GT64HeWidget(info);
         Ui::USBWidget::page_t *pt = ui->addSubWidget(Ui::USBWidget::PAGE_TY_KB, m_gt64heWidget);
         connect(m_gt64heWidget, &GT64HeWidget::exitWidget, this, [=](){
