@@ -311,6 +311,12 @@ void MKeyboardKey::paintEvent(QPaintEvent *event) {
             }
 
             painter.restore();
+        } else if (m_rhythm_active && bg != m_background_color) {
+            // 单LED按键 + 律动中 + 交互状态：先画律动色，再叠加交互色
+            painter.fillPath(inner_path, m_background_color);
+            QColor overlay = bg;
+            overlay.setAlpha(180);
+            painter.fillPath(inner_path, overlay);
         } else {
             // 单色填充
             painter.fillPath(inner_path, bg);

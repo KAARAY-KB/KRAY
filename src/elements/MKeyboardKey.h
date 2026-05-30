@@ -133,6 +133,10 @@ public:
     QColor get_segment_color(int seg) const;
     void clear_segment_colors();
 
+    // 律动状态
+    void set_rhythm_active(bool active) { m_rhythm_active = active; }
+    bool is_rhythm_active() const { return m_rhythm_active; }
+
 private:
     int m_base_w;
     int m_base_h;
@@ -167,6 +171,7 @@ private:
     // 多段颜色（宽按键如空格对应多颗LED）
     int m_light_count = 1;
     QVector<QColor> m_segment_colors;
+    bool m_rhythm_active = false;
 
 
     // 从样式表字符串中提取指定选择器内的属性值

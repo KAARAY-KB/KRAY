@@ -6,27 +6,32 @@ AudioCapture::AudioCapture(QObject *parent)
     : QObject(parent)
     , m_dev_dir(AUDIO_DEV_OUT)
 {
-    // 注册跨线程信号所需的元类型
     qRegisterMetaType<QVector<float>>("QVector<float>");
 
-    // 绑定 AudioCore 回调，桥接到 Qt 信号
-    m_core.on_spectrum([this](const float *data, int len) {
+    // 采集层 → 处理层：原始PCM数据送入处理层
+    m_capture.on_pcm_data([this](const float *data, uint32_t frames, uint32_t rate) {
+        m_process.feed(data, frames, rate);
+    });
+
+    // 处理层 → Qt信号：频谱/波形/能量
+    m_process.on_spectrum([this](const float *data, int len) {
         QVector<float> vec(len);
         memcpy(vec.data(), data, len * sizeof(float));
         emit sig_spectrum(vec);
     });
 
-    m_core.on_waveform([this](const float *data, int len) {
+    m_process.on_waveform([this](const float *data, int len) {
         QVector<float> vec(len);
         memcpy(vec.data(), data, len * sizeof(float));
         emit sig_waveform(vec);
     });
 
-    m_core.on_energy([this](float energy) {
+    m_process.on_energy([this](float energy) {
         emit sig_energy(energy);
     });
 
-    m_core.on_error([this](const char *msg) {
+    // 采集层 → Qt信号：错误
+    m_capture.on_error([this](const char *msg) {
         emit sig_error(QString::fromUtf8(msg));
     });
 }
@@ -54,19 +59,19 @@ QVector<QPair<QString, QString>> AudioCapture::enum_devices(AudioDevDir dir)
 // 启动采集
 bool AudioCapture::start()
 {
-    return m_core.start();
+    return m_capture.start();
 }
 
 // 停止采集
 void AudioCapture::stop()
 {
-    m_core.stop();
+    m_capture.stop();
 }
 
 // 是否正在采集
 bool AudioCapture::is_running() const
 {
-    return m_core.is_running();
+    return m_capture.is_running();
 }
 
 // 设置采集设备 ID 和方向
@@ -74,7 +79,7 @@ void AudioCapture::set_device(const QString &device_id, AudioDevDir dir)
 {
     m_device_id = device_id;
     m_dev_dir = dir;
-    m_core.set_device(device_id.toUtf8().toStdString(), dir);
+    m_capture.set_device(device_id.toUtf8().toStdString(), dir);
 }
 
 // 获取当前设备 ID
@@ -92,21 +97,23 @@ AudioDevDir AudioCapture::dev_dir() const
 // 获取当前波形数据点数
 int AudioCapture::get_waveform_points() const
 {
-    return m_core.get_waveform_points();
+    return m_process.get_waveform_points();
 }
+
 // 设置波形数据点数
 void AudioCapture::set_waveform_points(int points)
 {
-    m_core.set_waveform_points(points);
+    m_process.set_waveform_points(points);
 }
 
 // 获取当前频谱柱子数量
 int AudioCapture::get_bar_count() const
 {
-    return m_core.get_bar_count();
+    return m_process.get_bar_count();
 }
+
 // 设置频谱柱子数量
 void AudioCapture::set_bar_count(int count)
 {
-    m_core.set_bar_count(count);
+    m_process.set_bar_count(count);
 }

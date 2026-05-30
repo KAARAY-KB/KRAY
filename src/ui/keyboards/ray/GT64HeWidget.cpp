@@ -165,6 +165,16 @@ void GT64HeWidget::on_rhythm_btn_clicked()
                 connect(m_music_ref, &MusicRhythmWidget::sig_led_grid,
                         this, &GT64HeWidget::on_led_grid);
                 Console::info("GT64HeWidget") << "rhythm connected" << std::endl;
+                // 标记所有按键进入律动模式，多LED按键重新设置分段数
+                int idx2 = 0;
+                ui->keyboard->layout->m_panel->getAllKeyNum([this, &idx2](MKeyboardKey *key, void *) {
+                    key->set_rhythm_active(true);
+                    int light_cnt = (idx2 < m_key_light_count.size()) ? m_key_light_count[idx2] : 1;
+                    if (light_cnt > 1) {
+                        key->set_light_count(light_cnt);
+                    }
+                    idx2++;
+                }, nullptr);
                 return;
             }
         }
@@ -184,6 +194,8 @@ void GT64HeWidget::on_rhythm_btn_clicked()
         ui->keyboard->layout->m_panel->getAllKeyNum([this, &idx](MKeyboardKey *key, void *user) {
             GT64HeWidget *self = (GT64HeWidget *)user;
             if (idx < self->m_key_base_color.size()) {
+                // 退出律动模式
+                key->set_rhythm_active(false);
                 // 多LED按键清除段颜色，恢复单色模式
                 if (self->m_key_light_count[idx] > 1) {
                     key->clear_segment_colors();

@@ -1,14 +1,15 @@
 #ifndef AUDIO_CORE_H
 #define AUDIO_CORE_H
 
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <functional>
-#include <thread>
-#include <atomic>
 #include <mutex>
+#include <atomic>
 
 #include "miniaudio.h"
+
 
 // 音频设备方向
 enum AudioDevDir {
@@ -23,18 +24,13 @@ struct AudioDevInfo {
     AudioDevDir dir;    // 设备方向
 };
 
-// 频谱数据回调：数据指针 + 长度
-using SpectrumCb = std::function<void(const float*, int)>;
-// 波形数据回调：数据指针 + 长度
-using WaveformCb = std::function<void(const float*, int)>;
-// 能量数据回调
-using EnergyCb = std::function<void(float)>;
+// 原始PCM数据回调：采样数据指针 + 帧数 + 采样率
+using PcmDataCb = std::function<void(const float*, uint32_t, uint32_t)>;
 // 错误信息回调
-using ErrorCb = std::function<void(const char*)>;
+using CaptureErrorCb = std::function<void(const char*)>;
 
-// 纯 C++ 音频采集核心，不依赖 Qt
-// 底层使用 miniaudio 跨平台库，一套代码兼容 Windows/Linux/macOS
-// 通过回调函数输出频谱、波形、能量数据
+// 音频采集层：设备枚举、miniaudio 管理、原始PCM数据输出
+// 不做FFT/频谱/能量计算，只负责采集
 class AudioCore
 {
 public:
@@ -53,23 +49,14 @@ public:
     void stop();
     // 是否正在采集
     bool is_running() const;
-
-    // 设置频谱回调
-    void on_spectrum(SpectrumCb cb);
-    // 设置波形回调
-    void on_waveform(WaveformCb cb);
-    // 设置能量回调
-    void on_energy(EnergyCb cb);
+    // 获取实际采样率（启动后为设备实际值，启动前为请求值）
+    uint32_t get_sample_rate() const;
+    // 设置请求采样率（仅在启动前有效，启动后由设备决定）
+    void set_sample_rate(uint32_t rate);
+    // 设置原始PCM数据回调
+    void on_pcm_data(PcmDataCb cb);
     // 设置错误回调
-    void on_error(ErrorCb cb);
-    // 获取波形数据点数
-    uint32_t get_waveform_points() const;
-    // 设置波形数据点数
-    void set_waveform_points(uint32_t points);
-    // 获取频谱柱子数量
-    uint32_t get_bar_count() const;
-    // 设置频谱柱子数量
-    void set_bar_count(uint32_t count);
+    void on_error(CaptureErrorCb cb);
 
 private:
     // miniaudio 数据回调（静态，转发到成员方法）
@@ -78,11 +65,6 @@ private:
     // miniaudio 数据回调处理
     void on_ma_data(const float *samples, ma_uint32 frame_count);
 
-    // 处理音频数据：FFT + 波形 + 能量
-    void process_audio(const float *samples, uint32_t frame_count);
-    // 基2 Cooley-Tukey FFT
-    void fft(std::vector<float> &real, std::vector<float> &imag);
-
     ma_context m_ma_ctx;            // miniaudio 上下文
     ma_device m_ma_dev;             // miniaudio 设备
     bool m_ma_ctx_init;             // 上下文是否已初始化
@@ -90,17 +72,15 @@ private:
 
     std::mutex m_cb_mutex;          // 回调互斥锁
     std::atomic<bool> m_running;    // 运行标志
-    uint32_t m_waveform_points;     // 波形数据点数
-    uint32_t m_bar_count;           // 频谱柱子数量
-    uint32_t m_fft_size;            // FFT 大小
-    uint32_t m_sample_rate;         // 采样率
+    uint32_t m_sample_rate;         // 实际采样率（启动后由设备决定）
+    uint32_t m_req_sample_rate;     // 请求采样率（启动前用户设置）
+    uint8_t m_channels;             // 通道数
+    ma_format m_sample_fmt;         // 采样格式
     std::string m_device_id;        // 指定设备 ID
     AudioDevDir m_dev_dir;          // 设备方向
 
-    SpectrumCb m_spectrum_cb;       // 频谱回调
-    WaveformCb m_waveform_cb;       // 波形回调
-    EnergyCb m_energy_cb;           // 能量回调
-    ErrorCb m_error_cb;             // 错误回调
+    PcmDataCb m_pcm_cb = nullptr;            // 原始PCM数据回调
+    CaptureErrorCb m_error_cb = nullptr;      // 错误回调
 };
 
 #endif // AUDIO_CORE_H

@@ -1,8 +1,10 @@
 add_subdirectory(core)
+add_subdirectory(middlewares)
 add_subdirectory(utils)
 add_subdirectory(console)
-add_subdirectory(protocol)
-add_subdirectory(middlewares)
+add_subdirectory(audio)
 add_subdirectory(usb_controller)
+
+add_subdirectory(protocol)
 add_subdirectory(ui)
 add_subdirectory(elements)

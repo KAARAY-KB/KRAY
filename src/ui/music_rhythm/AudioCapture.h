@@ -6,9 +6,10 @@
 #include <QString>
 
 #include "AudioCore.h"
+#include "AudioProcess.h"
 
 // Qt 音频采集包装层
-// 桥接纯 C++ AudioCore 和 Qt 信号槽机制
+// 桥接采集层(AudioCore) + 处理层(AudioProcess) 和 Qt 信号槽机制
 class AudioCapture : public QObject
 {
     Q_OBJECT
@@ -53,9 +54,10 @@ signals:
     void sig_error(const QString &msg);
 
 private:
-    AudioCore m_core;       // 纯 C++ 采集核心
-    QString m_device_id;    // 当前设备 ID
-    AudioDevDir m_dev_dir;  // 当前设备方向
+    AudioCore m_capture;         // 采集层
+    AudioProcess m_process;      // 处理层
+    QString m_device_id;         // 当前设备 ID
+    AudioDevDir m_dev_dir;       // 当前设备方向
 };
 
 #endif // AUDIO_CAPTURE_H

@@ -1,6 +1,6 @@
 include(../../../cmake/helpers.cmake)
 
-set(SUB_NAME music_rhythm)
+set(SUB_NAME audio_process)
 
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
     *.cpp
@@ -13,10 +13,6 @@ add_library(${SUB_NAME}
 
 target_link_libraries(${SUB_NAME} PUBLIC
     console
-    audio_core
-    audio_process
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Core
 )
 
 target_include_directories(${SUB_NAME} PUBLIC
