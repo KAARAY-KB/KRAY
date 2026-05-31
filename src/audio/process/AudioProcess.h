@@ -42,6 +42,13 @@ public:
     // 设置FFT大小
     void set_fft_size(uint32_t size);
 
+    // 设置频谱加权曲线：weights[i] 对应第 i 个频谱柱的权重
+    // 传入空向量则使用默认加权（低频弱、高频强）
+    void set_spectrum_weights(const std::vector<float> &weights);
+    // 设置频谱方向控制：dirs[i] = 1.0 正向, -1.0 反向
+    // 传入空向量则全部正向
+    void set_spectrum_dirs(const std::vector<float> &dirs);
+
     // 设置频谱回调
     void on_spectrum(SpectrumCb cb);
     // 设置波形回调

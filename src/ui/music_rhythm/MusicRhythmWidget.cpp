@@ -469,7 +469,7 @@ void MusicRhythmWidget::draw_spectrum(QPainter &painter, const QRect &rect)
     float gap = qMax(1.0f, bar_w * 0.15f);
     float draw_w = bar_w - gap;
 
-#if 0
+#if 1
     // 频谱自动增益（复用LED的自动增益）
     float gain = m_spec_gain * m_auto_gain;
 #else

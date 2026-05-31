@@ -1,5 +1,6 @@
 set(SUB_NAME libusb)
 
+set(LIBUSB_DLL          )
 set(LIBUSB_LIBRARIES    )
 set(LIBUSB_INCLUDE_DIRS )
 
@@ -9,9 +10,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64位编译器
         list(APPEND LIBUSB_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/MinGW64/static/libusb-1.0.a)
+        set(LIBUSB_DLL ${CMAKE_CURRENT_SOURCE_DIR}/MinGW64/dll/libusb-1.0.dll)
     else()
         # 32位编译器
         list(APPEND LIBUSB_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/MinGW32/static/libusb-1.0.a)
+        set(LIBUSB_DLL ${CMAKE_CURRENT_SOURCE_DIR}/MinGW32/dll/libusb-1.0.dll)
     endif()
     list(APPEND LIBUSB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -37,7 +40,10 @@ target_include_directories(${SUB_NAME} INTERFACE ${LIBUSB_INCLUDE_DIRS})
 target_link_libraries(${SUB_NAME} INTERFACE ${LIBUSB_LIBRARIES})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(${SUB_NAME} INTERFACE setupapi winusb)
+    target_link_libraries(${SUB_NAME} INTERFACE 
+        setupapi # Windows API for device setup
+        winusb   # Windows API for USB device access
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Threads REQUIRED)
     target_link_libraries(${SUB_NAME} INTERFACE 
@@ -50,3 +56,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         "-framework CoreFoundation"  # Core Foundation
     )
 endif()
+
+# # Windows: 运行时需要 dll，复制到输出目录
+# if(WIN32 AND EXISTS "${LIBUSB_DLL}")
+#     add_custom_command(TARGET ${SUB_NAME} POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#             "${LIBUSB_DLL}"
+#             "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin/"
+#         COMMENT "Copying LIBUSB DLL to output directory"
+#     )
+# endif()

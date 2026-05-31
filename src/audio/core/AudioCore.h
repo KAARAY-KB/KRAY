@@ -53,6 +53,10 @@ public:
     uint32_t get_sample_rate() const;
     // 设置请求采样率（仅在启动前有效，启动后由设备决定）
     void set_sample_rate(uint32_t rate);
+    // 设置音量（0.0~1.0），在PCM回调中做软件音量调节
+    void set_volume(float volume);
+    // 获取音量
+    float get_volume() const;
     // 设置原始PCM数据回调
     void on_pcm_data(PcmDataCb cb);
     // 设置错误回调
@@ -74,6 +78,7 @@ private:
     std::atomic<bool> m_running;    // 运行标志
     uint32_t m_sample_rate;         // 实际采样率（启动后由设备决定）
     uint32_t m_req_sample_rate;     // 请求采样率（启动前用户设置）
+    std::atomic<float> m_volume;   // 音量（0.0~1.0）
     uint8_t m_channels;             // 通道数
     ma_format m_sample_fmt;         // 采样格式
     std::string m_device_id;        // 指定设备 ID

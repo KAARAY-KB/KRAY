@@ -71,6 +71,18 @@ void AudioProcess::set_fft_size(uint32_t size)
     m_spectrum.set_fft_size(size);
 }
 
+// 设置频谱加权曲线
+void AudioProcess::set_spectrum_weights(const std::vector<float> &weights)
+{
+    m_spectrum.set_weights(weights);
+}
+
+// 设置频谱方向控制
+void AudioProcess::set_spectrum_dirs(const std::vector<float> &dirs)
+{
+    m_spectrum.set_dirs(dirs);
+}
+
 // 设置频谱回调
 void AudioProcess::on_spectrum(SpectrumCb cb)
 {

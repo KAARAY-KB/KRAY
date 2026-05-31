@@ -11,6 +11,7 @@ AudioCore::AudioCore()
     , m_sample_fmt(ma_format_f32)
     , m_sample_rate(0)
     , m_req_sample_rate(ma_standard_sample_rate_48000)
+    , m_volume(1.0f)
     , m_dev_dir(AUDIO_DEV_OUT)
 {
     std::memset(&m_ma_ctx, 0, sizeof(m_ma_ctx));
@@ -33,6 +34,20 @@ uint32_t AudioCore::get_sample_rate() const
 void AudioCore::set_sample_rate(uint32_t rate)
 {
     m_req_sample_rate = rate;
+}
+
+// 设置音量（0.0~1.0）
+void AudioCore::set_volume(float volume)
+{
+    if (volume < 0.0f) volume = 0.0f;
+    if (volume > 1.0f) volume = 1.0f;
+    m_volume = volume;
+}
+
+// 获取音量
+float AudioCore::get_volume() const
+{
+    return m_volume;
 }
 
 // 枚举指定方向的音频设备
@@ -229,6 +244,18 @@ void AudioCore::ma_data_callback(ma_device *pDevice, void *pOutput,
 // miniaudio 数据回调处理
 void AudioCore::on_ma_data(const float *samples, ma_uint32 frame_count)
 {
+    float vol = m_volume;
+    // 音量为1.0时直接传原始数据，避免不必要的拷贝
+    if (vol >= 1.0f) {
+        std::lock_guard<std::mutex> lock(m_cb_mutex);
+        if (m_pcm_cb) m_pcm_cb(samples, frame_count, m_sample_rate);
+        return;
+    }
+    // 音量不为1.0时，做软件音量调节
+    std::vector<float> buf(frame_count);
+    for (ma_uint32 i = 0; i < frame_count; i++) {
+        buf[i] = samples[i] * vol;
+    }
     std::lock_guard<std::mutex> lock(m_cb_mutex);
-    if (m_pcm_cb) m_pcm_cb(samples, frame_count, m_sample_rate);
+    if (m_pcm_cb) m_pcm_cb(buf.data(), frame_count, m_sample_rate);
 }

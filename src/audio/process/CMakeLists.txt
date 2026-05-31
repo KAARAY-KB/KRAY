@@ -13,6 +13,7 @@ add_library(${SUB_NAME}
 
 target_link_libraries(${SUB_NAME} PUBLIC
     console
+    audio_fft
 )
 
 target_include_directories(${SUB_NAME} PUBLIC

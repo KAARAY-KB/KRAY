@@ -35,7 +35,7 @@ set_target_properties(${SUB_NAME} PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-# 链接依赖（仅 libusb，无 Qt）
+# 链接依赖
 target_link_libraries(${SUB_NAME} PUBLIC
     libusb
 )

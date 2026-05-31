@@ -2,8 +2,10 @@
 #define AUDIO_FFT_H
 
 #include <vector>
+#include <cstdint>
 
-// FFT 变换：基2 Cooley-Tukey 算法
+// FFT 变换：编译期可选 FFTW3 或自实现基2 Cooley-Tukey
+// 定义 USE_FFTW3 宏启用 FFTW3，否则使用自实现
 // 输入实部和虚部数组（长度必须为2的幂），原地计算
 class AudioFft
 {
