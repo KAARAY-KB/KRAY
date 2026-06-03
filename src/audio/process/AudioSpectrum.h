@@ -3,6 +3,14 @@
 
 #include <vector>
 #include <cstdint>
+/*
+frequency band          frequency range(Hz)                         Descriptions 
+    Bass                    20 - 250                        包含低音基频和泛音，是音乐的基础和厚度感来源 
+    Low-Mid Tom             250 - 500                       人声和多数乐器的基频集中区，影响声音的"温暖感" 
+    Mid Tom                 500 - 2k                        人耳最敏感的区域，人声核心频段，影响清晰度 
+    Hi-Mid Tom              2k - 4k                         人耳感知最强烈的区域，影响声音的"存在感"和"穿透力" 
+    Treble                  4k - 20k                        包含泛音和细节，影响声音的亮度、空气感和空间感  
+*/
 
 // 频谱分析：FFT + 对数分组，输出频谱柱状图数据
 class AudioSpectrum

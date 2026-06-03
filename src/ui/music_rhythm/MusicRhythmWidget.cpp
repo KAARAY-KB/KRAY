@@ -1,5 +1,4 @@
 #include "MusicRhythmWidget.h"
-
 #include <QPainter>
 #include <QPainterPath>
 #include <QLinearGradient>
@@ -12,7 +11,7 @@
 #include <Windows.h>
 #endif
 
-#define FFS 60
+#define FFS 30
 // 频谱柱数
 static const int BAR_COUNT = 64;
 // 刷新间隔（毫秒）

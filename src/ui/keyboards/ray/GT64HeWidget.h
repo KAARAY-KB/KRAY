@@ -125,6 +125,11 @@ private:
     QVector<int> m_key_light_count;    // 每个按键的LED灯数量
     int m_total_led_count = 0;         // 所有按键LED总数
     LedEffect m_led_effect;            // 灯效算法实例
+
+    // 将律动 LED 颜色通过 USB 下发到 MCU（黑色底色）
+    void send_lamp_to_mcu(const QVector<QColor> &led_colors,
+                          const QVector<float> &led_brightness,
+                          const QVector<QColor> &led_base_colors);
 };
 
 #endif // GT64HEWIDGET_H

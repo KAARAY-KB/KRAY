@@ -308,4 +308,94 @@ void GT64HeWidget::on_led_grid(const QVector<float> &data)
         led_offset += light_cnt;
         key_idx++;
     }, this);
+
+    // 将律动 LED 颜色下发到 MCU
+    send_lamp_to_mcu(led_colors, led_brightness, led_base_colors);
+}
+
+// 将律动 LED 颜色通过 USB 下发到 MCU
+// MCU 使用黑色底色：mcu_color = led_color - base * (1 - brightness/100)
+// 当 brightness=0 时 mcu_color=黑，brightness=100 时 mcu_color=灯效色
+void GT64HeWidget::send_lamp_to_mcu(const QVector<QColor> &led_colors,
+                                     const QVector<float> &led_brightness,
+                                     const QVector<QColor> &led_base_colors)
+{
+    if (!device || !device->is_open()) return;
+
+    const int MCU_LED_COUNT = 66;
+
+    // 构建 grid(x,y) → MCU颜色 的映射（黑色底色）
+    QColor grid_mcu[16][5];
+    memset(grid_mcu, 0, sizeof(grid_mcu));
+
+    int led_offset = 0;
+    int key_idx = 0;
+    ui->keyboard->layout->m_panel->getAllKeyNum([this, &led_colors, &led_brightness, &led_base_colors, &led_offset, &key_idx, &grid_mcu](MKeyboardKey *key, void *) {
+        int id = key->getId();
+        int light_cnt = m_key_light_count[key_idx];
+        for (int seg = 0; seg < light_cnt; seg++) {
+            int x = device->light_msg[id].pos[seg].x;
+            int y = device->light_msg[id].pos[seg].y;
+            if (x < 16 && y < 5) {
+                float b = (led_offset + seg < led_brightness.size()) ? led_brightness[led_offset + seg] : 0.0f;
+                // 亮度低于阈值直接输出黑色，消除余辉残留小白点
+                if (b < 5.0f) {
+                    grid_mcu[x][y] = QColor(0, 0, 0);
+                } else {
+                    // mcu_color = led_color - base * (1 - brightness/100)
+                    QColor base = (led_offset + seg < led_base_colors.size()) ? led_base_colors[led_offset + seg] : QColor(0,0,0);
+                    QColor led  = led_colors[led_offset + seg];
+                    float scale = 1.0f - b / 100.0f;
+                    int r = qMax(0, led.red()   - (int)(base.red()   * scale));
+                    int g = qMax(0, led.green() - (int)(base.green() * scale));
+                    int bl= qMax(0, led.blue()  - (int)(base.blue()  * scale));
+                    grid_mcu[x][y] = QColor(r, g, bl);
+                }
+            }
+        }
+        led_offset += light_cnt;
+        key_idx++;
+    }, nullptr);
+
+    // 按 MCU 蛇形走线映射，将 grid 颜色填入物理 LED 顺序
+    std::vector<uint8_t> buf(GT64HeDevice::EP_SIZE, 0);
+
+    static uint8_t seq = 0;
+    buf[0] = 0xAA;
+    buf[1] = seq++;
+    buf[2] = 0;
+    buf[3] = (uint8_t)MCU_LED_COUNT;
+
+    // 辅助宏：将 QColor 写入 buf 的指定 LED 位置
+    #define SET_LED(idx, color) do { \
+        int _off = 4 + (idx) * 3; \
+        buf[_off]     = (uint8_t)(color).red(); \
+        buf[_off + 1] = (uint8_t)(color).green(); \
+        buf[_off + 2] = (uint8_t)(color).blue(); \
+    } while(0)
+
+    // 行0 (y=4): LED 0~13, grid(x,4) 正序
+    for (int c = 0; c < 14; c++) {
+        SET_LED(c, grid_mcu[c][4]);
+    }
+    // 行1 (y=3): LED 27~14, grid(x,3) 反序
+    for (int c = 0; c < 14; c++) {
+        SET_LED(27 - c, grid_mcu[c][3]);
+    }
+    // 行2 (y=2): LED 28~40, grid(x,2) 正序
+    for (int c = 0; c < 13; c++) {
+        SET_LED(28 + c, grid_mcu[c][2]);
+    }
+    // 行3 (y=1): LED 52~41, grid(x,1) 反序
+    for (int c = 0; c < 12; c++) {
+        SET_LED(52 - c, grid_mcu[c][1]);
+    }
+    // 行4 (y=0): LED 53~65, grid(x,0) 正序
+    for (int c = 0; c < 13; c++) {
+        SET_LED(53 + c, grid_mcu[c][0]);
+    }
+
+    #undef SET_LED
+
+    device->write_async(buf);
 }
