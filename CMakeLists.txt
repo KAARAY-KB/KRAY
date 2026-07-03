@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # 定义项目名称、版本和使用的编程语言
-project(KRAY VERSION 0.1 LANGUAGES CXX)
+project("RAY_CC" VERSION 0.1 LANGUAGES CXX)
 
 # AUTOUIC: 自动生成UI代码（从.ui文件生成C++代码）
 set(CMAKE_AUTOUIC ON)

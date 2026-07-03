@@ -191,7 +191,7 @@ private:
 protected:
     void paintEvent(QPaintEvent *event) override;
     // 鼠标进入/离开时触发重绘，更新 hover 状态
-    void enterEvent(QEvent *event) override { update(); QPushButton::enterEvent(event); }
+    void enterEvent(QEnterEvent *event) override { update(); QPushButton::enterEvent(event); }
     void leaveEvent(QEvent *event) override { update(); QPushButton::leaveEvent(event); }
 signals:
     // void stateChanged(int idx, bool checked);

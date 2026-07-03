@@ -34,7 +34,7 @@ protected:
     // 点击卡片发射进入信号
     void mousePressEvent(QMouseEvent *event) override;
     // 悬停时显示手型光标
-    void enterEvent(QEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
     void leaveEvent(QEvent *event) override;
 };
 

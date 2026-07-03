@@ -43,7 +43,7 @@ void USBDeviceSubWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 // 鼠标进入时高亮边框
-void USBDeviceSubWidget::enterEvent(QEvent *event) {
+void USBDeviceSubWidget::enterEvent(QEnterEvent *event) {
     setFrameStyle(QFrame::Box | QFrame::Plain);
     setLineWidth(2);
     QFrame::enterEvent(event);

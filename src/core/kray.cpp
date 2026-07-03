@@ -9,7 +9,7 @@ Kray::Kray(QWidget *parent)
     , ui(new Ui::Kray)
 {
     ui->setupUi(this);
-    setWindowTitle("KRAY");
+    setWindowTitle("RAY CC");
     setWindowIcon(QIcon(":/images/pixel_pizza.png"));
 
     // 创建控制台窗口并注册为日志 sink（与 Kray 同生命周期）
